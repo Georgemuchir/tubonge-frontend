@@ -36,29 +36,31 @@ const ConversationList = () => {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Messages</h2>
-          <button
-            onClick={() => setShowUserSearch(true)}
-            className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
-            title="Start new conversation"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white sticky top-0 z-10">
+        <div className="flex items-center">
+          <h1 className="text-xl font-semibold text-gray-900">{user?.name || 'Messages'}</h1>
         </div>
+        <button 
+          onClick={() => setShowUserSearch(true)}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          title="New message"
+        >
+          <Plus className="w-6 h-6 text-gray-700" />
+        </button>
+      </div>
 
-        {/* Search */}
+      {/* Search Bar */}
+      <div className="px-4 py-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search conversations..."
+            placeholder="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="w-full pl-9 pr-4 py-2 bg-gray-100 border-0 rounded-lg text-sm focus:outline-none focus:bg-gray-200 transition-all"
           />
         </div>
       </div>
@@ -89,15 +91,15 @@ const ConversationList = () => {
               <div
                 key={conversation.id}
                 onClick={() => setActiveConversation(conversation)}
-                className={`flex items-center p-4 cursor-pointer transition-colors ${
+                className={`flex items-center px-4 py-3 cursor-pointer transition-colors ${
                   isActive 
-                    ? 'bg-blue-50 border-r-2 border-blue-500' 
-                    : 'hover:bg-gray-50'
+                    ? 'bg-gray-100' 
+                    : 'hover:bg-gray-50 active:bg-gray-100'
                 }`}
               >
                 {/* Avatar */}
                 <div className="flex-shrink-0 relative">
-                  <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                  <div className="w-14 h-14 bg-gradient-to-br from-purple-400 via-pink-400 to-red-400 rounded-full flex items-center justify-center ring-2 ring-gray-200">
                     {otherParticipant.avatar ? (
                       <img 
                         src={otherParticipant.avatar} 
@@ -105,37 +107,38 @@ const ConversationList = () => {
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     ) : (
-                      <span className="text-white font-medium">
+                      <span className="text-white font-semibold text-lg">
                         {otherParticipant.name?.charAt(0)?.toUpperCase() || '?'}
                       </span>
                     )}
                   </div>
                   {otherParticipant.status === 'online' && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
                   )}
                 </div>
 
                 {/* Content */}
                 <div className="ml-3 flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900 truncate">
-                      {otherParticipant.name || 'Unknown User'}
-                    </h3>
-                    <span className="text-xs text-gray-500">
-                      {formatTime(conversation.last_message?.timestamp)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-sm text-gray-500 truncate">
-                      {conversation.last_message?.content || 'No messages yet'}
-                    </p>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 truncate text-sm">
+                        {otherParticipant.name || 'Unknown User'}
+                      </h3>
+                      <p className="text-sm text-gray-500 truncate mt-1">
+                        {conversation.last_message?.content || 'Say hello! 👋'}
+                      </p>
+                    </div>
                     
-                    {conversation.unread_count > 0 && (
-                      <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                        {conversation.unread_count}
+                    <div className="flex flex-col items-end ml-2">
+                      <span className="text-xs text-gray-400">
+                        {formatTime(conversation.last_message?.timestamp)}
                       </span>
-                    )}
+                      {conversation.unread_count > 0 && (
+                        <div className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mt-1">
+                          {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
