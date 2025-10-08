@@ -9,12 +9,23 @@ const ConversationList = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserSearch, setShowUserSearch] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all');
 
   const filteredConversations = conversations.filter(conversation => {
-    if (!searchTerm) return true;
+    // Apply search filter
+    if (searchTerm) {
+      const otherParticipant = conversation.participants?.find(p => p.id !== user?.id);
+      if (!otherParticipant?.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+    }
     
-    const otherParticipant = conversation.participants?.find(p => p.id !== user?.id);
-    return otherParticipant?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    // Apply tab filter
+    if (activeFilter === 'unread') {
+      return conversation.unread_count > 0;
+    }
+    
+    return true; // 'all' filter
   });
 
   const formatTime = (timestamp) => {
@@ -36,51 +47,56 @@ const ConversationList = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div className="flex items-center">
-          <h1 className="text-xl font-semibold text-gray-900">{user?.name || 'Messages'}</h1>
-        </div>
-        <button 
-          onClick={() => setShowUserSearch(true)}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          title="New message"
-        >
-          <Plus className="w-6 h-6 text-gray-700" />
-        </button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="px-4 py-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search"
+    <>
+      {/* Sidebar Header */}
+      <div className="nexus-sidebar-header">
+        <h1 className="nexus-app-title">Nexus Chat</h1>
+        <div className="nexus-search-bar">
+          <span className="nexus-search-icon">🔍</span>
+          <input 
+            type="text" 
+            className="nexus-search-input" 
+            placeholder="Search conversations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-gray-100 border-0 rounded-lg text-sm focus:outline-none focus:bg-gray-200 transition-all"
           />
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
+          <button 
+            onClick={() => setShowUserSearch(true)}
+            className="nexus-new-chat-btn"
+            title="Start new conversation"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Chat</span>
+          </button>
+          
+          <div className="nexus-chat-filters">
+            <div 
+              className={`nexus-filter-tab ${activeFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('all')}
+            >
+              All Chats
+            </div>
+            <div 
+              className={`nexus-filter-tab ${activeFilter === 'unread' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('unread')}
+            >
+              Unread
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="nexus-conversations-list">
         {filteredConversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <MessageCircle className="w-12 h-12 text-gray-300 mb-4" />
-            <p className="text-gray-500 text-center">
+          <div className="nexus-empty-state">
+            <div className="nexus-empty-icon">💬</div>
+            <div className="nexus-empty-text">
               {searchTerm ? 'No conversations found' : 'No conversations yet'}
-            </p>
-            {!searchTerm && (
-              <button
-                onClick={() => setShowUserSearch(true)}
-                className="mt-2 text-blue-500 hover:text-blue-600 font-medium"
-              >
-                Start a conversation
-              </button>
-            )}
+            </div>
           </div>
         ) : (
           filteredConversations.map((conversation) => {
@@ -91,58 +107,46 @@ const ConversationList = () => {
               <div
                 key={conversation.id}
                 onClick={() => setActiveConversation(conversation)}
-                className={`flex items-center px-4 py-3 cursor-pointer transition-colors ${
-                  isActive 
-                    ? 'bg-gray-100' 
-                    : 'hover:bg-gray-50 active:bg-gray-100'
+                className={`nexus-conversation-item ${isActive ? 'active' : ''} ${
+                  conversation.unread_count > 0 ? 'unread' : ''
                 }`}
               >
                 {/* Avatar */}
-                <div className="flex-shrink-0 relative">
-                  <div className="w-14 h-14 bg-gradient-to-br from-purple-400 via-pink-400 to-red-400 rounded-full flex items-center justify-center ring-2 ring-gray-200">
-                    {otherParticipant.avatar ? (
-                      <img 
-                        src={otherParticipant.avatar} 
-                        alt={otherParticipant.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-white font-semibold text-lg">
-                        {otherParticipant.name?.charAt(0)?.toUpperCase() || '?'}
-                      </span>
-                    )}
-                  </div>
-                  {otherParticipant.status === 'online' && (
-                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                <div className="nexus-conversation-avatar">
+                  {otherParticipant.avatar ? (
+                    <img 
+                      src={otherParticipant.avatar} 
+                      alt={otherParticipant.name}
+                      className="w-full h-full rounded-[16px] object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-semibold text-lg">
+                      {otherParticipant.name?.charAt(0)?.toUpperCase() || '?'}
+                    </span>
                   )}
+                  <span className={`nexus-status-dot ${otherParticipant.status || 'offline'}`}></span>
                 </div>
 
-                {/* Content */}
-                <div className="ml-3 flex-1 min-w-0">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate text-sm">
-                        {otherParticipant.name || 'Unknown User'}
-                      </h3>
-                      {otherParticipant.username && (
-                        <p className="text-xs text-blue-600 truncate">@{otherParticipant.username}</p>
-                      )}
-                      <p className="text-sm text-gray-500 truncate mt-1">
-                        {conversation.last_message?.content || 'Say hello! 👋'}
-                      </p>
-                    </div>
-                    
-                    <div className="flex flex-col items-end ml-2">
-                      <span className="text-xs text-gray-400">
-                        {formatTime(conversation.last_message?.timestamp)}
-                      </span>
-                      {conversation.unread_count > 0 && (
-                        <div className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mt-1">
-                          {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
-                        </div>
-                      )}
-                    </div>
+                {/* Conversation Info */}
+                <div className="nexus-conversation-info">
+                  <div className="nexus-conversation-name">
+                    {otherParticipant.name || 'Unknown User'}
                   </div>
+                  <div className="nexus-conversation-preview">
+                    {conversation.last_message?.content || 'Say hello! 👋'}
+                  </div>
+                </div>
+                
+                {/* Meta */}
+                <div className="nexus-conversation-meta">
+                  <div className="nexus-conversation-time">
+                    {formatTime(conversation.last_message?.timestamp)}
+                  </div>
+                  {conversation.unread_count > 0 && (
+                    <div className="nexus-unread-count">
+                      {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -160,7 +164,7 @@ const ConversationList = () => {
           }}
         />
       )}
-    </div>
+    </>
   );
 };
 

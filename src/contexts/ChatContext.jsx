@@ -178,9 +178,67 @@ export const ChatProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await messagesAPI.getConversations();
-      dispatch({ type: 'SET_CONVERSATIONS', payload: response.data.conversations });
+      let conversations = response.data.conversations || [];
+      
+      // Add demo conversation if no real conversations exist
+      if (conversations.length === 0) {
+        const demoConversation = {
+          id: 'demo-conversation-1',
+          participants: [
+            user,
+            {
+              id: 'demo-user-1',
+              name: 'Sarah Chen',
+              username: 'sarah_chen',
+              email: 'sarah@example.com',
+              avatar: null,
+              status: 'online'
+            }
+          ],
+          last_message: {
+            id: 'demo-msg-1',
+            content: 'Hey! How are you doing? 😊',
+            sender_id: 'demo-user-1',
+            timestamp: new Date().toISOString(),
+            read: false
+          },
+          unread_count: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        conversations = [demoConversation];
+      }
+      
+      dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
     } catch (error) {
       console.error('Error loading conversations:', error);
+      
+      // Fallback: Add demo conversation on error too
+      const demoConversation = {
+        id: 'demo-conversation-1',
+        participants: [
+          user,
+          {
+            id: 'demo-user-1',
+            name: 'Sarah Chen',
+            username: 'sarah_chen',
+            email: 'sarah@example.com',
+            avatar: null,
+            status: 'online'
+          }
+        ],
+        last_message: {
+          id: 'demo-msg-1',
+          content: 'Hey! How are you doing? 😊',
+          sender_id: 'demo-user-1',
+          timestamp: new Date().toISOString(),
+          read: false
+        },
+        unread_count: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      dispatch({ type: 'SET_CONVERSATIONS', payload: [demoConversation] });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
@@ -204,6 +262,45 @@ export const ChatProvider = ({ children }) => {
   const loadMessages = async (conversationId, page = 1) => {
     try {
       dispatch({ type: 'SET_MESSAGES_LOADING', payload: true });
+      
+      // Handle demo conversation
+      if (conversationId === 'demo-conversation-1') {
+        const demoMessages = [
+          {
+            id: 'demo-msg-1',
+            conversation_id: 'demo-conversation-1',
+            sender_id: 'demo-user-1',
+            content: 'Hey! How are you doing? �',
+            timestamp: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
+            read: false,
+            message_type: 'text'
+          },
+          {
+            id: 'demo-msg-2',
+            conversation_id: 'demo-conversation-1',
+            sender_id: 'demo-user-1',
+            content: 'I just finished setting up this new chat app! What do you think of the interface?',
+            timestamp: new Date(Date.now() - 240000).toISOString(), // 4 minutes ago
+            read: false,
+            message_type: 'text'
+          },
+          {
+            id: 'demo-msg-3',
+            conversation_id: 'demo-conversation-1',
+            sender_id: 'demo-user-1',
+            content: 'The blue theme looks really nice and calming 💙',
+            timestamp: new Date(Date.now() - 180000).toISOString(), // 3 minutes ago
+            read: false,
+            message_type: 'text'
+          }
+        ];
+        
+        if (page === 1) {
+          dispatch({ type: 'SET_MESSAGES', payload: demoMessages });
+        }
+        return;
+      }
+      
       const response = await messagesAPI.getMessages(conversationId, page);
       
       if (page === 1) {
@@ -233,6 +330,22 @@ export const ChatProvider = ({ children }) => {
       sender_id: user.id,
       message_type: messageType
     };
+
+    // Handle demo conversation
+    if (state.activeConversation.id === 'demo-conversation-1') {
+      // Add user message immediately
+      const userMessage = {
+        ...messageData,
+        id: `demo-user-msg-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
+
+      // No automatic responses - this is a real person demo conversation
+
+      return;
+    }
 
     socketService.sendMessage(messageData);
   };

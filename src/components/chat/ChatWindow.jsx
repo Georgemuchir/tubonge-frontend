@@ -91,63 +91,45 @@ const ChatWindow = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
-        <div className="flex items-center">
-          {/* Avatar */}
-          <div className="relative">
-            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-              {otherParticipant.avatar ? (
-                <img 
-                  src={otherParticipant.avatar} 
-                  alt={otherParticipant.name}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <span className="text-white font-medium">
-                  {otherParticipant.name?.charAt(0)?.toUpperCase() || '?'}
-                </span>
-              )}
-            </div>
-            {otherParticipant.status === 'online' && (
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+    <>
+      {/* Chat Header */}
+      <div className="nexus-chat-header">
+        <div className="nexus-chat-user-info">
+          <div className="nexus-chat-avatar">
+            {otherParticipant.avatar ? (
+              <img 
+                src={otherParticipant.avatar} 
+                alt={otherParticipant.name}
+                className="w-full h-full rounded-[14px] object-cover"
+              />
+            ) : (
+              <span className="text-white font-medium">
+                {otherParticipant.name?.charAt(0)?.toUpperCase() || '?'}
+              </span>
             )}
           </div>
-
-          {/* Name and Status */}
-          <div className="ml-3">
-            <h3 className="font-medium text-gray-900">
+          <div className="nexus-chat-details">
+            <div className="nexus-chat-name">
               {otherParticipant.name || 'Unknown User'}
-            </h3>
-            {otherParticipant.username && (
-              <p className="text-xs text-blue-600">@{otherParticipant.username}</p>
-            )}
-            <p className="text-sm text-gray-500">
-              {otherParticipant.status === 'online' ? 'Online' : 'Offline'}
-            </p>
+            </div>
+            <div className="nexus-chat-status">
+              {otherParticipant.status === 'online' ? 'Active now' : 'Offline'}
+            </div>
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="flex items-center space-x-2">
-          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-            <Phone className="w-5 h-5" />
-          </button>
-          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-            <Video className="w-5 h-5" />
-          </button>
-          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-            <MoreVertical className="w-5 h-5" />
-          </button>
+        <div className="nexus-chat-actions">
+          <button className="nexus-action-btn">📞</button>
+          <button className="nexus-action-btn">📹</button>
+          <button className="nexus-action-btn">ℹ️</button>
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scrollbar">
+      {/* Messages Container */}
+      <div className="nexus-messages-container">
         {messagesLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="nexus-empty-state">
+            <div className="nexus-empty-icon">⏳</div>
+            <div className="nexus-empty-text">Loading messages...</div>
           </div>
         ) : (
           <>
@@ -173,26 +155,35 @@ const ChatWindow = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="p-4 border-t border-gray-200 bg-white">
-        <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+      {/* Input Area */}
+      <div className="nexus-input-area">
+        <div className="nexus-input-actions">
+          <button className="nexus-input-btn">📎</button>
+        </div>
+        <div className="nexus-message-input-wrapper">
           <input
             type="text"
             value={messageText}
             onChange={handleInputChange}
             placeholder="Type a message..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="nexus-message-input"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(e);
+              }
+            }}
           />
-          <button
-            type="submit"
-            disabled={!messageText.trim()}
-            className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </form>
+        </div>
+        <button
+          onClick={handleSendMessage}
+          disabled={!messageText.trim()}
+          className="nexus-send-btn"
+        >
+          ➤
+        </button>
       </div>
-    </div>
+    </>
   );
 };
 
