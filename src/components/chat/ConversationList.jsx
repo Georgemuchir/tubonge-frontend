@@ -124,6 +124,9 @@ const ConversationList = () => {
                       <h3 className="font-medium text-gray-900 truncate text-sm">
                         {otherParticipant.name || 'Unknown User'}
                       </h3>
+                      {otherParticipant.username && (
+                        <p className="text-xs text-blue-600 truncate">@{otherParticipant.username}</p>
+                      )}
                       <p className="text-sm text-gray-500 truncate mt-1">
                         {conversation.last_message?.content || 'Say hello! 👋'}
                       </p>

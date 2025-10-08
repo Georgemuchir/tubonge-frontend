@@ -120,6 +120,9 @@ const ChatWindow = () => {
             <h3 className="font-medium text-gray-900">
               {otherParticipant.name || 'Unknown User'}
             </h3>
+            {otherParticipant.username && (
+              <p className="text-xs text-blue-600">@{otherParticipant.username}</p>
+            )}
             <p className="text-sm text-gray-500">
               {otherParticipant.status === 'online' ? 'Online' : 'Offline'}
             </p>
