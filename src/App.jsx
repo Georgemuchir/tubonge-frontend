@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
 import Login from './components/Login';
@@ -42,49 +42,68 @@ const PublicRoute = ({ children }) => {
   return isAuthenticated ? <Navigate to="/" /> : children;
 };
 
+// Create router with v7 future flags enabled
+const router = createBrowserRouter(
+  [
+    {
+      path: "/login",
+      element: (
+        <AuthProvider>
+          <div className="App">
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          </div>
+        </AuthProvider>
+      ),
+    },
+    {
+      path: "/register", 
+      element: (
+        <AuthProvider>
+          <div className="App">
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          </div>
+        </AuthProvider>
+      ),
+    },
+    {
+      path: "/",
+      element: (
+        <AuthProvider>
+          <div className="App">
+            <ProtectedRoute>
+              <ChatProvider>
+                <Chat />
+              </ChatProvider>
+            </ProtectedRoute>
+          </div>
+        </AuthProvider>
+      ),
+    },
+    {
+      path: "*",
+      element: (
+        <AuthProvider>
+          <div className="App">
+            <Navigate to="/" />
+          </div>
+        </AuthProvider>
+      ),
+    },
+  ],
+  {
+    future: {
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+    },
+  }
+);
+
 function App() {
-  return (
-    <Router>
-      <AuthProvider>
-        <div className="App">
-          <Routes>
-            {/* Public Routes */}
-            <Route 
-              path="/login" 
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              } 
-            />
-            <Route 
-              path="/register" 
-              element={
-                <PublicRoute>
-                  <Register />
-                </PublicRoute>
-              } 
-            />
-
-            {/* Protected Routes */}
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
-                  <ChatProvider>
-                    <Chat />
-                  </ChatProvider>
-                </ProtectedRoute>
-              } 
-            />
-
-            {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </div>
-      </AuthProvider>
-    </Router>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
