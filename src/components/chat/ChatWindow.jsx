@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Send, Phone, Video, MoreVertical, ArrowLeft } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 
@@ -97,91 +97,135 @@ const ChatWindow = () => {
   }
 
   return (
-    <>
-      {/* Chat Header */}
-      <div className="nexus-chat-header">
-        {/* Back button for mobile */}
-        <button 
+    <div 
+      className="nexus-chat-frame"
+      style={{
+        '--bg': '#0a0f1a',
+        '--headerGlass': 'rgba(255,255,255,0.05)',
+        '--bubbleMe': '#1e293b',
+        '--bubbleOther': '#0b1220',
+        '--accent': '#10b981',
+        '--frameFrom': '#0c1324',
+        '--frameTo': '#0a0f1a',
+      }}
+    >
+      {/* Glass header */}
+      <header className="nexus-modern-header">
+        <button
+          aria-label="Back"
+          className="nexus-back-modern-btn md:hidden"
           onClick={handleBack}
-          className="nexus-back-btn md:hidden"
           title="Back to conversations"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft className="size-5 text-white/90" />
         </button>
         
-        <div className="nexus-chat-user-info">
-          <div className="nexus-chat-avatar">
+        <div className="nexus-user-info-modern">
+          <div className="nexus-avatar-modern">
             {otherParticipant.avatar ? (
               <img 
                 src={otherParticipant.avatar} 
                 alt={otherParticipant.name}
-                className="w-full h-full rounded-[14px] object-cover"
+                className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <span className="text-white font-medium">
+              <span className="text-white font-semibold text-sm">
                 {otherParticipant.name?.charAt(0)?.toUpperCase() || '?'}
               </span>
             )}
           </div>
-          <div className="nexus-chat-details">
-            <div className="nexus-chat-name">
+          <div className="nexus-details-modern">
+            <div className="nexus-name-modern">
               {otherParticipant.name || 'Unknown User'}
             </div>
-            <div className="nexus-chat-status">
+            <div className="nexus-status-modern">
               {otherParticipant.status === 'online' ? 'Active now' : 'Offline'}
             </div>
           </div>
         </div>
-        <div className="nexus-chat-actions">
-          <button className="nexus-action-btn">📞</button>
-          <button className="nexus-action-btn">📹</button>
-          <button className="nexus-action-btn">ℹ️</button>
+        
+        <div className="nexus-actions-modern">
+          <button className="nexus-action-modern-btn" aria-label="Audio call">
+            <Phone className="size-5"/>
+          </button>
+          <button className="nexus-action-modern-btn" aria-label="Video call">
+            <Video className="size-5"/>
+          </button>
+          <button className="nexus-action-modern-btn" aria-label="More">
+            <MoreVertical className="size-5"/>
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* Messages Container */}
-      <div className="nexus-messages-container">
-        {messagesLoading ? (
-          <div className="nexus-empty-state">
-            <div className="nexus-empty-icon">⏳</div>
-            <div className="nexus-empty-text">Loading messages...</div>
-          </div>
-        ) : (
-          <>
-            {messages.map((message, index) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                isOwnMessage={message.sender_id === user?.id}
-                showAvatar={
-                  index === 0 || 
-                  messages[index - 1].sender_id !== message.sender_id
-                }
-                otherParticipant={otherParticipant}
-              />
-            ))}
-            
-            {/* Typing Indicator */}
-            {isOtherUserTyping && (
-              <TypingIndicator user={otherParticipant} />
-            )}
-          </>
-        )}
+      {/* Scrollable chat area */}
+      <main className="nexus-messages-modern">
+        <div className="nexus-messages-content">
+          {messagesLoading ? (
+            <div className="nexus-loading-state">
+              <div className="nexus-loading-icon">⏳</div>
+              <div className="nexus-loading-text">Loading messages...</div>
+            </div>
+          ) : (
+            <>
+              {messages.length === 0 ? (
+                <div className="nexus-empty-chat">
+                  <div className="nexus-empty-icon">💬</div>
+                  <div className="nexus-empty-title">No messages yet</div>
+                  <div className="nexus-empty-subtitle">Start the conversation!</div>
+                </div>
+              ) : (
+                messages.map((message, index) => (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    isOwnMessage={message.sender_id === user?.id}
+                    showAvatar={
+                      index === 0 || 
+                      messages[index - 1].sender_id !== message.sender_id
+                    }
+                    otherParticipant={otherParticipant}
+                  />
+                ))
+              )}
+              
+              {/* Typing Indicator */}
+              {isOtherUserTyping && (
+                <TypingIndicator user={otherParticipant} />
+              )}
+            </>
+          )}
+        </div>
         <div ref={messagesEndRef} />
-      </div>
+      </main>
 
-      {/* Input Area */}
-      <div className="nexus-input-area">
-        <div className="nexus-input-actions">
-          <button className="nexus-input-btn">📎</button>
-        </div>
-        <div className="nexus-message-input-wrapper">
-          <input
-            type="text"
+      {/* Modern Input bar */}
+      <form
+        className="nexus-input-modern"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSendMessage(e);
+        }}
+      >
+        <div className="nexus-input-container-modern">
+          <button 
+            type="button" 
+            className="nexus-attachment-btn" 
+            aria-label="Attach image"
+          >
+            <ImageIcon className="size-5 text-white/80" />
+          </button>
+          
+          <textarea
+            rows={1}
             value={messageText}
             onChange={handleInputChange}
-            placeholder="Type a message..."
-            className="nexus-message-input"
+            placeholder="Type a message…"
+            className="nexus-textarea-modern"
+            onInput={(e) => {
+              const ta = e.currentTarget;
+              ta.style.height = "auto";
+              ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+            }}
             onKeyPress={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -189,16 +233,26 @@ const ChatWindow = () => {
               }
             }}
           />
+          
+          <button 
+            type="button" 
+            className="nexus-voice-btn" 
+            aria-label="Voice message"
+          >
+            <Mic className="size-5 text-white/80" />
+          </button>
+          
+          <button
+            type="submit"
+            disabled={!messageText.trim()}
+            className="nexus-send-modern-btn"
+          >
+            <Send className="size-4" />
+            Send
+          </button>
         </div>
-        <button
-          onClick={handleSendMessage}
-          disabled={!messageText.trim()}
-          className="nexus-send-btn"
-        >
-          ➤
-        </button>
-      </div>
-    </>
+      </form>
+    </div>
   );
 };
 

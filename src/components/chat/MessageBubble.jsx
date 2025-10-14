@@ -9,10 +9,10 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar, otherParticipant }) 
   };
 
   return (
-    <div className={`nexus-message ${isOwnMessage ? 'sent' : 'received'}`}>
-      <div className="nexus-message-bubble">
-        <div className="nexus-message-text">{message.content}</div>
-        <div className="nexus-message-time">{formatTime(message.timestamp)}</div>
+    <div className={`nexus-message-modern ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+      <div className={`nexus-bubble-modern ${isOwnMessage ? 'bubble-me' : 'bubble-other'}`}>
+        <p className="nexus-bubble-text">{message.content}</p>
+        <span className="nexus-bubble-time">{formatTime(message.timestamp)}</span>
       </div>
     </div>
   );

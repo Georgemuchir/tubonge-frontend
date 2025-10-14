@@ -1,8 +1,312 @@
-/* Nexus Chat Styling - Enhanced */
+/* Nexus Chat Styling - Enhanced with Modern Components */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* Modern Chat Frame - Phone-like Interface */
+.nexus-chat-frame {
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg, #0a0f1a);
+    position: relative;
+}
+
+/* Modern Glass Header */
+.nexus-modern-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: var(--headerGlass, rgba(255,255,255,0.05));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Modern Back Button */
+.nexus-back-modern-btn {
+    display: inline-flex;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nexus-back-modern-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.nexus-back-modern-btn:active {
+    transform: scale(0.95);
+}
+
+/* Modern User Info */
+.nexus-user-info-modern {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nexus-avatar-modern {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #38bdf8, #22d3ee);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nexus-details-modern {
+    flex: 1;
+    min-width: 0;
+}
+
+.nexus-name-modern {
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nexus-status-modern {
+    font-size: 11px;
+    color: #10b981;
+    margin-top: 1px;
+}
+
+/* Modern Action Buttons */
+.nexus-actions-modern {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nexus-action-modern-btn {
+    padding: 8px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nexus-action-modern-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Modern Messages Container */
+.nexus-messages-modern {
+    flex: 1;
+    padding: 8px 12px 96px 12px;
+    height: calc(100% - 120px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.nexus-messages-modern::-webkit-scrollbar {
+    display: none;
+}
+
+.nexus-messages-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Modern Loading/Empty States */
+.nexus-loading-state,
+.nexus-empty-chat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    min-height: 200px;
+}
+
+.nexus-loading-icon,
+.nexus-empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.7;
+}
+
+.nexus-loading-text,
+.nexus-empty-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.nexus-empty-subtitle {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Modern Input Area */
+.nexus-input-modern {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: 12px 12px 16px 12px;
+    background: linear-gradient(to top, 
+        var(--frameTo, #0a0f1a) 0%, 
+        color-mix(in oklab, var(--frameTo, #0a0f1a) 90%, transparent) 50%,
+        transparent 100%
+    );
+}
+
+.nexus-input-container-modern {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 16px;
+    background: var(--bubbleOther, #0b1220);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nexus-attachment-btn,
+.nexus-voice-btn {
+    padding: 8px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nexus-attachment-btn:hover,
+.nexus-voice-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nexus-textarea-modern {
+    flex: 1;
+    min-height: 36px;
+    max-height: 112px;
+    resize: none;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: white;
+    padding: 8px 4px;
+    line-height: 1.4;
+}
+
+.nexus-textarea-modern::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.nexus-send-modern-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: none;
+    background: var(--accent, #10b981);
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.nexus-send-modern-btn:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.nexus-send-modern-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Modern Message Bubbles */
+.nexus-message-modern {
+    width: 100%;
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.nexus-message-modern.justify-end {
+    justify-content: flex-end;
+}
+
+.nexus-message-modern.justify-start {
+    justify-content: flex-start;
+}
+
+.nexus-bubble-modern {
+    position: relative;
+    max-width: 78%;
+    border-radius: 16px;
+    padding: 12px 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.nexus-bubble-modern.bubble-me {
+    background: var(--bubbleMe, #1e293b);
+    color: white;
+    border-top-right-radius: 4px;
+}
+
+.nexus-bubble-modern.bubble-other {
+    background: var(--bubbleOther, #0b1220);
+    color: rgba(226, 232, 240, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-top-left-radius: 4px;
+}
+
+.nexus-bubble-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.nexus-bubble-time {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    opacity: 0.6;
+    user-select: none;
 }
 
 body {
@@ -901,7 +1205,7 @@ body {
     opacity: 0.7;
 }
 
-/* COMPREHENSIVE MOBILE-FIRST RESPONSIVE DESIGN */
+/* MODERN MOBILE RESPONSIVE DESIGN */
 @media (max-width: 768px) {
     /* === CORE LAYOUT FIXES === */
     html, body {
@@ -917,6 +1221,84 @@ body {
         -webkit-user-select: none !important;
         user-select: none !important;
     }
+
+    /* Modern Chat Frame Mobile */
+    .nexus-chat-frame {
+        height: 100vh !important;
+        height: 100dvh !important;
+        width: 100vw !important;
+        padding-top: env(safe-area-inset-top, 0px) !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+        padding-left: env(safe-area-inset-left, 0px) !important;
+        padding-right: env(safe-area-inset-right, 0px) !important;
+    }
+
+    /* Modern Header Mobile */
+    .nexus-modern-header {
+        padding: 12px 16px !important;
+        padding-top: calc(12px + env(safe-area-inset-top, 0px)) !important;
+        min-height: 64px !important;
+    }
+
+    .nexus-back-modern-btn {
+        display: inline-flex !important; /* Always show on mobile */
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    .nexus-avatar-modern {
+        width: 44px !important;
+        height: 44px !important;
+    }
+
+    .nexus-name-modern {
+        font-size: 16px !important;
+    }
+
+    .nexus-status-modern {
+        font-size: 12px !important;
+    }
+
+    /* Modern Messages Mobile */
+    .nexus-messages-modern {
+        padding: 16px 12px 120px 12px !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* Modern Input Mobile */
+    .nexus-input-modern {
+        padding: 16px 12px !important;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .nexus-input-container-modern {
+        padding: 12px !important;
+        border-radius: 20px !important;
+    }
+
+    .nexus-textarea-modern {
+        font-size: 16px !important; /* Prevent iOS zoom */
+        padding: 10px 8px !important;
+    }
+
+    .nexus-send-modern-btn {
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+    }
+
+    .nexus-attachment-btn,
+    .nexus-voice-btn {
+        padding: 10px !important;
+        touch-action: manipulation !important;
+    }
+}
+
+/* Hide modern back button on desktop */
+@media (min-width: 769px) {
+    .nexus-back-modern-btn {
+        display: none !important;
+    }
+}
     
     #root {
         width: 100vw !important;
@@ -1404,7 +1786,6 @@ body {
         cursor: not-allowed;
         transform: none;
     }
-}
 
 /* Additional Mobile Enhancements */
 @media (max-width: 480px) {
@@ -1532,4 +1913,11 @@ body {
         transparent 100%
     );
     animation: shimmer 1.5s infinite;
+}
+
+/* Hide modern back button on desktop */
+@media (min-width: 769px) {
+    .nexus-back-modern-btn {
+        display: none !important;
+    }
 }
