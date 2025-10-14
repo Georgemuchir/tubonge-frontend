@@ -126,6 +126,8 @@ body {
     position: relative;
 }
 
+
+
 /* Chilled Inbox Sidebar */
 .nexus-inbox-sidebar {
     width: 420px;
@@ -485,18 +487,33 @@ body {
 
 /* Chat Header */
 .nexus-chat-header {
-    padding: 20px 25px;
+    padding: 16px 20px;
     background: rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
 }
 
 .nexus-chat-user-info {
     display: flex;
     align-items: center;
     gap: 15px;
+    flex: 1;
+    min-width: 0; /* Allow content to shrink */
+}
+
+/* Mobile header adjustments */
+@media (max-width: 768px) {
+    .nexus-chat-header {
+        padding: 14px 16px;
+        gap: 8px;
+    }
+    
+    .nexus-chat-user-info {
+        gap: 12px;
+    }
 }
 
 .nexus-chat-avatar {
@@ -550,6 +567,76 @@ body {
     background: rgba(255, 255, 255, 0.12);
     color: white;
     transform: scale(1.1);
+}
+
+/* Back Button for Mobile */
+.nexus-back-btn {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 14px !important;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(34, 211, 238, 0.2)) !important;
+    border: 2px solid rgba(56, 189, 248, 0.6) !important;
+    color: #38bdf8 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    margin-right: 12px !important;
+    box-shadow: 
+        0 3px 12px rgba(56, 189, 248, 0.25),
+        0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+    z-index: 10 !important;
+}
+
+/* Ensure visibility on mobile */
+@media (max-width: 767px) {
+    .nexus-back-btn {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+
+/* Hide on desktop */
+@media (min-width: 768px) {
+    .nexus-back-btn {
+        display: none !important;
+    }
+}
+
+.nexus-back-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.nexus-back-btn:hover {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.5), rgba(34, 211, 238, 0.4)) !important;
+    color: #22d3ee !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 
+        0 8px 25px rgba(56, 189, 248, 0.4),
+        0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(56, 189, 248, 0.8) !important;
+}
+
+.nexus-back-btn:hover::before {
+    opacity: 1 !important;
+}
+
+.nexus-back-btn:active {
+    transform: translateY(0) scale(0.98) !important;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.6), rgba(34, 211, 238, 0.5)) !important;
+    box-shadow: 
+        0 4px 15px rgba(56, 189, 248, 0.3),
+        0 2px 6px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* Messages Container */
@@ -814,74 +901,611 @@ body {
     opacity: 0.7;
 }
 
-/* Enhanced Responsive Design */
+/* COMPREHENSIVE MOBILE-FIRST RESPONSIVE DESIGN */
 @media (max-width: 768px) {
+    /* === CORE LAYOUT FIXES === */
+    html, body {
+        overflow: hidden !important;
+        position: fixed !important;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        /* Prevent iOS zoom on form inputs */
+        -webkit-text-size-adjust: 100% !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    #root {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        margin: 0 !important;
+        /* Safe area support for iOS devices */
+        padding-top: env(safe-area-inset-top, 0px) !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+        padding-left: env(safe-area-inset-left, 0px) !important;
+        padding-right: env(safe-area-inset-right, 0px) !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+    
+    /* Main Container - Full Screen Mobile */
     .nexus-chat-container {
-        flex-direction: column;
-        height: 100vh;
-        margin: 0;
-        padding: 0;
-        gap: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        max-width: none !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a2332 100%) !important;
     }
     
+    /* === SIDEBAR MOBILE LAYOUT === */
     .nexus-inbox-sidebar {
-        width: 100%;
-        border-radius: 0;
-        border: none;
-        height: 100vh;
-    }
-    
-    .nexus-chat-area {
-        display: none;
-        width: 100%;
-        border-radius: 0;
-        border: none;
-        height: 100vh;
-    }
-    
-    .nexus-chat-area.active {
-        display: flex;
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+        border: none !important;
+        margin: 0 !important;
+        background: rgba(10, 18, 24, 0.95) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        position: relative !important;
     }
     
     .nexus-inbox-sidebar.hidden {
-        display: none;
+        display: none !important;
     }
     
+    /* === CHAT AREA MOBILE LAYOUT === */
+    .nexus-chat-area {
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+        border: none !important;
+        margin: 0 !important;
+        background: rgba(15, 20, 25, 0.95) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        display: none !important;
+        flex-direction: column !important;
+        position: relative !important;
+    }
+    
+    .nexus-chat-area.active {
+        display: flex !important;
+    }
+    
+    /* === MOBILE HEADERS === */
     .nexus-sidebar-header {
-        padding: 20px 16px;
+        padding: 20px 16px !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(20px) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        flex-shrink: 0 !important;
     }
     
     .nexus-app-title {
-        font-size: 28px;
+        font-size: 28px !important;
+        font-weight: 700 !important;
+        background: linear-gradient(135deg, #38bdf8, #22d3ee) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        background-clip: text !important;
+        margin-bottom: 0 !important;
+        text-align: left !important;
+    }
+    
+    /* === MOBILE CONVERSATION LIST === */
+    .nexus-conversations-container {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 8px 0 !important;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+        box-sizing: border-box !important;
+        /* Ensure content doesn't get cut off */
+        max-height: calc(100vh - 140px) !important;
+    }
+    
+    /* Mobile Conversation Items - Fixed */
+    .nexus-conversation-item {
+        margin: 8px 16px !important;
+        padding: 20px 18px !important;
+        border-radius: 20px !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        min-height: 85px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 18px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        cursor: pointer !important;
+    }
+    
+    .nexus-conversation-item:active {
+        background: rgba(56, 189, 248, 0.2) !important;
+        border-color: rgba(56, 189, 248, 0.4) !important;
+        transform: scale(0.98) !important;
+        box-shadow: 0 8px 25px rgba(56, 189, 248, 0.2) !important;
+    }
+    
+    .nexus-conversation-item::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, 
+            rgba(56, 189, 248, 0.05) 0%, 
+            transparent 50%, 
+            rgba(34, 211, 238, 0.03) 100%
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .nexus-conversation-item:hover::before {
+        opacity: 1;
+    }
+    
+    /* Mobile Avatar Styling - Enhanced */
+    .nexus-conversation-avatar {
+        width: 54px !important;
+        height: 54px !important;
+        border-radius: 18px !important;
+        flex-shrink: 0 !important;
+        background: linear-gradient(135deg, #38bdf8, #22d3ee) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25) !important;
+        border: 2px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Mobile Conversation Info - Enhanced */
+    .nexus-conversation-info {
+        flex: 1 !important;
+        min-width: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+    
+    .nexus-conversation-name {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: white !important;
+        margin-bottom: 6px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        line-height: 1.2 !important;
+    }
+    
+    .nexus-conversation-preview {
+        font-size: 15px !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        line-height: 1.4 !important;
+    }
+    
+    /* Mobile Time Display */
+    .nexus-conversation-time {
+        font-size: 13px !important;
+        color: rgba(255, 255, 255, 0.6) !important;
+        flex-shrink: 0 !important;
+        margin-left: 12px !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Mobile Message Input Area - Critical Fix */
+    .nexus-message-input-container {
+        padding: 16px 20px 20px 20px !important;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(20px) !important;
+        position: sticky !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        z-index: 15 !important; /* Lower than header to prevent conflicts */
+    }
+    
+    .nexus-message-input-wrapper {
+        display: flex !important;
+        gap: 12px !important;
+        align-items: flex-end !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 25px !important;
+        padding: 12px 16px !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+    
+    .nexus-message-input {
+        flex: 1 !important;
+        background: transparent !important;
+        border: none !important;
+        color: white !important;
+        font-size: 16px !important;
+        padding: 8px 0 !important;
+        min-height: 24px !important;
+        max-height: 120px !important;
+        resize: none !important;
+        outline: none !important;
+        width: 100% !important;
+    }
+    
+    .nexus-send-button {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 20px !important;
+        background: linear-gradient(135deg, #38bdf8, #22d3ee) !important;
+        border: none !important;
+        color: white !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .nexus-send-button:active {
+        transform: scale(0.95) !important;
+        box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3) !important;
+    }
+    
+    /* Mobile Chat Header Styling */
+    .nexus-chat-header {
+        padding: 12px 16px !important;
+        padding-top: calc(12px + env(safe-area-inset-top, 0px)) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(20px) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 20 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        min-height: 70px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    .nexus-chat-user-info {
+        gap: 14px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+    
+    .nexus-chat-avatar {
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 14px !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .nexus-chat-name {
+        font-size: 17px !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        color: white !important;
+    }
+    
+    .nexus-chat-status {
+        font-size: 13px !important;
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+    
+    .nexus-chat-actions {
+        gap: 8px !important;
+    }
+    
+    .nexus-action-btn {
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 12px !important;
+        font-size: 16px !important;
+    }
+    
+    /* Mobile Messages Container */
+    .nexus-messages-container {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 16px 14px !important;
+        padding-bottom: 80px !important; /* Extra space to prevent content being covered by input */
+        gap: 12px !important;
+        -webkit-overflow-scrolling: touch !important;
+        background: transparent !important;
+        box-sizing: border-box !important;
+        /* Ensure scroll position is maintained */
+        scroll-behavior: smooth !important;
+    }
+    
+    /* Mobile Message Bubbles */
+    .nexus-message-bubble {
+        max-width: 85% !important;
+        padding: 14px 18px !important;
+        border-radius: 20px !important;
+        margin-bottom: 8px !important;
+        font-size: 16px !important;
+        line-height: 1.4 !important;
+        word-wrap: break-word !important;
+        position: relative !important;
+    }
+    
+    .nexus-message-bubble.sent {
+        background: linear-gradient(135deg, #38bdf8, #22d3ee) !important;
+        color: white !important;
+        margin-left: auto !important;
+        border-bottom-right-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2) !important;
+    }
+    
+    .nexus-message-bubble.received {
+        background: rgba(255, 255, 255, 0.12) !important;
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        margin-right: auto !important;
+        border-bottom-left-radius: 8px !important;
+    }
+    
+    /* Mobile Search Improvements */
+    .nexus-search-container {
+        padding: 12px 16px 16px 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .nexus-search-input {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: white;
+        font-size: 16px; /* Prevents zoom on iOS */
+        transition: all 0.3s ease;
+    }
+    
+    .nexus-search-input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 16px;
+    }
+    
+    .nexus-search-input:focus {
+        outline: none;
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(56, 189, 248, 0.5);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+    }
+    
+    /* Mobile Empty State */
+    .nexus-empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 32px 24px;
+        text-align: center;
+    }
+    
+    .nexus-empty-icon {
+        font-size: 48px;
         margin-bottom: 16px;
+        opacity: 0.7;
+    }
+    
+    .nexus-empty-text {
+        font-size: 18px;
+        font-weight: 600;
+        color: white;
+        margin-bottom: 8px;
+    }
+    
+    .nexus-empty-subtext {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.6);
+        line-height: 1.4;
+    }
+    
+    /* Message Input Area Mobile */
+    .nexus-message-input-container {
+        padding: 12px 16px 16px 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        position: sticky;
+        bottom: 0;
+    }
+    
+    .nexus-message-input-wrapper {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .nexus-message-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 8px 0;
+        min-height: 20px;
+        max-height: 120px;
+        resize: none;
+        outline: none;
+    }
+    
+    .nexus-message-input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 16px;
+    }
+    
+    .nexus-send-button {
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #38bdf8, #22d3ee);
+        border: none;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+    
+    .nexus-send-button:hover,
+    .nexus-send-button:active {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+    }
+    
+    .nexus-send-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+}
+
+/* Additional Mobile Enhancements */
+@media (max-width: 480px) {
+    /* Extra small screens */
+    .nexus-app-title {
+        font-size: 20px;
     }
     
     .nexus-conversation-item {
-        margin: 0 8px 4px 8px;
-        padding: 14px 16px;
+        margin: 0 6px 4px 6px;
+        padding: 14px 12px;
+    }
+    
+    .nexus-conversation-avatar {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .nexus-message-bubble {
+        max-width: 90%;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+    
+    .nexus-chat-header {
+        padding: 10px 12px;
+        min-height: 60px;
+    }
+    
+    .nexus-message-input-container {
+        padding: 10px 12px 12px 12px;
     }
 }
 
-/* Additional enhancements */
-.nexus-conversation-avatar {
-    position: relative;
-    overflow: hidden;
+/* Touch and Gesture Improvements */
+@media (hover: none) and (pointer: coarse) {
+    /* Touch devices only */
+    .nexus-conversation-item:hover {
+        transform: none; /* Disable hover transforms on touch devices */
+    }
+    
+    .nexus-conversation-item:active {
+        transform: scale(0.98);
+        background: rgba(56, 189, 248, 0.2);
+    }
+    
+    .nexus-action-btn:active,
+    .nexus-back-btn:active,
+    .nexus-send-button:active {
+        transform: scale(0.95);
+    }
+    
+    /* Enhanced touch targets */
+    .nexus-back-btn,
+    .nexus-action-btn,
+    .nexus-send-button {
+        -webkit-tap-highlight-color: transparent !important;
+        touch-action: manipulation !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+    }
+    
+    /* Prevent accidental zoom on inputs */
+    input, textarea, select {
+        font-size: 16px !important;
+        -webkit-text-size-adjust: 100% !important;
+    }
 }
 
-.nexus-conversation-avatar::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.2) 0%, 
-        transparent 50%, 
-        rgba(255, 255, 255, 0.1) 100%
-    );
-    border-radius: 16px;
-    pointer-events: none;
+/* Critical Viewport and Overlap Protection */
+@media (max-width: 768px) {
+    /* Ensure no content gets covered by browser UI */
+    .nexus-app-container,
+    .nexus-chat-container,
+    .nexus-conversations-container {
+        /* Account for browser chrome on mobile */
+        min-height: calc(100vh - env(keyboard-inset-height, 0px)) !important;
+        position: relative !important;
+    }
+    
+    /* Prevent content from being hidden behind sticky elements */
+    .nexus-conversation-item:first-child {
+        margin-top: 20px !important;
+    }
+    
+    .nexus-conversation-item:last-child {
+        margin-bottom: 80px !important;
+    }
+    
+    /* Message container scroll padding */
+    .nexus-messages-container {
+        scroll-padding-top: 80px !important;
+        scroll-padding-bottom: 100px !important;
+    }
+    
+    /* Ensure buttons are always accessible */
+    .nexus-back-btn,
+    .nexus-send-button {
+        z-index: 25 !important;
+        position: relative !important;
+    }
 }
 
 /* Smooth loading animation */

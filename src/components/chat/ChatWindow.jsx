@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Send, Phone, Video, MoreVertical } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, ArrowLeft } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 
@@ -12,13 +12,19 @@ const ChatWindow = () => {
     messagesLoading, 
     sendMessage, 
     sendTyping,
-    typingUsers 
+    typingUsers,
+    setActiveConversation 
   } = useChat();
   const { user } = useAuth();
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  // Handle back navigation
+  const handleBack = () => {
+    setActiveConversation(null);
+  };
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -94,6 +100,15 @@ const ChatWindow = () => {
     <>
       {/* Chat Header */}
       <div className="nexus-chat-header">
+        {/* Back button for mobile */}
+        <button 
+          onClick={handleBack}
+          className="nexus-back-btn md:hidden"
+          title="Back to conversations"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        
         <div className="nexus-chat-user-info">
           <div className="nexus-chat-avatar">
             {otherParticipant.avatar ? (
