@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Phone, Video, Info, Image, Mic, Send, Smile, ArrowLeft } from 'lucide-react';
+import { Search, Phone, Video, Info, Image, Mic, Send, Smile, ArrowLeft, UserPlus } from 'lucide-react';
+import UserSearch from './UserSearch';
 
 // =====================================================
 // MAIN COMPONENT
@@ -14,6 +15,9 @@ const ModernMessenger = () => {
   
   // Stores the current message being typed
   const [message, setMessage] = useState('');
+  
+  // UserSearch modal state
+  const [showUserSearch, setShowUserSearch] = useState(false);
   
   // =====================================================
   // DATA - List of all chats in the inbox
@@ -114,6 +118,15 @@ const ModernMessenger = () => {
   };
 
   // =====================================================
+  // FUNCTION: Handle adding new contact
+  // =====================================================
+  const handleAddContact = (user) => {
+    console.log('Adding contact:', user);
+    // For now, just log - will implement real functionality later
+    alert(`Added ${user.name} as a contact!`);
+  };
+
+  // =====================================================
   // FUNCTION: Handle going back to inbox (mobile)
   // =====================================================
   const handleBackToInbox = () => {
@@ -135,10 +148,19 @@ const ModernMessenger = () => {
         {/* INBOX HEADER - Title and Search Bar */}
         {/* ============================================= */}
         <div className="p-3 md:p-4 border-b border-zinc-800 flex-shrink-0">
-          {/* Title with gradient */}
-          <h1 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Messages
-          </h1>
+          {/* Title with gradient and Add Contact button */}
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Messages
+            </h1>
+            <button
+              onClick={() => setShowUserSearch(true)}
+              className="p-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white transition-colors"
+              title="Add Contact"
+            >
+              <UserPlus className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+          </div>
           
           {/* Search Bar */}
           <div className="relative">
@@ -339,6 +361,13 @@ const ModernMessenger = () => {
           </div>
         )}
       </div>
+
+      {/* UserSearch Modal */}
+      <UserSearch 
+        isOpen={showUserSearch}
+        onClose={() => setShowUserSearch(false)}
+        onAddContact={handleAddContact}
+      />
     </div>
   );
 };
