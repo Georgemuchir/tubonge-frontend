@@ -34,25 +34,74 @@
 /* Modern Back Button */
 .nexus-back-modern-btn {
     display: inline-flex;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    border: none;
-    background: transparent;
-    color: white;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, 
+        rgba(56, 189, 248, 0.2) 0%, 
+        rgba(34, 211, 238, 0.15) 100%
+    );
+    backdrop-filter: blur(10px);
+    color: #38bdf8;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.nexus-back-modern-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, 
+        rgba(56, 189, 248, 0.1) 0%, 
+        transparent 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .nexus-back-modern-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(1.05);
+    background: linear-gradient(135deg, 
+        rgba(56, 189, 248, 0.3) 0%, 
+        rgba(34, 211, 238, 0.25) 100%
+    );
+    border-color: rgba(56, 189, 248, 0.4);
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.3);
+    color: #22d3ee;
+}
+
+.nexus-back-modern-btn:hover::before {
+    opacity: 1;
 }
 
 .nexus-back-modern-btn:active {
-    transform: scale(0.95);
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+}
+
+/* Subtle pulse animation to draw attention */
+@keyframes backButtonPulse {
+    0%, 100% { 
+        box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2); 
+    }
+    50% { 
+        box-shadow: 0 4px 16px rgba(56, 189, 248, 0.4); 
+    }
+}
+
+.nexus-back-modern-btn {
+    animation: backButtonPulse 2s ease-in-out infinite;
+}
+
+/* Stop animation on hover to avoid distraction */
+.nexus-back-modern-btn:hover {
+    animation: none;
 }
 
 /* Modern User Info */
@@ -1242,8 +1291,17 @@ body {
 
     .nexus-back-modern-btn {
         display: inline-flex !important; /* Always show on mobile */
-        width: 40px !important;
-        height: 40px !important;
+        width: 44px !important;
+        height: 44px !important;
+        background: linear-gradient(135deg, 
+            rgba(56, 189, 248, 0.3) 0%, 
+            rgba(34, 211, 238, 0.2) 100%
+        ) !important;
+        border: 2px solid rgba(56, 189, 248, 0.5) !important;
+        box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25) !important;
+        backdrop-filter: blur(15px) !important;
+        color: #22d3ee !important;
+        font-weight: 600 !important;
     }
 
     .nexus-avatar-modern {
@@ -1915,9 +1973,12 @@ body {
     animation: shimmer 1.5s infinite;
 }
 
-/* Hide modern back button on desktop */
+/* Desktop back button styling - make it visible */
 @media (min-width: 769px) {
     .nexus-back-modern-btn {
-        display: none !important;
+        display: inline-flex !important;
+        width: 36px !important;
+        height: 36px !important;
+        margin-right: 8px !important;
     }
 }
