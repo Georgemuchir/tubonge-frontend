@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
 import Login from './components/Login';
 import Register from './components/Register';
-import Chat from './components/Chat';
+import ModernMessenger from './components/ModernMessenger';
 import './App.css';
 
 // Protected Route Component
@@ -75,9 +75,7 @@ const router = createBrowserRouter(
         <AuthProvider>
           <div className="App">
             <ProtectedRoute>
-              <ChatProvider>
-                <Chat />
-              </ChatProvider>
+              <ModernMessenger />
             </ProtectedRoute>
           </div>
         </AuthProvider>
