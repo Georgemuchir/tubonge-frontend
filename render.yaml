@@ -16,6 +16,6 @@ services:
       - key: NODE_VERSION
         value: 18
       - key: VITE_API_URL
-        value: # Will be set to your backend URL after deployment
+        value: https://pinglo-backend.onrender.com/api
       - key: VITE_SOCKET_URL
-        value: # Will be set to your backend URL after deployment
+        value: https://pinglo-backend.onrender.com
