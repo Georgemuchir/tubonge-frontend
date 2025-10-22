@@ -54,8 +54,8 @@ export const messagesAPI = {
     api.get(`/messages/conversations/${conversationId}/messages?page=${page}&limit=${limit}`),
   sendMessage: (conversationId, messageData) =>
     api.post(`/messages/conversations/${conversationId}/messages`, messageData),
-  createConversation: (participantId) =>
-    api.post('/messages/conversations', { participant_id: participantId }),
+  createConversation: (otherUserId) =>
+    api.post('/messages/conversations', { other_user_id: otherUserId }),
 };
 
 export default api;
