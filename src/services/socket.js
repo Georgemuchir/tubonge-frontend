@@ -13,21 +13,29 @@ class SocketService {
 
     const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
-    // In local dev we run Flask-SocketIO in threading mode, which supports only polling.
-    // WebSocket will be enabled in production (Gunicorn + eventlet/gevent).
-    const transports = (import.meta.env.VITE_SOCKET_TRANSPORTS || 'polling')
+    // Parse transports: default to websocket,polling for prod-like behavior
+    const parsed = (import.meta.env.VITE_SOCKET_TRANSPORTS || 'websocket,polling')
       .split(',')
       .map((t) => t.trim())
-      .filter(Boolean);
+      .filter((x) => ['websocket', 'polling'].includes(x));
+    const transports = parsed.length ? parsed : ['websocket', 'polling'];
 
     this.socket = io(SOCKET_URL, {
+      path: '/socket.io',
       auth: { token },
-      transports
+      transports,
+      withCredentials: false
     });
 
+    // Log effective transport after connect
     this.socket.on('connect', () => {
-      console.log('Connected to socket server');
+      console.warn('[socket] connected via:', this.socket.io.engine.transport.name);
       this.connected = true;
+    });
+
+    // Log upgrade to WebSocket
+    this.socket.io.on('upgrade', () => {
+      console.warn('[socket] upgraded to:', this.socket.io.engine.transport.name);
     });
 
     this.socket.on('disconnect', () => {
