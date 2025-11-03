@@ -362,13 +362,11 @@ export const ChatProvider = ({ children }) => {
     try {
       const response = await messagesAPI.createConversation(participantId);
       const conversation = response.data.conversation;
-      
-      // Check if conversation already exists in state
-      const existingConv = state.conversations.find(c => c.id === conversation.id);
-      if (!existingConv) {
-        dispatch({ type: 'ADD_CONVERSATION', payload: conversation });
-      }
-      
+
+      // After creating, refresh conversations so participants are enriched
+      await loadConversations();
+
+      // Return the created conversation (fallback if not found in refreshed list)
       return conversation;
     } catch (error) {
       console.error('Error creating conversation:', error);
