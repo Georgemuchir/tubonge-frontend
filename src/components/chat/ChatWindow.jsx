@@ -82,6 +82,11 @@ const ChatWindow = () => {
   };
 
   const getOtherParticipant = () => {
+    // Handle new persistent format with otherParticipant field
+    if (activeConversation?.otherParticipant) {
+      return activeConversation.otherParticipant;
+    }
+    // Fallback to old format
     return activeConversation?.participants?.find(p => p.id !== user?.id) || {};
   };
 

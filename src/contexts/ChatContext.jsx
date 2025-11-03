@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import { messagesAPI } from '../services/api';
+import ChatAPI from '../services/ChatAPI';
 import socketService from '../services/socket';
 import { useAuth } from './AuthContext';
 
@@ -104,11 +105,17 @@ export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const { user, isAuthenticated } = useAuth();
 
-  // Load conversations on mount
+  // Load conversations on mount and cleanup on logout
   useEffect(() => {
     if (isAuthenticated) {
       loadConversations();
       setupSocketListeners();
+    } else {
+      // Clear cache and state on logout
+      ChatAPI.clearCache();
+      dispatch({ type: 'SET_CONVERSATIONS', payload: [] });
+      dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: null });
+      dispatch({ type: 'SET_MESSAGES', payload: [] });
     }
 
     return () => {
@@ -118,17 +125,23 @@ export const ChatProvider = ({ children }) => {
 
   // Setup socket event listeners
   const setupSocketListeners = () => {
-    // New message received
+    // New message received (from other users)
     socketService.onNewMessage((message) => {
-      dispatch({ type: 'ADD_MESSAGE', payload: message });
+      const formattedMessage = ChatAPI.formatMessage(message);
+      dispatch({ type: 'ADD_MESSAGE', payload: formattedMessage });
+      
+      // Add to cache for persistence
+      ChatAPI.addMessageToCache(message.conversation_id, formattedMessage);
       
       // Update conversation's last message
       const updatedConv = {
         id: message.conversation_id,
-        last_message: message,
-        updated_at: message.timestamp
+        lastMessage: message.content,
+        lastMessageTime: message.timestamp,
+        updatedAt: message.timestamp
       };
       dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConv });
+      ChatAPI.updateConversation(message.conversation_id, updatedConv);
     });
 
     // User status changes
@@ -173,72 +186,21 @@ export const ChatProvider = ({ children }) => {
     });
   };
 
-  // Load conversations
+  // Load conversations with persistent data
   const loadConversations = async () => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const response = await messagesAPI.getConversations();
-      let conversations = response.data.conversations || [];
+      const conversations = await ChatAPI.loadConversations();
       
-      // Add demo conversation if no real conversations exist
-      if (conversations.length === 0) {
-        const demoConversation = {
-          id: 'demo-conversation-1',
-          participants: [
-            user,
-            {
-              id: 'demo-user-1',
-              name: 'Sarah Chen',
-              username: 'sarah_chen',
-              email: 'sarah@example.com',
-              avatar: null,
-              status: 'online'
-            }
-          ],
-          last_message: {
-            id: 'demo-msg-1',
-            content: 'Hey! How are you doing? 😊',
-            sender_id: 'demo-user-1',
-            timestamp: new Date().toISOString(),
-            read: false
-          },
-          unread_count: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        conversations = [demoConversation];
-      }
+      // Format conversations for display
+      const formattedConversations = conversations.map(conv => 
+        ChatAPI.formatConversation(conv)
+      );
       
-      dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
+      dispatch({ type: 'SET_CONVERSATIONS', payload: formattedConversations });
     } catch (error) {
       console.error('Error loading conversations:', error);
-      
-      // Fallback: Add demo conversation on error too
-      const demoConversation = {
-        id: 'demo-conversation-1',
-        participants: [
-          user,
-          {
-            id: 'demo-user-1',
-            name: 'Sarah Chen',
-            username: 'sarah_chen',
-            email: 'sarah@example.com',
-            avatar: null,
-            status: 'online'
-          }
-        ],
-        last_message: {
-          id: 'demo-msg-1',
-          content: 'Hey! How are you doing? 😊',
-          sender_id: 'demo-user-1',
-          timestamp: new Date().toISOString(),
-          read: false
-        },
-        unread_count: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      dispatch({ type: 'SET_CONVERSATIONS', payload: [demoConversation] });
+      dispatch({ type: 'SET_CONVERSATIONS', payload: [] });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
@@ -258,55 +220,21 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // Load messages for a conversation
+  // Load messages for a conversation with persistence
   const loadMessages = async (conversationId, page = 1) => {
     try {
       dispatch({ type: 'SET_MESSAGES_LOADING', payload: true });
       
-      // Handle demo conversation
-      if (conversationId === 'demo-conversation-1') {
-        const demoMessages = [
-          {
-            id: 'demo-msg-1',
-            conversation_id: 'demo-conversation-1',
-            sender_id: 'demo-user-1',
-            content: 'Hey! How are you doing? �',
-            timestamp: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
-            read: false,
-            message_type: 'text'
-          },
-          {
-            id: 'demo-msg-2',
-            conversation_id: 'demo-conversation-1',
-            sender_id: 'demo-user-1',
-            content: 'I just finished setting up this new chat app! What do you think of the interface?',
-            timestamp: new Date(Date.now() - 240000).toISOString(), // 4 minutes ago
-            read: false,
-            message_type: 'text'
-          },
-          {
-            id: 'demo-msg-3',
-            conversation_id: 'demo-conversation-1',
-            sender_id: 'demo-user-1',
-            content: 'The blue theme looks really nice and calming 💙',
-            timestamp: new Date(Date.now() - 180000).toISOString(), // 3 minutes ago
-            read: false,
-            message_type: 'text'
-          }
-        ];
-        
-        if (page === 1) {
-          dispatch({ type: 'SET_MESSAGES', payload: demoMessages });
-        }
-        return;
-      }
+      // Load messages from persistent storage
+      const messages = await ChatAPI.loadMessages(conversationId, page);
       
-      const response = await messagesAPI.getMessages(conversationId, page);
+      // Format messages for display
+      const formattedMessages = messages.map(msg => ChatAPI.formatMessage(msg));
       
       if (page === 1) {
-        dispatch({ type: 'SET_MESSAGES', payload: response.data.messages });
+        dispatch({ type: 'SET_MESSAGES', payload: formattedMessages });
       } else {
-        dispatch({ type: 'PREPEND_MESSAGES', payload: response.data.messages });
+        dispatch({ type: 'PREPEND_MESSAGES', payload: formattedMessages });
       }
       
       // Mark messages as read
@@ -315,39 +243,48 @@ export const ChatProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error loading messages:', error);
+      dispatch({ type: 'SET_MESSAGES', payload: [] });
     } finally {
       dispatch({ type: 'SET_MESSAGES_LOADING', payload: false });
     }
   };
 
-  // Send message
+  // Send message with persistence
   const sendMessage = async (content, messageType = 'text') => {
     if (!state.activeConversation || !user || !content.trim()) return;
 
-    const messageData = {
-      conversation_id: state.activeConversation.id,
-      content: content.trim(),
-      sender_id: user.id,
-      message_type: messageType
-    };
+    try {
+      // Send via API for persistence
+      const message = await ChatAPI.sendMessage(
+        state.activeConversation.id, 
+        content.trim(), 
+        messageType
+      );
 
-    // Handle demo conversation
-    if (state.activeConversation.id === 'demo-conversation-1') {
-      // Add user message immediately
-      const userMessage = {
-        ...messageData,
-        id: `demo-user-msg-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        read: false
+      // Format and add to local state
+      const formattedMessage = ChatAPI.formatMessage(message);
+      dispatch({ type: 'ADD_MESSAGE', payload: formattedMessage });
+
+      // Also send via socket for real-time updates to other users
+      const socketData = {
+        conversation_id: state.activeConversation.id,
+        content: content.trim(),
+        sender_id: user.id,
+        message_type: messageType
       };
-      dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
+      socketService.sendMessage(socketData);
 
-      // No automatic responses - this is a real person demo conversation
+      // Update conversation last message
+      ChatAPI.updateConversation(state.activeConversation.id, {
+        last_message: content.trim(),
+        last_message_time: formattedMessage.timestamp,
+        updated_at: formattedMessage.timestamp
+      });
 
-      return;
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      // Optionally show error message to user
     }
-
-    socketService.sendMessage(messageData);
   };
 
   // Send typing indicator
@@ -357,17 +294,19 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // Create new conversation
-  const createConversation = async (participantId) => {
+  // Create new conversation with persistence
+  const createConversation = async (otherUserId) => {
     try {
-      const response = await messagesAPI.createConversation(participantId);
-      const conversation = response.data.conversation;
-
-      // After creating, refresh conversations so participants are enriched
-      await loadConversations();
-
-      // Return the created conversation (fallback if not found in refreshed list)
-      return conversation;
+      const conversation = await ChatAPI.createConversation(otherUserId);
+      const formattedConversation = ChatAPI.formatConversation(conversation);
+      
+      // Check if conversation already exists in state
+      const existingConv = state.conversations.find(c => c.id === formattedConversation.id);
+      if (!existingConv) {
+        dispatch({ type: 'ADD_CONVERSATION', payload: formattedConversation });
+      }
+      
+      return formattedConversation;
     } catch (error) {
       console.error('Error creating conversation:', error);
       throw error;

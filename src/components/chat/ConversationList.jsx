@@ -22,7 +22,7 @@ const ConversationList = () => {
     
     // Apply tab filter
     if (activeFilter === 'unread') {
-      return conversation.unread_count > 0;
+      return (conversation.unreadCount || conversation.unread_count) > 0;
     }
     
     return true; // 'all' filter
@@ -43,6 +43,11 @@ const ConversationList = () => {
   };
 
   const getOtherParticipant = (conversation) => {
+    // Handle new persistent format with otherParticipant field
+    if (conversation.otherParticipant) {
+      return conversation.otherParticipant;
+    }
+    // Fallback to old format
     return conversation.participants?.find(p => p.id !== user?.id) || {};
   };
 
@@ -108,7 +113,7 @@ const ConversationList = () => {
                 key={conversation.id}
                 onClick={() => setActiveConversation(conversation)}
                 className={`nexus-conversation-item ${isActive ? 'active' : ''} ${
-                  conversation.unread_count > 0 ? 'unread' : ''
+                  (conversation.unreadCount || conversation.unread_count) > 0 ? 'unread' : ''
                 }`}
               >
                 {/* Avatar */}
@@ -133,18 +138,18 @@ const ConversationList = () => {
                     {otherParticipant.name || 'Unknown User'}
                   </div>
                   <div className="nexus-conversation-preview">
-                    {conversation.last_message?.content || 'Say hello! 👋'}
+                    {conversation.lastMessage || conversation.last_message?.content || 'Say hello! 👋'}
                   </div>
                 </div>
                 
                 {/* Meta */}
                 <div className="nexus-conversation-meta">
                   <div className="nexus-conversation-time">
-                    {formatTime(conversation.last_message?.timestamp)}
+                    {formatTime(conversation.lastMessageTime || conversation.last_message?.timestamp)}
                   </div>
-                  {conversation.unread_count > 0 && (
+                  {(conversation.unreadCount || conversation.unread_count) > 0 && (
                     <div className="nexus-unread-count">
-                      {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
+                      {(conversation.unreadCount || conversation.unread_count) > 9 ? '9+' : (conversation.unreadCount || conversation.unread_count)}
                     </div>
                   )}
                 </div>
