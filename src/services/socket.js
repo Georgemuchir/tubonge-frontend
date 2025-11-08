@@ -135,6 +135,13 @@ class SocketService {
     }
   }
 
+  // Admin enforcement
+  onForceLogout(callback) {
+    if (this.socket) {
+      this.socket.on('force_logout', callback);
+    }
+  }
+
   // Remove event listeners
   off(event, callback) {
     if (this.socket) {

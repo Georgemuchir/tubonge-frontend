@@ -76,6 +76,22 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: 'SET_LOADING', payload: false });
   }, []);
 
+  // Subscribe to force logout events
+  useEffect(() => {
+    if (state.isAuthenticated && socketService.socket) {
+      const handler = (payload) => {
+        console.warn('Received force_logout event:', payload);
+        // Perform local logout without calling API (token invalidated globally)
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        socketService.disconnect();
+        dispatch({ type: 'LOGOUT' });
+      };
+      socketService.onForceLogout(handler);
+      return () => socketService.off('force_logout', handler);
+    }
+  }, [state.isAuthenticated]);
+
   // Login function
   const login = async (credentials) => {
     try {
