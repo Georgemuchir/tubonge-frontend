@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, User, Mail, Lock, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +11,7 @@ const Register = () => {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [isHovered, setIsHovered] = useState(false);
   const { register, loading } = useAuth();
   const navigate = useNavigate();
 
