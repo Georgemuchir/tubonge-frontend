@@ -1,32 +1,24 @@
 import React, { useState } from 'react';
-import { Search, Phone, Video, Info, Image, Mic, Send, Smile, ArrowLeft, UserPlus, MoreVertical, PlusCircle, Menu, X } from 'lucide-react';
+import { 
+  Search, Phone, Video, Info, Image, Mic, Send, Smile, 
+  ArrowLeft, UserPlus, MoreVertical, PlusCircle, Paperclip,
+  Check, CheckCheck
+} from 'lucide-react';
 import UserSearch from './UserSearch';
 
-// =====================================================
-// MAIN COMPONENT
-// =====================================================
 const ModernMessenger = () => {
-  // =====================================================
-  // STATE MANAGEMENT
-  // =====================================================
-  
-  // Tracks which chat is currently selected/open
   const [selectedChat, setSelectedChat] = useState(null);
-  
-  // Stores the current message being typed
   const [message, setMessage] = useState('');
-  
-  // UserSearch modal state
   const [showUserSearch, setShowUserSearch] = useState(false);
-  
-  // =====================================================
-  // DATA - List of all chats in the inbox
-  // =====================================================
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Sample chat data
   const chats = [
     {
       id: 1,
       name: 'Sarah Wilson',
-      avatar: '👩',
+      avatar: 'SW',
+      avatarColor: 'from-purple-500 to-pink-500',
       lastMessage: 'See you tomorrow! 🎉',
       time: '2:45 PM',
       unread: 2,
@@ -35,7 +27,8 @@ const ModernMessenger = () => {
     {
       id: 2,
       name: 'Tech Team',
-      avatar: '👥',
+      avatar: 'TT',
+      avatarColor: 'from-blue-500 to-cyan-500',
       lastMessage: 'Alex: The deployment is complete',
       time: '1:30 PM',
       unread: 5,
@@ -44,7 +37,8 @@ const ModernMessenger = () => {
     {
       id: 3,
       name: 'Mike Johnson',
-      avatar: '👨',
+      avatar: 'MJ',
+      avatarColor: 'from-green-500 to-emerald-500',
       lastMessage: 'Thanks for the help!',
       time: '11:20 AM',
       unread: 0,
@@ -53,170 +47,118 @@ const ModernMessenger = () => {
     {
       id: 4,
       name: 'Emma Davis',
-      avatar: '👩‍🦰',
+      avatar: 'ED',
+      avatarColor: 'from-orange-500 to-red-500',
       lastMessage: 'You: Perfect, sounds good',
       time: 'Yesterday',
       unread: 0,
       online: false
-    },
-    {
-      id: 5,
-      name: 'Fitness Squad',
-      avatar: '💪',
-      lastMessage: 'Lisa: Morning workout at 6?',
-      time: 'Yesterday',
-      unread: 1,
-      online: false
-    },
-    {
-      id: 6,
-      name: 'David Chen',
-      avatar: '👨‍💼',
-      lastMessage: 'Can we schedule a call?',
-      time: 'Monday',
-      unread: 0,
-      online: true
     }
   ];
 
-  // =====================================================
-  // DATA - Messages for each chat
-  // =====================================================
+  // Sample messages
   const messages = {
     1: [
-      { id: 1, text: 'Hey! How are you?', sent: false, time: '2:30 PM' },
-      { id: 2, text: "I'm great! Just finished the project", sent: true, time: '2:32 PM' },
-      { id: 3, text: 'That\'s awesome! Want to celebrate?', sent: false, time: '2:35 PM' },
-      { id: 4, text: 'Absolutely! When are you free?', sent: true, time: '2:40 PM' },
-      { id: 5, text: 'How about tomorrow evening?', sent: false, time: '2:42 PM' },
-      { id: 6, text: 'Perfect! See you then 😊', sent: true, time: '2:44 PM' },
-      { id: 7, text: 'See you tomorrow! 🎉', sent: false, time: '2:45 PM' }
-    ],
-    2: [
-      { id: 1, text: 'Good morning team!', sent: false, time: '9:00 AM' },
-      { id: 2, text: 'Morning! Ready for deployment', sent: true, time: '9:15 AM' },
-      { id: 3, text: 'The deployment is complete', sent: false, time: '1:30 PM' }
+      { id: 1, text: 'Hey! How are you?', sent: false, time: '2:30 PM', read: true },
+      { id: 2, text: "I'm great! Just finished the project", sent: true, time: '2:32 PM', read: true },
+      { id: 3, text: "That's awesome! Want to celebrate?", sent: false, time: '2:35 PM', read: true },
+      { id: 4, text: 'Absolutely! When are you free?', sent: true, time: '2:40 PM', read: true },
+      { id: 5, text: 'How about tomorrow evening?', sent: false, time: '2:42 PM', read: true },
+      { id: 6, text: 'Perfect! See you then 😊', sent: true, time: '2:44 PM', read: true },
+      { id: 7, text: 'See you tomorrow! 🎉', sent: false, time: '2:45 PM', read: false }
     ]
   };
 
-  // =====================================================
-  // FUNCTION: Handle sending a message
-  // =====================================================
   const handleSend = () => {
     if (message.trim()) {
-      // Clear the message input after sending
+      console.log('Sending:', message);
       setMessage('');
-      // In a real app, this would also add the message to the chat
     }
   };
 
-  // =====================================================
-  // FUNCTION: Handle selecting a chat from the inbox
-  // =====================================================
-  const handleSelectChat = (chat) => {
-    setSelectedChat(chat);
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
-  // =====================================================
-  // FUNCTION: Handle adding new contact
-  // =====================================================
-  const handleAddContact = (user) => {
-    console.log('Adding contact:', user);
-    // For now, just log - will implement real functionality later
-    alert(`Added ${user.name} as a contact!`);
-  };
+  const filteredChats = chats.filter(chat =>
+    chat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // =====================================================
-  // FUNCTION: Handle going back to inbox (mobile)
-  // =====================================================
-  const handleBackToInbox = () => {
-    setSelectedChat(null);
-  };
-
-  // =====================================================
-  // RENDER
-  // =====================================================
   return (
-    <div className="flex h-screen max-h-screen bg-black text-white overflow-hidden touch-pan-y mobile-safe-area">
+    <div className="flex h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-black text-white overflow-hidden">
       
-      {/* ================================================= */}
-      {/* INBOX SIDEBAR */}
-      {/* ================================================= */}
-      <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 bg-zinc-900 border-r border-zinc-800 h-full`}>
+      {/* ========================================
+          SIDEBAR - Conversations List
+          ======================================== */}
+      <div className={`${
+        selectedChat ? 'hidden md:flex' : 'flex'
+      } flex-col w-full md:w-96 bg-black/40 backdrop-blur-xl border-r border-white/10`}>
         
-        {/* ============================================= */}
-        {/* INBOX HEADER - Title and Search Bar */}
-        {/* ============================================= */}
-        <div className="p-3 md:p-4 border-b border-zinc-800 flex-shrink-0">
-          {/* Title with gradient and Add Contact button */}
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        {/* Sidebar Header */}
+        <div className="p-4 space-y-4 border-b border-white/10 bg-gradient-to-r from-purple-900/20 to-pink-900/20">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
               Messages
             </h1>
             <button
               onClick={() => setShowUserSearch(true)}
-              className="p-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white transition-colors"
-              title="Add Contact"
+              className="p-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/50"
             >
-              <UserPlus className="w-4 h-4 md:w-5 md:h-5" />
+              <UserPlus className="w-5 h-5" />
             </button>
           </div>
           
           {/* Search Bar */}
-          <div className="relative">
-            {/* Search Icon */}
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 w-4 h-4 md:w-5 md:h-5" />
-            
-            {/* Search Input Field */}
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-purple-400 transition-colors" />
             <input
               type="text"
-              placeholder="Search messages"
-              className="w-full pl-9 md:pl-10 pr-3 md:pr-4 py-2 md:py-2.5 bg-zinc-800 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
             />
           </div>
         </div>
 
-        {/* ============================================= */}
-        {/* CHAT LIST - Scrollable list of all chats */}
-        {/* ============================================= */}
-        <div className="flex-1 overflow-y-auto overscroll-y-contain">
-          {chats.map((chat) => (
+        {/* Chat List */}
+        <div className="flex-1 overflow-y-auto">
+          {filteredChats.map((chat) => (
             <div
               key={chat.id}
-              onClick={() => handleSelectChat(chat)}
-              className={`flex items-center gap-3 p-3 md:p-4 cursor-pointer transition-all hover:bg-zinc-800 active:bg-zinc-700 ${
-                selectedChat?.id === chat.id ? 'bg-zinc-800' : ''
+              onClick={() => setSelectedChat(chat)}
+              className={`flex items-center gap-3 p-4 cursor-pointer transition-all border-b border-white/5 hover:bg-white/5 ${
+                selectedChat?.id === chat.id ? 'bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-l-4 border-l-purple-500' : ''
               }`}
             >
-              {/* Avatar with Online Status */}
+              {/* Avatar */}
               <div className="relative flex-shrink-0">
-                {/* Avatar Circle */}
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg md:text-2xl">
+                <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${chat.avatarColor} flex items-center justify-center text-white font-semibold text-lg shadow-lg`}>
                   {chat.avatar}
                 </div>
-                
-                {/* Online Status Indicator */}
                 {chat.online && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-zinc-900"></div>
+                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>
                 )}
               </div>
-              
-              {/* Chat Info - Name, Time, Last Message */}
+
+              {/* Chat Info */}
               <div className="flex-1 min-w-0">
-                {/* Name and Time Row */}
-                <div className="flex justify-between items-baseline mb-1">
-                  <h3 className="font-semibold truncate text-sm md:text-base">{chat.name}</h3>
-                  <span className="text-xs text-zinc-400 flex-shrink-0 ml-2">{chat.time}</span>
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="font-semibold text-white truncate">{chat.name}</h3>
+                  <span className="text-xs text-gray-400">{chat.time}</span>
                 </div>
-                
-                {/* Last Message Preview */}
-                <p className="text-xs md:text-sm text-zinc-400 truncate">{chat.lastMessage}</p>
+                <p className="text-sm text-gray-400 truncate">{chat.lastMessage}</p>
               </div>
-              
+
               {/* Unread Badge */}
               {chat.unread > 0 && (
-                <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                  {chat.unread}
+                <div className="flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-xs font-bold shadow-lg">
+                    {chat.unread}
+                  </div>
                 </div>
               )}
             </div>
@@ -224,150 +166,170 @@ const ModernMessenger = () => {
         </div>
       </div>
 
-      {/* ================================================= */}
-      {/* CHAT AREA - Messages and Input */}
-      {/* ================================================= */}
-      <div className={`${selectedChat ? 'flex' : 'hidden md:flex'} flex-col flex-1 bg-black h-full max-h-screen`}>
+      {/* ========================================
+          CHAT WINDOW - Messages Area
+          ======================================== */}
+      <div className={`${
+        selectedChat ? 'flex' : 'hidden md:flex'
+      } flex-col flex-1 bg-gradient-to-br from-gray-900 to-black`}>
+        
         {selectedChat ? (
           <>
-            {/* ========================================= */}
-            {/* CHAT HEADER - Contact info and actions */}
-            {/* ========================================= */}
-            <div className="flex items-center gap-3 p-3 md:p-4 bg-zinc-900 border-b border-zinc-800 flex-shrink-0">
-              {/* Back Button (Mobile Only) */}
-              <button
-                onClick={handleBackToInbox}
-                className="md:hidden mr-1 p-2 hover:bg-zinc-800 rounded-full transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
-              </button>
-              
-              {/* Contact Avatar with Online Status */}
-              <div className="relative flex-shrink-0">
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg md:text-xl">
-                  {selectedChat.avatar}
+            {/* Chat Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40 backdrop-blur-xl">
+              <div className="flex items-center gap-3">
+                {/* Back Button (Mobile) */}
+                <button
+                  onClick={() => setSelectedChat(null)}
+                  className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+
+                {/* Avatar */}
+                <div className="relative">
+                  <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${selectedChat.avatarColor} flex items-center justify-center text-white font-semibold shadow-lg`}>
+                    {selectedChat.avatar}
+                  </div>
+                  {selectedChat.online && (
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-black"></div>
+                  )}
                 </div>
-                {selectedChat.online && (
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 rounded-full border-2 border-zinc-900"></div>
-                )}
+
+                {/* Name & Status */}
+                <div>
+                  <h2 className="font-semibold text-white">{selectedChat.name}</h2>
+                  <p className="text-xs text-gray-400">
+                    {selectedChat.online ? 'Active now' : 'Offline'}
+                  </p>
+                </div>
               </div>
-              
-              {/* Contact Name and Status */}
-              <div className="flex-1 min-w-0">
-                <h2 className="font-semibold text-sm md:text-base truncate">{selectedChat.name}</h2>
-                <p className="text-xs text-zinc-400">
-                  {selectedChat.online ? 'Active now' : 'Offline'}
-                </p>
-              </div>
-              
-              {/* Action Buttons - Call, Video, Info */}
-              <div className="flex gap-2 md:gap-4 flex-shrink-0">
-                <button className="hover:text-purple-400 transition-colors p-2 hover:bg-zinc-800 rounded-full">
-                  <Phone className="w-4 h-4 md:w-5 md:h-5" />
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button className="p-2.5 hover:bg-white/10 rounded-xl transition-all transform hover:scale-105">
+                  <Phone className="w-5 h-5 text-purple-400" />
                 </button>
-                <button className="hover:text-purple-400 transition-colors p-2 hover:bg-zinc-800 rounded-full">
-                  <Video className="w-4 h-4 md:w-5 md:h-5" />
+                <button className="p-2.5 hover:bg-white/10 rounded-xl transition-all transform hover:scale-105">
+                  <Video className="w-5 h-5 text-pink-400" />
                 </button>
-                <button className="hover:text-purple-400 transition-colors p-2 hover:bg-zinc-800 rounded-full">
-                  <Info className="w-4 h-4 md:w-5 md:h-5" />
+                <button className="p-2.5 hover:bg-white/10 rounded-xl transition-all transform hover:scale-105">
+                  <MoreVertical className="w-5 h-5 text-gray-400" />
                 </button>
               </div>
             </div>
 
-            {/* ========================================= */}
-            {/* MESSAGES - Scrollable message history */}
-            {/* ========================================= */}
-            <div className="flex-1 overflow-y-auto overscroll-y-contain p-3 md:p-4 space-y-3 md:space-y-4">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {(messages[selectedChat.id] || []).map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex ${msg.sent ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${msg.sent ? 'justify-end' : 'justify-start'} animate-fade-in`}
                 >
-                  {/* Message Bubble */}
-                  <div
-                    className={`max-w-[280px] sm:max-w-xs lg:max-w-md px-3 md:px-4 py-2 md:py-2.5 rounded-3xl ${
-                      msg.sent
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-br-md'
-                        : 'bg-zinc-800 text-white rounded-bl-md'
-                    }`}
-                  >
-                    {/* Message Text */}
-                    <p className="text-sm leading-relaxed">{msg.text}</p>
-                    
-                    {/* Message Time */}
-                    <p className={`text-xs mt-1 ${msg.sent ? 'text-purple-100' : 'text-zinc-500'}`}>
-                      {msg.time}
-                    </p>
+                  <div className={`max-w-[70%] ${msg.sent ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                    <div
+                      className={`px-4 py-2.5 rounded-2xl ${
+                        msg.sent
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-br-sm shadow-lg shadow-purple-500/30'
+                          : 'bg-white/10 backdrop-blur-sm text-white rounded-bl-sm border border-white/10'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed">{msg.text}</p>
+                    </div>
+                    <div className="flex items-center gap-1 px-2">
+                      <span className="text-xs text-gray-500">{msg.time}</span>
+                      {msg.sent && (
+                        msg.read ? (
+                          <CheckCheck className="w-3.5 h-3.5 text-purple-400" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5 text-gray-500" />
+                        )
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* ========================================= */}
-            {/* INPUT AREA - Message composer */}
-            {/* ========================================= */}
-            <div className="p-3 md:p-4 bg-zinc-900 border-t border-zinc-800 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                {/* Image Attachment Button */}
-                <button className="p-1.5 md:p-2 hover:bg-zinc-800 rounded-full transition-colors flex-shrink-0">
-                  <Image className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+            {/* Message Input */}
+            <div className="p-4 border-t border-white/10 bg-black/40 backdrop-blur-xl">
+              <div className="flex items-end gap-2">
+                {/* Attachment Button */}
+                <button className="p-3 hover:bg-white/10 rounded-xl transition-all transform hover:scale-105 flex-shrink-0">
+                  <Paperclip className="w-5 h-5 text-gray-400" />
                 </button>
-                
-                {/* Emoji Button */}
-                <button className="p-1.5 md:p-2 hover:bg-zinc-800 rounded-full transition-colors flex-shrink-0">
-                  <Smile className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+
+                {/* Input Container */}
+                <div className="flex-1 relative">
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type a message..."
+                    rows="1"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all max-h-32 overflow-y-auto"
+                    style={{ minHeight: '48px' }}
+                  />
+                  <button className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:scale-110 transition-transform">
+                    <Smile className="w-5 h-5 text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Send Button */}
+                <button
+                  onClick={handleSend}
+                  disabled={!message.trim()}
+                  className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/50 flex-shrink-0"
+                >
+                  <Send className="w-5 h-5" />
                 </button>
-                
-                {/* Text Input Field */}
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Type a message..."
-                  className="flex-1 px-3 md:px-4 py-2 md:py-2.5 bg-zinc-800 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-sm md:text-base"
-                />
-                
-                {/* Send Button (if text entered) or Mic Button (if empty) */}
-                {message.trim() ? (
-                  <button
-                    onClick={handleSend}
-                    className="p-2 md:p-2.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full hover:opacity-90 transition-all flex-shrink-0"
-                  >
-                    <Send className="w-4 h-4 md:w-5 md:h-5" />
-                  </button>
-                ) : (
-                  <button className="p-1.5 md:p-2 hover:bg-zinc-800 rounded-full transition-colors flex-shrink-0">
-                    <Mic className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                  </button>
-                )}
               </div>
             </div>
           </>
         ) : (
-          /* ========================================= */
-          /* EMPTY STATE - No chat selected */
-          /* ========================================= */
-          <div className="hidden md:flex flex-1 items-center justify-center">
-            <div className="text-center">
-              <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-6xl">
-                💬
-              </div>
-              <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Your Messages
-              </h2>
-              <p className="text-zinc-400">Select a chat to start messaging</p>
+          /* Empty State */
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-2xl shadow-purple-500/30 animate-pulse">
+              <PlusCircle className="w-12 h-12 text-white" />
             </div>
+            <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Select a conversation
+            </h2>
+            <p className="text-gray-400 mb-6">
+              Choose from your existing conversations or start a new one
+            </p>
+            <button
+              onClick={() => setShowUserSearch(true)}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/50"
+            >
+              Start New Chat
+            </button>
           </div>
         )}
       </div>
 
-      {/* UserSearch Modal */}
-      <UserSearch 
-        isOpen={showUserSearch}
-        onClose={() => setShowUserSearch(false)}
-        onAddContact={handleAddContact}
-      />
+      {/* User Search Modal */}
+      {showUserSearch && (
+        <UserSearch onClose={() => setShowUserSearch(false)} />
+      )}
+
+      {/* Animations */}
+      <style>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
