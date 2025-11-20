@@ -1,32 +1,33 @@
 import React, { useState } from 'react';
 import { Search, X, UserPlus, User } from 'lucide-react';
+import { usersAPI } from '../services/api';
 
 const UserSearch = ({ isOpen, onClose, onAddContact }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSearch = async (email) => {
     if (!email.trim()) {
       setSearchResults([]);
+      setError('');
       return;
     }
     
     setLoading(true);
+    setError('');
     
-    // Mock data for now
-    setTimeout(() => {
-      const mockResults = email.includes('demo') ? [{
-        id: '1',
-        name: 'Demo User',
-        email: 'demo@pinglo.app',
-        avatar: '',
-        online: true
-      }] : [];
-      
-      setSearchResults(mockResults);
+    try {
+      const results = await usersAPI.searchUsers(email);
+      setSearchResults(results || []);
+    } catch (err) {
+      console.error('Search error:', err);
+      setError('Failed to search users. Please try again.');
+      setSearchResults([]);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const handleAddContact = (user) => {
@@ -66,13 +67,19 @@ const UserSearch = ({ isOpen, onClose, onAddContact }) => {
           </div>
           
           <div className="max-h-60 overflow-y-auto">
+            {error && (
+              <div className="text-center py-4 text-red-500 text-sm">
+                {error}
+              </div>
+            )}
+            
             {loading && (
               <div className="text-center py-4">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
               </div>
             )}
             
-            {!loading && searchResults.length > 0 && (
+            {!loading && !error && searchResults.length > 0 && (
               <div className="space-y-2">
                 {searchResults.map((user) => (
                   <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -96,7 +103,7 @@ const UserSearch = ({ isOpen, onClose, onAddContact }) => {
               </div>
             )}
             
-            {!loading && searchQuery && searchResults.length === 0 && (
+            {!loading && !error && searchQuery && searchResults.length === 0 && (
               <div className="text-center py-4 text-gray-500">
                 <User size={32} className="mx-auto mb-2" />
                 <p>No users found</p>

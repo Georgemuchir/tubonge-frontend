@@ -32,7 +32,7 @@ const CleanChat = () => {
         <main className="clean-main">
           <div className="clean-welcome">
             <h1>Welcome to Pinglo</h1>
-            <p>You're all set. Create your first conversation to get started. This clean layout intentionally avoids any pre-filled demos.</p>
+            <p>You're all set. Create your first conversation to get started.</p>
             <button className="clean-start-btn" onClick={openNew}>Start a conversation</button>
           </div>
         </main>

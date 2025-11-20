@@ -97,16 +97,8 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Demo Credentials */}
-        <div className="mb-8 p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <p className="text-xs text-blue-700 font-medium mb-1">Demo Account:</p>
-          <p className="text-xs text-blue-600">
-            demo@pinglo.app / demo123
-          </p>
-        </div>
-
         {/* Forgot Password */}
-        <div className="text-center">
+        <div className="text-center mb-8">
           <Link to="#" className="text-xs text-blue-900 hover:text-blue-700">
             Forgot password?
           </Link>
