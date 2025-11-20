@@ -19,8 +19,10 @@ const UserSearch = ({ isOpen, onClose, onAddContact }) => {
     setError('');
     
     try {
-      const results = await usersAPI.searchUsers(email);
-      setSearchResults(results || []);
+      const response = await usersAPI.searchUsers(email);
+      // Backend returns { users: [...] }, axios gives us .data automatically
+      const users = response.data?.users || [];
+      setSearchResults(users);
     } catch (err) {
       console.error('Search error:', err);
       setError('Failed to search users. Please try again.');
