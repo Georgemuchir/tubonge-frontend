@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Phone, Video, Info, Image, Mic, Send, Smile, ArrowLeft, UserPlus } from 'lucide-react';
+import { Search, Phone, Video, Info, Image, Mic, Send, Smile, ArrowLeft, UserPlus, MoreVertical, PlusCircle, Menu, X } from 'lucide-react';
 import UserSearch from './UserSearch';
 
 // =====================================================
