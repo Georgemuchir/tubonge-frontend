@@ -1,0 +1,458 @@
+import React, { useState } from 'react';
+import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+
+const styles = `
+  @keyframes blob {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes scaleUp {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .blob {
+    animation: blob 7s infinite;
+  }
+  
+  .float-animation {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .message-sent {
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  }
+  
+  .message-received {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+  }
+  
+  .hover-lift {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.5);
+    border-radius: 3px;
+  }
+`;
+
+const UserSearch = ({ onClose, onSelectUser }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.users || []);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="glass-card rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-white">Find Users</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <div className="relative mb-4">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Search by name or email..."
+            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+          />
+        </div>
+        
+        <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+              <p className="text-gray-400 mt-2">Searching...</p>
+            </div>
+          ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No users found</p>
+            </div>
+          ) : (
+            searchResults.map((user) => (
+              <div key={user.id || user._id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
+                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">{user.name}</p>
+                    <p className="text-gray-400 text-sm">{user.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    onSelectUser(user);
+                    onClose();
+                  }}
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover-lift"
+                >
+                  Chat
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EmptyChat = ({ onNewMessage }) => {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-8">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 mb-6 float-animation">
+          <MessageCircle className="w-12 h-12 text-purple-400" />
+        </div>
+        <h3 className="text-2xl font-bold text-white mb-2">No conversation selected</h3>
+        <p className="text-gray-400 mb-8">Choose a conversation or start a new one</p>
+        <div className="flex gap-3 justify-center">
+          <button
+            onClick={onNewMessage}
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover-lift"
+          >
+            Start a conversation
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StandaloneMessenger = () => {
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [message, setMessage] = useState('');
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [conversations, setConversations] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const filteredConversations = conversations.filter(conv =>
+    conv.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleSend = async () => {
+    if (!message.trim() || !selectedUser) return;
+    
+    try {
+      const response = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          recipient_id: selectedUser.id || selectedUser._id,
+          content: message,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessages([...messages, data.message]);
+        setMessage('');
+      }
+    } catch (error) {
+      console.error('Send error:', error);
+    }
+  };
+
+  const handleUserSelect = async (user) => {
+    setSelectedUser(user);
+    setLoading(true);
+    
+    try {
+      const response = await fetch(`/api/messages/${user.id || user._id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data.messages || []);
+      }
+    } catch (error) {
+      console.error('Load messages error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  return (
+    <div className="h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex">
+      <style>{styles}</style>
+      
+      {/* Sidebar */}
+      <div className="w-80 glass-card border-r border-white/10 flex flex-col">
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-purple-400" />
+              Pinglo
+            </h1>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1 rounded-lg bg-white/5 text-gray-400 text-sm hover:bg-white/10 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+          
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+            />
+          </div>
+          
+          <button
+            onClick={() => setShowUserSearch(true)}
+            className="w-full py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover-lift flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New Chat
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto scrollbar-thin">
+          {filteredConversations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+              <MessageCircle className="w-16 h-16 text-gray-600 mb-4" />
+              <p className="text-gray-400 text-sm">No conversations yet</p>
+              <p className="text-gray-500 text-xs mt-2">Click "New Chat" to start</p>
+            </div>
+          ) : (
+            filteredConversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => handleUserSelect(conv)}
+                className={`p-4 border-b border-white/5 cursor-pointer transition-colors ${
+                  selectedUser?.id === conv.id ? 'bg-white/10' : 'hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
+                      {conv.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    {conv.online && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-white font-semibold truncate">{conv.name}</p>
+                      <span className="text-xs text-gray-400">{conv.time}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-gray-400 text-sm truncate">{conv.lastMessage}</p>
+                      {conv.unread > 0 && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold">
+                          {conv.unread}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+      
+      {/* Main Chat Area */}
+      {!selectedUser ? (
+        <EmptyChat onNewMessage={() => setShowUserSearch(true)} />
+      ) : (
+        <div className="flex-1 flex flex-col">
+          {/* Chat Header */}
+          <div className="glass-card border-b border-white/10 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
+                  {selectedUser.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                {selectedUser.online && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
+                )}
+              </div>
+              <div>
+                <p className="text-white font-semibold">{selectedUser.name}</p>
+                <p className="text-gray-400 text-sm">{selectedUser.online ? 'Online' : 'Offline'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+                <Phone className="w-5 h-5" />
+              </button>
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+                <Video className="w-5 h-5" />
+              </button>
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+                <Info className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+            {loading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <MessageCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400">No messages yet</p>
+                  <p className="text-gray-500 text-sm mt-2">Start the conversation!</p>
+                </div>
+              </div>
+            ) : (
+              messages.map((msg) => {
+                const isSent = msg.sender_id === user?.id || msg.sender_id === user?._id;
+                return (
+                  <div key={msg.id || msg._id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
+                    <div className={`max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-2xl px-4 py-2`}>
+                      <p className="text-white">{msg.content}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-xs text-white/60">{formatTime(msg.timestamp || msg.created_at)}</span>
+                        {isSent && (
+                          <Check className={`w-3 h-3 ${msg.read ? 'text-blue-400' : 'text-white/60'}`} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          
+          {/* Message Input */}
+          <div className="glass-card border-t border-white/10 p-4">
+            <div className="flex items-end gap-2">
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+                <Paperclip className="w-5 h-5" />
+              </button>
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+                <Smile className="w-5 h-5" />
+              </button>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder="Type a message..."
+                rows="1"
+                className="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors resize-none"
+              />
+              <button
+                onClick={handleSend}
+                className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white hover-lift"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {showUserSearch && (
+        <UserSearch
+          onClose={() => setShowUserSearch(false)}
+          onSelectUser={handleUserSelect}
+        />
+      )}
+    </div>
+  );
+};
+
+export default StandaloneMessenger;

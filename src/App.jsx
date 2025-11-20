@@ -3,8 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider, useChat } from './contexts/ChatContext';
 import Login from './components/Login';
 import Register from './components/Register';
-import Chat from './components/Chat';
-import CleanChat from './components/CleanChat';
+import StandaloneMessenger from './components/StandaloneMessenger';
 import './App.css';
 
 // Protected Route Component
@@ -43,15 +42,6 @@ const PublicRoute = ({ children }) => {
   return isAuthenticated ? <Navigate to="/" /> : children;
 };
 
-// Wrapper to choose UI based on conversations existing
-const CleanChatWrapper = () => {
-  const { conversations } = useChat();
-  if (!conversations || conversations.length === 0) {
-    return <CleanChat />;
-  }
-  return <Chat />;
-};
-
 // Create router with v7 future flags enabled
 const router = createBrowserRouter(
   [
@@ -85,10 +75,7 @@ const router = createBrowserRouter(
         <AuthProvider>
           <div className="App">
             <ProtectedRoute>
-              <ChatProvider>
-                {/* Use clean layout when there are no conversations */}
-                <CleanChatWrapper />
-              </ChatProvider>
+              <StandaloneMessenger />
             </ProtectedRoute>
           </div>
         </AuthProvider>
