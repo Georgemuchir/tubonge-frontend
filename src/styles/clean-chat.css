@@ -6,19 +6,125 @@ body, html {
 .clean-app-container { display:flex; flex-direction:column; min-height:100vh; }
 .clean-topbar { padding:12px 20px; border-bottom:1px solid #1f2329; background:#14171c; display:flex; align-items:center; justify-content:space-between; }
 .clean-topbar-title { font-weight:600; font-size:18px; letter-spacing:.5px; }
-.clean-new-btn { background:#2563eb; color:#fff; border:none; padding:8px 14px; border-radius:6px; font-size:14px; cursor:pointer; display:flex; gap:6px; align-items:center; }
-.clean-new-btn:hover { background:#1d4ed8; }
+
+/* Enhanced New Message Button */
+.clean-new-btn { 
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #fff; 
+  border: none; 
+  padding: 10px 18px; 
+  border-radius: 8px; 
+  font-size: 14px; 
+  font-weight: 600;
+  cursor: pointer; 
+  display: flex; 
+  gap: 8px; 
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+.clean-new-btn span {
+  font-size: 18px;
+  font-weight: 400;
+  transition: transform 0.3s ease;
+}
+.clean-new-btn:hover { 
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+  transform: translateY(-2px);
+}
+.clean-new-btn:hover span {
+  transform: rotate(90deg);
+}
+.clean-new-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
 .clean-content { flex:1; display:flex; }
 .clean-sidebar { width:320px; border-right:1px solid #1f2329; background:#14171c; display:flex; flex-direction:column; }
 .clean-sidebar-empty { padding:48px 28px; text-align:center; }
-.clean-empty-icon { font-size:40px; margin-bottom:12px; opacity:.65; }
-.clean-empty-title { font-size:20px; font-weight:600; margin-bottom:6px; }
-.clean-empty-sub { font-size:13px; color:#94a3b8; }
+.clean-empty-icon { 
+  font-size: 48px; 
+  margin-bottom: 16px; 
+  opacity: .7;
+  animation: float 3s ease-in-out infinite;
+}
+.clean-empty-title { font-size:20px; font-weight:600; margin-bottom:8px; }
+.clean-empty-sub { font-size:13px; color:#94a3b8; line-height: 1.5; }
 .clean-main { flex:1; display:flex; align-items:center; justify-content:center; position:relative; }
 .clean-welcome { text-align:center; max-width:420px; padding:40px 32px; }
-.clean-welcome h1 { font-size:28px; margin:0 0 12px; font-weight:650; background:linear-gradient(90deg,#60a5fa,#6366f1,#8b5cf6); -webkit-background-clip:text; background-clip:text; color:transparent; }
-.clean-welcome p { font-size:15px; line-height:1.5; color:#9ca3af; margin:0 0 18px; }
-.clean-start-btn { background:#10b981; color:#fff; border:none; padding:10px 20px; font-size:15px; border-radius:8px; cursor:pointer; box-shadow:0 4px 12px -2px rgba(16,185,129,0.4); }
-.clean-start-btn:hover { background:#059669; }
+.clean-welcome h1 { 
+  font-size: 32px; 
+  margin: 0 0 16px; 
+  font-weight: 700; 
+  background: linear-gradient(135deg, #60a5fa 0%, #6366f1 50%, #8b5cf6 100%); 
+  -webkit-background-clip: text; 
+  background-clip: text; 
+  color: transparent;
+  letter-spacing: -0.5px;
+}
+.clean-welcome p { 
+  font-size: 16px; 
+  line-height: 1.6; 
+  color: #9ca3af; 
+  margin: 0 0 28px; 
+}
+
+/* Enhanced Start Conversation Button */
+.clean-start-btn { 
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff; 
+  border: none; 
+  padding: 14px 32px; 
+  font-size: 16px; 
+  font-weight: 600;
+  border-radius: 10px; 
+  cursor: pointer; 
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.clean-start-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+.clean-start-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+.clean-start-btn:hover { 
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.6);
+  transform: translateY(-3px);
+}
+.clean-start-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
 .clean-footer { padding:16px; font-size:12px; text-align:center; color:#6b7280; }
-@media (max-width:860px){ .clean-sidebar{display:none;} .clean-content{flex-direction:column;} .clean-main{padding:40px 20px;} }
+
+/* Floating animation for emoji */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@media (max-width:860px){ 
+  .clean-sidebar{display:none;} 
+  .clean-content{flex-direction:column;} 
+  .clean-main{padding:40px 20px;} 
+  .clean-welcome h1 { font-size: 26px; }
+  .clean-welcome p { font-size: 15px; }
+  .clean-start-btn { padding: 12px 28px; font-size: 15px; }
+}
