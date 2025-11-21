@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, Menu, ArrowLeft, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
@@ -26,6 +26,16 @@ const styles = `
   @keyframes scaleUp {
     from { transform: scale(0.95); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
+  }
+  
+  @keyframes slideInLeft {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
+  
+  @keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
   }
 
   .blob {
@@ -71,6 +81,58 @@ const styles = `
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: rgba(139, 92, 246, 0.5);
     border-radius: 3px;
+  }
+  
+  .slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
+  }
+  
+  .slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+  
+  /* Safe area for mobile devices with notches */
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .mobile-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-out;
+    }
+    
+    .mobile-sidebar.active {
+      transform: translateX(0);
+    }
+    
+    .mobile-chat {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 40;
+    }
+    
+    /* Larger touch targets for mobile */
+    .touch-target {
+      min-height: 48px;
+      min-width: 48px;
+    }
+    
+    /* Prevent text selection on double-tap */
+    .touch-target {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
   }
 `;
 
@@ -171,19 +233,29 @@ const UserSearch = ({ onClose, onSelectUser }) => {
   );
 };
 
-const EmptyChat = ({ onNewMessage }) => {
+const EmptyChat = ({ onNewMessage, onOpenSidebar, isMobile }) => {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8">
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 mb-6 float-animation">
-          <MessageCircle className="w-12 h-12 text-purple-400" />
+    <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative">
+      {isMobile && (
+        <button
+          onClick={onOpenSidebar}
+          className="absolute top-4 left-4 p-3 rounded-lg glass-card text-white hover:bg-white/10 transition-colors touch-target"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      )}
+      <div className="text-center max-w-md">
+        <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 mb-4 md:mb-6 float-animation">
+          <MessageCircle className="w-10 h-10 md:w-12 md:h-12 text-purple-400" />
         </div>
-        <h3 className="text-2xl font-bold text-white mb-2">No conversation selected</h3>
-        <p className="text-gray-400 mb-8">Choose a conversation or start a new one</p>
-        <div className="flex gap-3 justify-center">
+        <h3 className="text-xl md:text-2xl font-bold text-white mb-2">No conversation selected</h3>
+        <p className="text-gray-400 text-sm md:text-base mb-6 md:mb-8 px-4">
+          {isMobile ? 'Tap the menu to view your conversations' : 'Choose a conversation or start a new one'}
+        </p>
+        <div className="flex gap-3 justify-center px-4">
           <button
             onClick={onNewMessage}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover-lift"
+            className="px-4 py-2.5 md:px-6 md:py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm md:text-base font-semibold hover-lift touch-target"
           >
             Start a conversation
           </button>
@@ -204,6 +276,8 @@ const StandaloneMessenger = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState({}); // Track unread messages per user
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   // Listen for incoming messages via Socket.IO
   useEffect(() => {
@@ -247,6 +321,17 @@ const StandaloneMessenger = () => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+    
+    // Handle window resize for responsive design
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setShowMobileSidebar(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const handleLogout = () => {
@@ -290,6 +375,7 @@ const StandaloneMessenger = () => {
   const handleUserSelect = async (user) => {
     setSelectedUser(user);
     setLoading(true);
+    setShowMobileSidebar(false); // Close sidebar on mobile when user is selected
     
     // Clear unread count for this user
     const userId = user.id || user._id;
@@ -323,11 +409,24 @@ const StandaloneMessenger = () => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex">
+    <div className="h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex overflow-hidden">
       <style>{styles}</style>
       
+      {/* Mobile Overlay */}
+      {isMobile && showMobileSidebar && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setShowMobileSidebar(false)}
+        />
+      )}
+      
       {/* Sidebar */}
-      <div className="w-80 glass-card border-r border-white/10 flex flex-col">
+      <div className={`
+        ${isMobile ? 'mobile-sidebar' : 'w-80'} 
+        ${isMobile && showMobileSidebar ? 'active' : ''}
+        glass-card border-r border-white/10 flex flex-col
+        ${isMobile ? 'max-w-[85%] sm:max-w-sm' : ''}
+      `}>
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -336,7 +435,7 @@ const StandaloneMessenger = () => {
             </h1>
             <button
               onClick={handleLogout}
-              className="px-3 py-1 rounded-lg bg-white/5 text-gray-400 text-sm hover:bg-white/10 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 text-sm hover:bg-white/10 transition-colors touch-target"
             >
               Logout
             </button>
@@ -349,13 +448,13 @@ const StandaloneMessenger = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search conversations..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors touch-target"
             />
           </div>
           
           <button
             onClick={() => setShowUserSearch(true)}
-            className="w-full py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover-lift flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover-lift flex items-center justify-center gap-2 touch-target"
           >
             <Plus className="w-4 h-4" />
             New Chat
@@ -374,28 +473,28 @@ const StandaloneMessenger = () => {
               <div
                 key={conv.id}
                 onClick={() => handleUserSelect(conv)}
-                className={`p-4 border-b border-white/5 cursor-pointer transition-colors ${
+                className={`p-4 md:p-3 border-b border-white/5 cursor-pointer transition-colors touch-target active:bg-white/20 ${
                   selectedUser?.id === conv.id ? 'bg-white/10' : 'hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-14 h-14 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-lg md:text-base">
                       {conv.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     {conv.online && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
+                      <div className="absolute bottom-0 right-0 w-4 h-4 md:w-3 md:h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-white font-semibold truncate">{conv.name}</p>
-                      <span className="text-xs text-gray-400">{conv.time}</span>
+                      <p className="text-white font-semibold truncate text-base md:text-sm">{conv.name}</p>
+                      <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{conv.time}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-gray-400 text-sm truncate">{conv.lastMessage}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-gray-400 text-sm truncate flex-1">{conv.lastMessage}</p>
                       {conv.unread > 0 && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold">
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold min-w-[24px] text-center">
                           {conv.unread}
                         </span>
                       )}
@@ -410,40 +509,48 @@ const StandaloneMessenger = () => {
       
       {/* Main Chat Area */}
       {!selectedUser ? (
-        <EmptyChat onNewMessage={() => setShowUserSearch(true)} />
+        <EmptyChat onNewMessage={() => setShowUserSearch(true)} onOpenSidebar={() => setShowMobileSidebar(true)} isMobile={isMobile} />
       ) : (
-        <div className="flex-1 flex flex-col">
+        <div className={`flex-1 flex flex-col ${isMobile ? 'mobile-chat' : ''}`}>
           {/* Chat Header */}
-          <div className="glass-card border-b border-white/10 p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
+          <div className="glass-card border-b border-white/10 p-3 md:p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+              {isMobile && (
+                <button 
+                  onClick={() => setSelectedUser(null)}
+                  className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors touch-target flex-shrink-0"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              )}
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
                   {selectedUser.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 {selectedUser.online && (
                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
                 )}
               </div>
-              <div>
-                <p className="text-white font-semibold">{selectedUser.name}</p>
-                <p className="text-gray-400 text-sm">{selectedUser.online ? 'Online' : 'Offline'}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold truncate text-base md:text-base">{selectedUser.name}</p>
+                <p className="text-gray-400 text-xs md:text-sm">{selectedUser.online ? 'Online' : 'Offline'}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
                 <Phone className="w-5 h-5" />
               </button>
-              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
                 <Video className="w-5 h-5" />
               </button>
-              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
-                <Info className="w-5 h-5" />
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors touch-target">
+                <MoreVertical className="w-5 h-5" />
               </button>
             </div>
           </div>
           
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 scrollbar-thin">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
@@ -461,8 +568,8 @@ const StandaloneMessenger = () => {
                 const isSent = msg.sender_id === user?.id || msg.sender_id === user?._id;
                 return (
                   <div key={msg.id || msg._id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
-                    <div className={`max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-2xl px-4 py-2`}>
-                      <p className="text-white">{msg.content}</p>
+                    <div className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-2xl px-3 py-2 md:px-4 md:py-2`}>
+                      <p className="text-white text-sm md:text-base break-words">{msg.content}</p>
                       <div className="flex items-center gap-1 mt-1">
                         <span className="text-xs text-white/60">{formatTime(msg.timestamp || msg.created_at)}</span>
                         {isSent && (
@@ -477,12 +584,12 @@ const StandaloneMessenger = () => {
           </div>
           
           {/* Message Input */}
-          <div className="glass-card border-t border-white/10 p-4">
+          <div className="glass-card border-t border-white/10 p-3 md:p-4 safe-area-bottom">
             <div className="flex items-end gap-2">
-              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
                 <Paperclip className="w-5 h-5" />
               </button>
-              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
+              <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
                 <Smile className="w-5 h-5" />
               </button>
               <textarea
@@ -496,11 +603,12 @@ const StandaloneMessenger = () => {
                 }}
                 placeholder="Type a message..."
                 rows="1"
-                className="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors resize-none"
+                className="flex-1 px-3 py-2.5 md:px-4 md:py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm md:text-base placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors resize-none touch-target"
               />
               <button
                 onClick={handleSend}
-                className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white hover-lift"
+                disabled={!message.trim()}
+                className="p-3 md:p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white hover-lift touch-target disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
               >
                 <Send className="w-5 h-5" />
               </button>
