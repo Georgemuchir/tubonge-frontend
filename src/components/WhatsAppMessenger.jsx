@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
@@ -717,7 +717,7 @@ const WhatsAppMessenger = () => {
             className="p-4 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-blue-400 transition-all touch-target group relative"
             title="Settings"
           >
-            <Info className="w-6 h-6" />
+            <Settings className="w-6 h-6" />
             <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
               Settings
             </span>
@@ -730,8 +730,8 @@ const WhatsAppMessenger = () => {
           className="p-4 rounded-xl hover:bg-red-900/20 text-gray-400 hover:text-red-400 transition-all touch-target group relative"
           title="Logout"
         >
-          <MoreVertical className="w-6 h-6" />
-          <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <LogOut className="w-6 h-6" />
+          <span className="absolute left-full ml-4 px-3 py-1 bg-red-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
             Logout
           </span>
         </button>
