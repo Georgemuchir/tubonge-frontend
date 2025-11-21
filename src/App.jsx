@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider, useChat } from './contexts/ChatContext';
 import Login from './components/Login';
 import Register from './components/Register';
-import StandaloneMessenger from './components/StandaloneMessenger';
+import WhatsAppMessenger from './components/WhatsAppMessenger';
 import './App.css';
 
 // Protected Route Component
@@ -75,7 +75,7 @@ const router = createBrowserRouter(
         <AuthProvider>
           <div className="App">
             <ProtectedRoute>
-              <StandaloneMessenger />
+              <WhatsAppMessenger />
             </ProtectedRoute>
           </div>
         </AuthProvider>
