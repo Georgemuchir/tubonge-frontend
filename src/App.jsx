@@ -5,6 +5,8 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Chat from './components/Chat';
 import CleanChat from './components/CleanChat';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 import './App.css';
 
 // Protected Route Component
@@ -75,6 +77,26 @@ const router = createBrowserRouter(
             <PublicRoute>
               <Register />
             </PublicRoute>
+          </div>
+        </AuthProvider>
+      ),
+    },
+    {
+      path: "/forgot-password",
+      element: (
+        <AuthProvider>
+          <div className="App">
+            <ForgotPassword />
+          </div>
+        </AuthProvider>
+      ),
+    },
+    {
+      path: "/reset-password",
+      element: (
+        <AuthProvider>
+          <div className="App">
+            <ResetPassword />
           </div>
         </AuthProvider>
       ),
