@@ -278,6 +278,40 @@ const StandaloneMessenger = () => {
   const [unreadMessages, setUnreadMessages] = useState({}); // Track unread messages per user
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [inbox, setInbox] = useState([]); // Inbox data
+  const [totalUnread, setTotalUnread] = useState(0); // Total unread count
+
+  // Fetch inbox on mount
+  useEffect(() => {
+    fetchInbox();
+  }, []);
+
+  const fetchInbox = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/messages/inbox`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setInbox(data.inbox || []);
+        setTotalUnread(data.total_unread || 0);
+        
+        // Update unread messages state
+        const unreadMap = {};
+        data.inbox?.forEach(item => {
+          if (item.unread_count > 0) {
+            unreadMap[item.sender_id] = item.unread_count;
+          }
+        });
+        setUnreadMessages(unreadMap);
+      }
+    } catch (error) {
+      console.error('Fetch inbox error:', error);
+    }
+  };
 
   // Listen for incoming messages via Socket.IO
   useEffect(() => {
@@ -307,12 +341,22 @@ const StandaloneMessenger = () => {
           });
         }
       }
+      
+      // Refresh inbox
+      fetchInbox();
+    };
+
+    const handleInboxUpdate = () => {
+      fetchInbox();
     };
 
     socket.on('new_message', handleNewMessage);
+    socket.on('inbox_update', handleInboxUpdate);
 
     return () => {
       socket.off('new_message', handleNewMessage);
+      socket.off('new_message', handleNewMessage);
+      socket.off('inbox_update', handleInboxUpdate);
     };
   }, [selectedUser]);
 
@@ -338,13 +382,6 @@ const StandaloneMessenger = () => {
     logout();
     navigate('/login');
   };
-
-  const filteredConversations = conversations
-    .filter(conv => conv.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-    .map(conv => ({
-      ...conv,
-      unread: unreadMessages[conv.id || conv._id] || 0
-    }));
 
   const handleSend = async () => {
     if (!message.trim() || !selectedUser) return;
@@ -385,6 +422,21 @@ const StandaloneMessenger = () => {
       return updated;
     });
     
+    // Mark messages as read
+    try {
+      await fetch(`${API_BASE_URL}/messages/mark-read/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      
+      // Refresh inbox after marking as read
+      fetchInbox();
+    } catch (error) {
+      console.error('Mark read error:', error);
+    }
+    
     try {
       const response = await fetch(`${API_BASE_URL}/messages/${userId}`, {
         headers: {
@@ -408,6 +460,25 @@ const StandaloneMessenger = () => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Use inbox data as conversations
+  const filteredConversations = inbox
+    .filter(conv => 
+      conv.sender_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.sender_username?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .map(conv => ({
+      id: conv.sender_id,
+      _id: conv.sender_id,
+      name: conv.sender_name,
+      username: conv.sender_username,
+      email: conv.sender_email,
+      avatar: conv.sender_avatar,
+      lastMessage: conv.last_message,
+      time: formatTime(conv.last_message_time),
+      unread: conv.unread_count,
+      online: false // We can add online status later
+    }));
+
   return (
     <div className="h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex overflow-hidden">
       <style>{styles}</style>
@@ -429,10 +500,17 @@ const StandaloneMessenger = () => {
       `}>
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-purple-400" />
-              Pinglo
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-6 h-6 text-purple-400" />
+                Pinglo
+              </h1>
+              {totalUnread > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold">
+                  {totalUnread}
+                </span>
+              )}
+            </div>
             <button
               onClick={handleLogout}
               className="px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 text-sm hover:bg-white/10 transition-colors touch-target"
