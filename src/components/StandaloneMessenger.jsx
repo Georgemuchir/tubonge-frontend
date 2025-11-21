@@ -203,6 +203,7 @@ const StandaloneMessenger = () => {
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState({}); // Track unread messages per user
 
   // Listen for incoming messages via Socket.IO
   useEffect(() => {
@@ -212,9 +213,25 @@ const StandaloneMessenger = () => {
     const handleNewMessage = (newMessage) => {
       console.log('Received new message:', newMessage);
       
-      // Only add message if it's from the currently selected user
-      if (selectedUser && newMessage.sender_id === (selectedUser.id || selectedUser._id)) {
+      const senderId = newMessage.sender_id;
+      
+      // If viewing this user's chat, add message immediately
+      if (selectedUser && senderId === (selectedUser.id || selectedUser._id)) {
         setMessages(prevMessages => [...prevMessages, newMessage]);
+      } else {
+        // Message from someone else - increment unread count
+        setUnreadMessages(prev => ({
+          ...prev,
+          [senderId]: (prev[senderId] || 0) + 1
+        }));
+        
+        // Show browser notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('New message from Pinglo', {
+            body: newMessage.content.substring(0, 50) + (newMessage.content.length > 50 ? '...' : ''),
+            icon: '/favicon.ico'
+          });
+        }
       }
     };
 
@@ -225,14 +242,24 @@ const StandaloneMessenger = () => {
     };
   }, [selectedUser]);
 
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredConversations = conversations
+    .filter(conv => conv.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .map(conv => ({
+      ...conv,
+      unread: unreadMessages[conv.id || conv._id] || 0
+    }));
 
   const handleSend = async () => {
     if (!message.trim() || !selectedUser) return;
@@ -264,8 +291,16 @@ const StandaloneMessenger = () => {
     setSelectedUser(user);
     setLoading(true);
     
+    // Clear unread count for this user
+    const userId = user.id || user._id;
+    setUnreadMessages(prev => {
+      const updated = { ...prev };
+      delete updated[userId];
+      return updated;
+    });
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/${user.id || user._id}`, {
+      const response = await fetch(`${API_BASE_URL}/messages/${userId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
