@@ -279,34 +279,89 @@ const UserSearch = ({ onClose, onSelectUser }) => {
   );
 };
 
-const EmptyChat = ({ onNewMessage, onOpenSidebar, isMobile }) => {
+const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor }) => {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 whatsapp-bg border-l border-gray-800 relative">
-      {isMobile && (
+    <div className="flex-1 flex flex-col whatsapp-bg border-l border-gray-800">
+      {/* Header */}
+      <div className="whatsapp-header p-4 flex items-center justify-between border-b border-gray-800">
+        <div className="flex items-center gap-3">
+          {isMobile && (
+            <button
+              onClick={onOpenSidebar}
+              className="p-2 rounded-lg hover:bg-gray-700 text-white transition-colors touch-target"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          )}
+          <h2 className="text-xl font-semibold text-white">Chats</h2>
+        </div>
         <button
-          onClick={onOpenSidebar}
-          className="absolute top-4 left-4 p-3 rounded-lg glass-card text-white hover:bg-white/10 transition-colors touch-target"
+          onClick={onNewMessage}
+          className="p-2 rounded-full bg-teal-600 hover:bg-teal-700 text-white transition-colors touch-target"
         >
-          <Menu className="w-6 h-6" />
+          <Plus className="w-6 h-6" />
         </button>
-      )}
-      <div className="text-center max-w-md">
-        <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gray-800 mb-8 border-8 border-gray-700">
-          <MessageCircle className="w-16 h-16 text-gray-600" />
-        </div>
-        <h3 className="text-3xl font-light text-gray-300 mb-4">Pinglo Web</h3>
-        <p className="text-gray-500 mb-8 leading-relaxed">
-          Send and receive messages without keeping your phone online.<br />
-          Use Pinglo on up to 4 linked devices and 1 phone at the same time.
-        </p>
-        <div className="pt-8 border-t border-gray-800">
-          <button
-            onClick={onNewMessage}
-            className="px-8 py-3 rounded-full bg-teal-600 hover:bg-teal-700 text-white font-medium transition-colors"
-          >
-            Start New Chat
-          </button>
-        </div>
+      </div>
+
+      {/* Conversations Grid/List */}
+      <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+        {conversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gray-800 mb-6 border-4 border-gray-700">
+              <MessageCircle className="w-12 h-12 text-gray-600" />
+            </div>
+            <h3 className="text-2xl font-light text-gray-300 mb-3">No conversations yet</h3>
+            <p className="text-gray-500 mb-6 max-w-md">
+              Start messaging by clicking the + button to find and connect with people
+            </p>
+            <button
+              onClick={onNewMessage}
+              className="px-6 py-3 rounded-full bg-teal-600 hover:bg-teal-700 text-white font-medium transition-colors"
+            >
+              Start New Chat
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => onSelectUser(conv)}
+                className="glass-card rounded-xl p-4 cursor-pointer hover-lift transition-all"
+              >
+                <div className="flex flex-col items-center text-center">
+                  <div className="relative mb-3">
+                    <div className={`w-20 h-20 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-2xl shadow-lg`}>
+                      {conv.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    {conv.online && (
+                      <div className="absolute bottom-0 right-0 w-5 h-5 green-bg rounded-full border-3 border-gray-900 animate-pulse"></div>
+                    )}
+                    {conv.unread > 0 && (
+                      <div className="absolute -top-1 -right-1 px-2 py-1 rounded-full orange-bg text-white text-xs font-bold shadow-lg">
+                        {conv.unread}
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="text-white font-semibold text-lg mb-1 truncate w-full">
+                    {conv.name}
+                  </h3>
+                  <p className="text-gray-400 text-sm mb-2 truncate w-full">
+                    {conv.lastMessage || 'No messages yet'}
+                  </p>
+                  <div className="flex items-center justify-between w-full mt-2 pt-2 border-t border-gray-700">
+                    <span className="text-xs text-gray-500">{conv.time}</span>
+                    {conv.online ? (
+                      <span className="text-xs green-accent font-medium">Online</span>
+                    ) : (
+                      <span className="text-xs text-gray-500">Offline</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -668,10 +723,13 @@ const WhatsAppMessenger = () => {
       {/* Chat Area */}
       <div className={`flex-1 flex flex-col ${isMobile && selectedUser ? 'mobile-chat' : ''}`}>
         {!selectedUser ? (
-          <EmptyChat 
+          <ConversationsView 
+            conversations={filteredConversations}
+            onSelectUser={handleUserSelect}
             onNewMessage={() => setShowUserSearch(true)} 
             onOpenSidebar={() => setShowMobileSidebar(true)}
             isMobile={isMobile}
+            getAvatarColor={getAvatarColor}
           />
         ) : (
           <>
