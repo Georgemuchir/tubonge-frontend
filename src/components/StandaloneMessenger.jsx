@@ -3,6 +3,8 @@ import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 const styles = `
   @keyframes blob {
     0%, 100% { transform: translate(0, 0) scale(1); }
@@ -84,7 +86,7 @@ const UserSearch = ({ onClose, onSelectUser }) => {
   const loadUsers = async (query) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
+      const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -214,7 +216,7 @@ const StandaloneMessenger = () => {
     if (!message.trim() || !selectedUser) return;
     
     try {
-      const response = await fetch('/api/messages/send', {
+      const response = await fetch(`${API_BASE_URL}/messages/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -241,7 +243,7 @@ const StandaloneMessenger = () => {
     setLoading(true);
     
     try {
-      const response = await fetch(`/api/messages/${user.id || user._id}`, {
+      const response = await fetch(`${API_BASE_URL}/messages/${user.id || user._id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
