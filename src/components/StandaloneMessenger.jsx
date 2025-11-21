@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import socketService from '../services/socket';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -202,6 +203,27 @@ const StandaloneMessenger = () => {
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Listen for incoming messages via Socket.IO
+  useEffect(() => {
+    const socket = socketService.socket;
+    if (!socket) return;
+
+    const handleNewMessage = (newMessage) => {
+      console.log('Received new message:', newMessage);
+      
+      // Only add message if it's from the currently selected user
+      if (selectedUser && newMessage.sender_id === (selectedUser.id || selectedUser._id)) {
+        setMessages(prevMessages => [...prevMessages, newMessage]);
+      }
+    };
+
+    socket.on('new_message', handleNewMessage);
+
+    return () => {
+      socket.off('new_message', handleNewMessage);
+    };
+  }, [selectedUser]);
 
   const handleLogout = () => {
     logout();
