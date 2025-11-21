@@ -666,14 +666,16 @@ const WhatsAppMessenger = () => {
       </div>
       
       {/* Chat Area */}
-      {!selectedUser ? (
-        <EmptyChat 
-          onNewMessage={() => setShowUserSearch(true)} 
-          onOpenSidebar={() => setShowMobileSidebar(true)}
-          isMobile={isMobile}
-        />
-      ) : (
-        <div className={`flex-1 flex flex-col ${isMobile ? 'mobile-chat' : ''}`}>
+      <div className={`flex-1 flex flex-col ${isMobile && selectedUser ? 'mobile-chat' : ''}`}>
+        {!selectedUser ? (
+          <EmptyChat 
+            onNewMessage={() => setShowUserSearch(true)} 
+            onOpenSidebar={() => setShowMobileSidebar(true)}
+            isMobile={isMobile}
+          />
+        ) : (
+          <>
+          {/* Chat Header */}
           <div className="whatsapp-header p-3 flex items-center justify-between border-l border-gray-800">
             <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
               {isMobile && (
@@ -802,8 +804,9 @@ const WhatsAppMessenger = () => {
               <Send className="w-5 h-5" />
             </button>
           </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
       
       {showUserSearch && (
         <UserSearch
