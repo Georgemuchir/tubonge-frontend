@@ -681,100 +681,60 @@ const WhatsAppMessenger = () => {
         />
       )}
       
-      {/* Sidebar */}
+      {/* Minimal Sidebar */}
       <div className={`
-        ${isMobile ? 'mobile-sidebar' : 'w-96'} 
+        ${isMobile ? 'mobile-sidebar' : 'w-20'} 
         ${isMobile && showMobileSidebar ? 'active' : ''}
-        whatsapp-sidebar border-r border-gray-800 flex flex-col
+        whatsapp-sidebar border-r border-gray-800 flex flex-col items-center py-6
         ${isMobile ? 'max-w-[85%]' : ''}
       `}>
-        <div className="whatsapp-header p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full blue-bg flex items-center justify-center text-white font-semibold">
-              {user?.name?.charAt(0).toUpperCase() || 'P'}
+        {/* User Profile */}
+        <div className="mb-8">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-teal-400/30 cursor-pointer hover:scale-110 transition-transform">
+            {user?.name?.charAt(0).toUpperCase() || 'P'}
+          </div>
+          {totalUnread > 0 && (
+            <div className="mt-2 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold text-center shadow-lg animate-pulse">
+              {totalUnread}
             </div>
-            <span className="text-white font-medium">Pinglo</span>
-            {totalUnread > 0 && (
-              <span className="px-2 py-0.5 rounded-full orange-bg text-white text-xs font-semibold">
-                {totalUnread}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowUserSearch(true)}
-              className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
-            >
-              <MessageCircle className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
-            >
-              <MoreVertical className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-        
-        {/* Search Bar */}
-        <div className="p-2">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search or start new chat"
-              className="w-full pl-11 pr-4 py-2 rounded-lg whatsapp-input text-white text-sm placeholder-gray-400 focus:outline-none border-none touch-target"
-            />
-          </div>
-        </div>
-        
-        {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
-          {filteredConversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-              <MessageCircle className="w-16 h-16 text-gray-600 mb-4" />
-              <p className="text-gray-400 text-sm">No conversations yet</p>
-              <p className="text-gray-500 text-xs mt-2">Click the message icon to start</p>
-            </div>
-          ) : (
-            filteredConversations.map((conv) => (
-              <div
-                key={conv.id}
-                onClick={() => handleUserSelect(conv)}
-                className={`p-3 md:p-4 cursor-pointer transition-colors border-b border-gray-800 touch-target ${
-                  selectedUser?.id === conv.id ? 'conversation-active' : 'conversation-hover'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-shrink-0">
-                    <div className={`w-12 h-12 md:w-12 md:h-12 rounded-full ${conv.color} flex items-center justify-center text-white font-semibold text-lg`}>
-                      {conv.name?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                    {conv.online && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 green-bg rounded-full border-2 border-gray-900 animate-pulse"></div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-white font-medium truncate">{conv.name}</p>
-                      <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{conv.time}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-gray-400 text-sm truncate flex-1">{conv.lastMessage || 'No messages yet'}</p>
-                      {conv.unread > 0 && (
-                        <span className="flex-shrink-0 px-1.5 min-w-[20px] h-5 rounded-full orange-bg text-white text-xs font-medium flex items-center justify-center">
-                          {conv.unread}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
           )}
         </div>
+        
+        {/* Navigation Icons */}
+        <div className="flex-1 flex flex-col gap-4 items-center">
+          <button
+            onClick={() => setShowUserSearch(true)}
+            className="p-4 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-teal-400 transition-all touch-target group relative"
+            title="New Chat"
+          >
+            <MessageCircle className="w-6 h-6" />
+            <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              New Chat
+            </span>
+          </button>
+          
+          <button
+            className="p-4 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-blue-400 transition-all touch-target group relative"
+            title="Settings"
+          >
+            <Info className="w-6 h-6" />
+            <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Settings
+            </span>
+          </button>
+        </div>
+        
+        {/* Logout at Bottom */}
+        <button
+          onClick={handleLogout}
+          className="p-4 rounded-xl hover:bg-red-900/20 text-gray-400 hover:text-red-400 transition-all touch-target group relative"
+          title="Logout"
+        >
+          <MoreVertical className="w-6 h-6" />
+          <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Logout
+          </span>
+        </button>
       </div>
       
       {/* Chat Area */}
