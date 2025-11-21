@@ -74,15 +74,14 @@ const styles = `
 const UserSearch = ({ onClose, onSelectUser }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleSearch = async (query) => {
-    setSearchQuery(query);
-    if (query.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
+  // Load all users when component mounts
+  React.useEffect(() => {
+    loadUsers('');
+  }, []);
 
+  const loadUsers = async (query) => {
     setLoading(true);
     try {
       const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
@@ -100,6 +99,11 @@ const UserSearch = ({ onClose, onSelectUser }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    loadUsers(query);
   };
 
   return (
@@ -129,9 +133,10 @@ const UserSearch = ({ onClose, onSelectUser }) => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
               <p className="text-gray-400 mt-2">Searching...</p>
             </div>
-          ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
+          ) : searchResults.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-400">No users found</p>
+              {searchQuery && <p className="text-gray-500 text-sm mt-2">Try a different search</p>}
             </div>
           ) : (
             searchResults.map((user) => (
