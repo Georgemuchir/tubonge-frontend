@@ -27,6 +27,21 @@ const styles = `
     from { transform: scale(0.95); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
   }
+  
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+  }
 
   .blob {
     animation: blob 7s infinite;
@@ -36,10 +51,21 @@ const styles = `
     animation: float 3s ease-in-out infinite;
   }
   
+  .slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+  
   .glass-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
+    background: linear-gradient(135deg, rgba(51, 65, 85, 0.8), rgba(30, 41, 59, 0.6));
+    backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  
+  .glass-card:hover {
+    background: linear-gradient(135deg, rgba(51, 65, 85, 0.9), rgba(30, 41, 59, 0.7));
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
   }
   
   .message-sent {
@@ -51,12 +77,12 @@ const styles = `
   }
   
   .hover-lift {
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 16px 48px rgba(59, 130, 246, 0.3);
   }
   
   .scrollbar-thin::-webkit-scrollbar {
@@ -283,76 +309,102 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
   return (
     <div className="flex-1 flex flex-col whatsapp-bg border-l border-gray-800">
       {/* Header */}
-      <div className="whatsapp-header p-4 flex items-center justify-between border-b border-gray-800">
+      <div className="whatsapp-header p-5 flex items-center justify-between border-b border-gray-700 shadow-lg">
         <div className="flex items-center gap-3">
           {isMobile && (
             <button
               onClick={onOpenSidebar}
-              className="p-2 rounded-lg hover:bg-gray-700 text-white transition-colors touch-target"
+              className="p-2 rounded-lg hover:bg-gray-700 text-white transition-all touch-target"
             >
               <Menu className="w-6 h-6" />
             </button>
           )}
-          <h2 className="text-xl font-semibold text-white">Chats</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <MessageCircle className="w-6 h-6 text-teal-400" />
+              Conversations
+            </h2>
+            <p className="text-sm text-gray-400 mt-0.5">{conversations.length} active chats</p>
+          </div>
         </div>
         <button
           onClick={onNewMessage}
-          className="p-2 rounded-full bg-teal-600 hover:bg-teal-700 text-white transition-colors touch-target"
+          className="p-3 rounded-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white transition-all shadow-lg hover:shadow-xl touch-target"
         >
           <Plus className="w-6 h-6" />
         </button>
       </div>
 
       {/* Conversations Grid/List */}
-      <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto p-6 scrollbar-thin" style={{background: 'linear-gradient(to bottom, #1e293b, #0f172a)'}}>
         {conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gray-800 mb-6 border-4 border-gray-700">
-              <MessageCircle className="w-12 h-12 text-gray-600" />
+          <div className="flex flex-col items-center justify-center h-full text-center p-8 slide-up">
+            <div className="relative mb-8">
+              <div className="absolute inset-0 bg-teal-500/20 rounded-full blur-2xl"></div>
+              <div className="relative inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border-4 border-gray-700 shadow-2xl">
+                <MessageCircle className="w-16 h-16 text-gray-500" />
+              </div>
             </div>
-            <h3 className="text-2xl font-light text-gray-300 mb-3">No conversations yet</h3>
-            <p className="text-gray-500 mb-6 max-w-md">
+            <h3 className="text-3xl font-bold text-white mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              No conversations yet
+            </h3>
+            <p className="text-gray-400 mb-8 max-w-md text-lg leading-relaxed">
               Start messaging by clicking the + button to find and connect with people
             </p>
             <button
               onClick={onNewMessage}
-              className="px-6 py-3 rounded-full bg-teal-600 hover:bg-teal-700 text-white font-medium transition-colors"
+              className="px-8 py-4 rounded-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white font-semibold transition-all shadow-xl hover:shadow-2xl hover:scale-105"
             >
-              Start New Chat
+              <div className="flex items-center gap-2">
+                <Plus className="w-5 h-5" />
+                Start New Chat
+              </div>
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {conversations.map((conv) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {conversations.map((conv, index) => (
               <div
                 key={conv.id}
                 onClick={() => onSelectUser(conv)}
-                className="glass-card rounded-xl p-4 cursor-pointer hover-lift transition-all"
+                className="glass-card rounded-2xl p-6 cursor-pointer hover-lift slide-up"
+                style={{animationDelay: `${index * 0.05}s`}}
               >
                 <div className="flex flex-col items-center text-center">
-                  <div className="relative mb-3">
-                    <div className={`w-20 h-20 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-2xl shadow-lg`}>
+                  {/* Avatar Section */}
+                  <div className="relative mb-4">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full blur-xl"></div>
+                    <div className={`relative w-24 h-24 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-3xl shadow-2xl ring-4 ring-gray-700/50 transform transition-transform hover:scale-110`}>
                       {conv.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     {conv.online && (
-                      <div className="absolute bottom-0 right-0 w-5 h-5 green-bg rounded-full border-3 border-gray-900 animate-pulse"></div>
+                      <div className="absolute bottom-1 right-1 w-6 h-6 green-bg rounded-full border-4 border-gray-900 shadow-lg">
+                        <div className="w-full h-full rounded-full green-bg animate-ping opacity-75"></div>
+                      </div>
                     )}
                     {conv.unread > 0 && (
-                      <div className="absolute -top-1 -right-1 px-2 py-1 rounded-full orange-bg text-white text-xs font-bold shadow-lg">
+                      <div className="absolute -top-2 -right-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-sm font-bold shadow-lg animate-bounce">
                         {conv.unread}
                       </div>
                     )}
                   </div>
-                  <h3 className="text-white font-semibold text-lg mb-1 truncate w-full">
+                  
+                  {/* Name and Message */}
+                  <h3 className="text-white font-bold text-xl mb-2 truncate w-full">
                     {conv.name}
                   </h3>
-                  <p className="text-gray-400 text-sm mb-2 truncate w-full">
+                  <p className="text-gray-400 text-sm mb-4 truncate w-full h-10 flex items-center justify-center px-2">
                     {conv.lastMessage || 'No messages yet'}
                   </p>
-                  <div className="flex items-center justify-between w-full mt-2 pt-2 border-t border-gray-700">
-                    <span className="text-xs text-gray-500">{conv.time}</span>
+                  
+                  {/* Footer Info */}
+                  <div className="flex items-center justify-between w-full mt-auto pt-4 border-t border-gray-700/50">
+                    <span className="text-xs text-gray-500 font-medium">{conv.time}</span>
                     {conv.online ? (
-                      <span className="text-xs green-accent font-medium">Online</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 green-bg rounded-full animate-pulse"></div>
+                        <span className="text-xs green-accent font-semibold">Online</span>
+                      </div>
                     ) : (
                       <span className="text-xs text-gray-500">Offline</span>
                     )}
