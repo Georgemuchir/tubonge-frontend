@@ -305,7 +305,7 @@ const UserSearch = ({ onClose, onSelectUser }) => {
   );
 };
 
-const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor }) => {
+const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery }) => {
   return (
     <div className="flex-1 flex flex-col whatsapp-bg border-l border-gray-800">
       {/* Header */}
@@ -335,8 +335,22 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
         </button>
       </div>
 
-      {/* Conversations Grid/List */}
-      <div className="flex-1 overflow-y-auto p-6 scrollbar-thin" style={{background: 'linear-gradient(to bottom, #1e293b, #0f172a)'}}>
+      {/* Search Bar */}
+      <div className="whatsapp-header p-4 border-b border-gray-700">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search conversations..."
+            className="w-full pl-12 pr-4 py-3 rounded-xl whatsapp-input text-white text-sm placeholder-gray-400 focus:outline-none border border-gray-700 focus:border-teal-500 transition-colors touch-target"
+          />
+        </div>
+      </div>
+
+      {/* Conversations List */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin" style={{background: 'linear-gradient(to bottom, #1e293b, #0f172a)'}}>
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 slide-up">
             <div className="relative mb-8">
@@ -362,52 +376,43 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          <div className="space-y-0">
             {conversations.map((conv, index) => (
               <div
                 key={conv.id}
                 onClick={() => onSelectUser(conv)}
-                className="glass-card rounded-2xl p-6 cursor-pointer hover-lift slide-up"
-                style={{animationDelay: `${index * 0.05}s`}}
+                className="p-4 cursor-pointer transition-all border-b border-gray-700/50 hover:bg-gray-800/50 slide-up"
+                style={{animationDelay: `${index * 0.02}s`}}
               >
-                <div className="flex flex-col items-center text-center">
+                <div className="flex items-center gap-4">
                   {/* Avatar Section */}
-                  <div className="relative mb-4">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full blur-xl"></div>
-                    <div className={`relative w-24 h-24 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-3xl shadow-2xl ring-4 ring-gray-700/50 transform transition-transform hover:scale-110`}>
+                  <div className="relative flex-shrink-0">
+                    <div className={`w-16 h-16 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-gray-700/50`}>
                       {conv.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     {conv.online && (
-                      <div className="absolute bottom-1 right-1 w-6 h-6 green-bg rounded-full border-4 border-gray-900 shadow-lg">
-                        <div className="w-full h-full rounded-full green-bg animate-ping opacity-75"></div>
-                      </div>
-                    )}
-                    {conv.unread > 0 && (
-                      <div className="absolute -top-2 -right-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-sm font-bold shadow-lg animate-bounce">
-                        {conv.unread}
-                      </div>
+                      <div className="absolute bottom-0 right-0 w-4 h-4 green-bg rounded-full border-3 border-gray-900 shadow-lg animate-pulse"></div>
                     )}
                   </div>
                   
-                  {/* Name and Message */}
-                  <h3 className="text-white font-bold text-xl mb-2 truncate w-full">
-                    {conv.name}
-                  </h3>
-                  <p className="text-gray-400 text-sm mb-4 truncate w-full h-10 flex items-center justify-center px-2">
-                    {conv.lastMessage || 'No messages yet'}
-                  </p>
-                  
-                  {/* Footer Info */}
-                  <div className="flex items-center justify-between w-full mt-auto pt-4 border-t border-gray-700/50">
-                    <span className="text-xs text-gray-500 font-medium">{conv.time}</span>
-                    {conv.online ? (
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 green-bg rounded-full animate-pulse"></div>
-                        <span className="text-xs green-accent font-semibold">Online</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-500">Offline</span>
-                    )}
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-white font-semibold text-lg truncate">
+                        {conv.name}
+                      </h3>
+                      <span className="text-xs text-gray-500 font-medium ml-2 flex-shrink-0">{conv.time}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-gray-400 text-sm truncate flex-1">
+                        {conv.lastMessage || 'No messages yet'}
+                      </p>
+                      {conv.unread > 0 && (
+                        <span className="flex-shrink-0 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold shadow-lg">
+                          {conv.unread}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -782,6 +787,8 @@ const WhatsAppMessenger = () => {
             onOpenSidebar={() => setShowMobileSidebar(true)}
             isMobile={isMobile}
             getAvatarColor={getAvatarColor}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
           />
         ) : (
           <>
