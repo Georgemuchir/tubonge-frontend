@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, Menu, ArrowLeft, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -280,6 +280,9 @@ const StandaloneMessenger = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [inbox, setInbox] = useState([]); // Inbox data
   const [totalUnread, setTotalUnread] = useState(0); // Total unread count
+  const [onlineUsers, setOnlineUsers] = useState({}); // Track online status per user
+  const [typingUsers, setTypingUsers] = useState({}); // Track who is typing
+  const typingTimeoutRef = useRef(null);
 
   // Fetch inbox on mount
   useEffect(() => {
@@ -301,12 +304,16 @@ const StandaloneMessenger = () => {
         
         // Update unread messages state
         const unreadMap = {};
+        const onlineStatusMap = {};
         data.inbox?.forEach(item => {
           if (item.unread_count > 0) {
             unreadMap[item.sender_id] = item.unread_count;
           }
+          // Initialize online status
+          onlineStatusMap[item.sender_id] = item.online || false;
         });
         setUnreadMessages(unreadMap);
+        setOnlineUsers(onlineStatusMap);
       }
     } catch (error) {
       console.error('Fetch inbox error:', error);
@@ -350,13 +357,52 @@ const StandaloneMessenger = () => {
       fetchInbox();
     };
 
-    socket.on('new_message', handleNewMessage);
-    socket.on('inbox_update', handleInboxUpdate);
+    const handleUserTyping = (data) => {
+      // data: { user_id, is_typing } or { conversation_id, user_id, is_typing }
+      const senderId = data.user_id || data.sender_id;
+      const isTyping = data.is_typing || data.isTyping || false;
+      if (!senderId) return;
+      setTypingUsers(prev => ({ ...prev, [senderId]: !!isTyping }));
+      // If the typing event is for selected user, optionally update header via selectedUser state
+      if (selectedUser && (selectedUser.id === senderId || selectedUser._id === senderId)) {
+        setSelectedUser(prev => ({ ...prev, isTyping: !!isTyping }));
+      }
+    };
+
+    const handleUserStatus = (statusData) => {
+      console.log('User status update:', statusData);
+      
+      setOnlineUsers(prev => ({
+        ...prev,
+        [statusData.user_id]: statusData.status === 'online'
+      }));
+      
+      // Update selected user's online status if applicable
+      if (selectedUser && (selectedUser.id === statusData.user_id || selectedUser._id === statusData.user_id)) {
+        setSelectedUser(prev => ({
+          ...prev,
+          online: statusData.status === 'online'
+        }));
+      }
+      
+      // Update inbox to reflect online status
+      setInbox(prev => prev.map(item => 
+        item.sender_id === statusData.user_id 
+          ? { ...item, online: statusData.status === 'online' }
+          : item
+      ));
+    };
+
+  socket.on('new_message', handleNewMessage);
+  socket.on('inbox_update', handleInboxUpdate);
+  socket.on('user_status', handleUserStatus);
+  socket.on('user_typing', handleUserTyping);
 
     return () => {
       socket.off('new_message', handleNewMessage);
-      socket.off('new_message', handleNewMessage);
       socket.off('inbox_update', handleInboxUpdate);
+      socket.off('user_status', handleUserStatus);
+      socket.off('user_typing', handleUserTyping);
     };
   }, [selectedUser]);
 
@@ -476,7 +522,7 @@ const StandaloneMessenger = () => {
       lastMessage: conv.last_message,
       time: formatTime(conv.last_message_time),
       unread: conv.unread_count,
-      online: false // We can add online status later
+      online: onlineUsers[conv.sender_id] || false // Real-time online status
     }));
 
   return (
@@ -605,13 +651,24 @@ const StandaloneMessenger = () => {
                 <div className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
                   {selectedUser.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                {selectedUser.online && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
+                {(onlineUsers[selectedUser.id] || onlineUsers[selectedUser._id] || selectedUser.online) && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse"></div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold truncate text-base md:text-base">{selectedUser.name}</p>
-                <p className="text-gray-400 text-xs md:text-sm">{selectedUser.online ? 'Online' : 'Offline'}</p>
+                <p className="text-gray-400 text-xs md:text-sm">
+                  {(selectedUser?.isTyping || typingUsers[(selectedUser?.id || selectedUser?._id)]) ? (
+                    <span className="italic text-sm">typing...</span>
+                  ) : (
+                    (onlineUsers[selectedUser?.id] || onlineUsers[selectedUser?._id] || selectedUser?.online) ? (
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        Online
+                      </span>
+                    ) : 'Offline'
+                  )}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
@@ -672,11 +729,53 @@ const StandaloneMessenger = () => {
               </button>
               <textarea
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => {
+                  // Update local value
+                  setMessage(e.target.value);
+                  try {
+                    const socket = socketService.socket;
+                    if (socket && selectedUser) {
+                      const recipientId = selectedUser.id || selectedUser._id;
+                      // Emit typing_user to recipient
+                      socket.emit('typing_user', {
+                        recipient_id: recipientId,
+                        sender_id: user?.id || user?._id,
+                        is_typing: true
+                      });
+                      // Reset previous timeout
+                      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                      // After 1.5s of inactivity, emit typing false
+                      typingTimeoutRef.current = setTimeout(() => {
+                        try {
+                          socket.emit('typing_user', {
+                            recipient_id: recipientId,
+                            sender_id: user?.id || user?._id,
+                            is_typing: false
+                          });
+                        } catch (err) {
+                          // ignore
+                        }
+                      }, 1500);
+                    }
+                  } catch (err) {
+                    // ignore socket errors
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
+                    try {
+                      const socket = socketService.socket;
+                      if (socket && selectedUser) {
+                        const recipientId = selectedUser.id || selectedUser._id;
+                        socket.emit('typing_user', {
+                          recipient_id: recipientId,
+                          sender_id: user?.id || user?._id,
+                          is_typing: false
+                        });
+                      }
+                    } catch (err) {}
                   }
                 }}
                 placeholder="Type a message..."
