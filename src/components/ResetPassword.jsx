@@ -85,7 +85,7 @@ const ResetPassword = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token, new_password: password }),
+        body: JSON.stringify({ token, password }),
       });
 
       const data = await response.json();
@@ -98,6 +98,7 @@ const ResetPassword = () => {
       }
     } catch (err) {
       setError('Network error. Please try again.');
+      console.error('Reset password error:', err);
     } finally {
       setLoading(false);
     }
