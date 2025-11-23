@@ -344,7 +344,7 @@ export const ChatProvider = ({ children }) => {
 
   // Create new conversation
   const createConversation = async (otherUserId) => {
-    try:
+    try {
       console.log('Creating conversation with user:', otherUserId);
       const response = await messagesAPI.createConversation(otherUserId);
       const conversation = response.data.conversation;
