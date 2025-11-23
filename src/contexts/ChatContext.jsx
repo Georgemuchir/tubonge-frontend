@@ -238,9 +238,11 @@ export const ChatProvider = ({ children }) => {
   // Load conversations
   const loadConversations = async () => {
     try {
+      console.log('Loading conversations...');
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await messagesAPI.getConversations();
       const conversations = response.data.conversations || [];
+      console.log(`Loaded ${conversations.length} conversations:`, conversations);
       
       dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
     } catch (error) {
@@ -342,11 +344,19 @@ export const ChatProvider = ({ children }) => {
 
   // Create new conversation
   const createConversation = async (otherUserId) => {
-    try {
+    try:
+      console.log('Creating conversation with user:', otherUserId);
       const response = await messagesAPI.createConversation(otherUserId);
       const conversation = response.data.conversation;
+      console.log('Conversation created:', conversation);
       
-      // Refresh conversations to get enriched data
+      // Add to state immediately if it's a new conversation (status 201)
+      if (response.status === 201) {
+        console.log('New conversation - adding to state');
+        dispatch({ type: 'ADD_CONVERSATION', payload: conversation });
+      }
+      
+      // Also refresh conversations to ensure we have latest data
       await loadConversations();
       
       return conversation;
