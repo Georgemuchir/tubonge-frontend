@@ -295,9 +295,31 @@ export const ChatProvider = ({ children }) => {
 
   // Send message
   const sendMessage = async (content, messageType = 'text') => {
-    if (!state.activeConversation || !user || !content.trim()) return;
+    console.log('sendMessage called with:', { content, activeConversation: state.activeConversation, user });
+    
+    if (!state.activeConversation) {
+      console.error('Cannot send message: No active conversation');
+      return;
+    }
+    
+    if (!state.activeConversation.id) {
+      console.error('Cannot send message: Active conversation has no ID', state.activeConversation);
+      return;
+    }
+    
+    if (!user) {
+      console.error('Cannot send message: No user');
+      return;
+    }
+    
+    if (!content.trim()) {
+      console.error('Cannot send message: Empty content');
+      return;
+    }
 
     try {
+      console.log(`Sending message to conversation ${state.activeConversation.id}`);
+      
       // Create optimistic message immediately for instant feedback
       const optimisticMessage = {
         id: `temp-${Date.now()}`,
