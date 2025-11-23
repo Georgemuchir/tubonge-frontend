@@ -38,10 +38,21 @@ const UserSearchModal = ({ onClose, onSelectUser }) => {
 
   const handleSelectUser = async (selectedUser) => {
     try {
+      console.log('UserSearchModal: Creating conversation with', selectedUser);
+      
       // Create or get existing conversation
       const conversation = await createConversation(selectedUser.id);
+      console.log('UserSearchModal: Conversation created/retrieved:', conversation);
+      
+      // Verify conversation has ID before setting as active
+      if (!conversation || !conversation.id) {
+        console.error('UserSearchModal: Invalid conversation object', conversation);
+        setError('Failed to create conversation - invalid response');
+        return;
+      }
       
       // Set as active conversation
+      console.log('UserSearchModal: Setting active conversation:', conversation.id);
       setActiveConversation(conversation);
       
       // Call parent callback
@@ -50,7 +61,7 @@ const UserSearchModal = ({ onClose, onSelectUser }) => {
       // Close modal
       onClose();
     } catch (error) {
-      console.error('Error creating conversation:', error);
+      console.error('UserSearchModal: Error creating conversation:', error);
       setError('Error starting conversation');
     }
   };
