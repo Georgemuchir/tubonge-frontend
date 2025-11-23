@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { messagesAPI } from '../services/api';
 import socketService from '../services/socket';
 import { useAuth } from './AuthContext';
@@ -118,6 +118,14 @@ const chatReducer = (state, action) => {
 export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const { user, isAuthenticated } = useAuth();
+  
+  // Use ref to track conversations so socket listeners always see latest value
+  const conversationsRef = useRef([]);
+  
+  // Update ref whenever conversations change
+  useEffect(() => {
+    conversationsRef.current = state.conversations;
+  }, [state.conversations]);
 
   // Load conversations on mount and cleanup on logout
   useEffect(() => {
@@ -145,13 +153,24 @@ export const ChatProvider = ({ children }) => {
       // Add message to state - reducer will check for duplicates
       dispatch({ type: 'ADD_MESSAGE', payload: message });
       
-      // Update conversation's last message
-      const updatedConv = {
-        id: message.conversation_id,
-        last_message: { content: message.content },
-        updated_at: message.timestamp
-      };
-      dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConv });
+      // Check if conversation exists in state using ref (always current)
+      const conversationExists = conversationsRef.current.some(
+        conv => conv.id === message.conversation_id
+      );
+      
+      if (conversationExists) {
+        // Update existing conversation's last message
+        const updatedConv = {
+          id: message.conversation_id,
+          last_message: { content: message.content },
+          updated_at: message.timestamp
+        };
+        dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConv });
+      } else {
+        // New conversation - reload all conversations to get it
+        console.log('📬 New conversation detected, reloading...');
+        loadConversations();
+      }
     });
 
     // User status changes
@@ -178,6 +197,25 @@ export const ChatProvider = ({ children }) => {
     socketService.onMessageSent((message) => {
       console.log('✅ Message confirmed:', message);
       dispatch({ type: 'UPDATE_MESSAGE', payload: message });
+      
+      // Check if conversation exists in state using ref (always current)
+      const conversationExists = conversationsRef.current.some(
+        conv => conv.id === message.conversation_id
+      );
+      
+      if (conversationExists) {
+        // Update existing conversation's last message
+        const updatedConv = {
+          id: message.conversation_id,
+          last_message: { content: message.content },
+          updated_at: message.timestamp
+        };
+        dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConv });
+      } else {
+        // New conversation - reload all conversations to get it
+        console.log('📬 New conversation created, reloading...');
+        loadConversations();
+      }
     });
 
     // Messages read
