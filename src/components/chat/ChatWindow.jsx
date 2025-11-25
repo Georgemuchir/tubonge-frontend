@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
+import { AlertTriangle } from 'lucide-react';
 
 const ChatWindow = () => {
   const { 
@@ -14,12 +15,15 @@ const ChatWindow = () => {
     sendTyping,
     typingUsers,
     setActiveConversation 
+    getRelationshipStatus
   } = useChat();
   const { user } = useAuth();
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const [relationshipStatus, setRelationshipStatus] = useState('NONE');
+  const [statusLoading, setStatusLoading] = useState(false);
 
   // Handle back navigation
   const handleBack = () => {
@@ -91,6 +95,21 @@ const ChatWindow = () => {
   };
 
   const otherParticipant = getOtherParticipant();
+
+    // Check relationship status on conversation change
+    useEffect(() => {
+      const checkStatus = async () => {
+        if (otherParticipant?.username) {
+          setStatusLoading(true);
+          const status = await getRelationshipStatus(otherParticipant.username);
+          setRelationshipStatus(status);
+          setStatusLoading(false);
+        } else {
+          setRelationshipStatus('NONE');
+        }
+      };
+      checkStatus();
+    }, [activeConversation?.id, otherParticipant?.username]);
 
   // Get typing users for this conversation (excluding current user)
   const conversationTypingUsers = typingUsers[activeConversation?.id] || {};
@@ -204,59 +223,83 @@ const ChatWindow = () => {
       </main>
 
       {/* Modern Input bar */}
-      <form
-        className="nexus-input-modern"
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSendMessage(e);
-        }}
-      >
-        <div className="nexus-input-container-modern">
-          <button 
-            type="button" 
-            className="nexus-attachment-btn" 
-            aria-label="Attach image"
-          >
-            <ImageIcon className="size-5 text-white/80" />
-          </button>
-          
-          <textarea
-            rows={1}
-            value={messageText}
-            onChange={handleInputChange}
-            placeholder="Type a message…"
-            className="nexus-textarea-modern"
-            onInput={(e) => {
-              const ta = e.currentTarget;
-              ta.style.height = "auto";
-              ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+        {statusLoading ? (
+          <div className="flex items-center justify-center py-6 text-gray-400">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
+            Checking permission…
+          </div>
+        ) : relationshipStatus !== 'ACCEPTED' ? (
+          <div className="flex flex-col items-center justify-center py-6 text-yellow-400">
+            <AlertTriangle className="mb-2" size={32} />
+            <div className="font-semibold text-lg">You can't send messages yet</div>
+            {relationshipStatus === 'OUTGOING_PENDING' && (
+              <div className="text-sm mt-1">Friend request sent. Waiting for acceptance.</div>
+            )}
+            {relationshipStatus === 'INCOMING_PENDING' && (
+              <div className="text-sm mt-1">You have a friend request from this user. Accept it in your inbox to start chatting.</div>
+            )}
+            {relationshipStatus === 'NONE' && (
+              <div className="text-sm mt-1">Send a friend request to start chatting.</div>
+            )}
+            {relationshipStatus === 'BLOCKED' && (
+              <div className="text-sm mt-1">You have blocked this user.</div>
+            )}
+          </div>
+        ) : (
+          <form
+            className="nexus-input-modern"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage(e);
             }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage(e);
-              }
-            }}
-          />
-          
-          <button 
-            type="button" 
-            className="nexus-voice-btn" 
-            aria-label="Voice message"
           >
-            <Mic className="size-5 text-white/80" />
-          </button>
-          
-          <button
-            type="submit"
-            disabled={!messageText.trim()}
-            className="nexus-send-modern-btn"
-          >
-            <Send className="size-4" />
-            Send
-          </button>
-        </div>
-      </form>
+            <div className="nexus-input-container-modern">
+              <button 
+                type="button" 
+                className="nexus-attachment-btn" 
+                aria-label="Attach image"
+              >
+                <ImageIcon className="size-5 text-white/80" />
+              </button>
+            
+              <textarea
+                rows={1}
+                value={messageText}
+                onChange={handleInputChange}
+                placeholder="Type a message…"
+                className="nexus-textarea-modern"
+                onInput={(e) => {
+                  const ta = e.currentTarget;
+                  ta.style.height = "auto";
+                  ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage(e);
+                  }
+                }}
+              />
+            
+              <button 
+                type="button" 
+                className="nexus-voice-btn" 
+                aria-label="Voice message"
+              >
+                <Mic className="size-5 text-white/80" />
+              </button>
+            
+              <button
+                type="submit"
+                disabled={!messageText.trim()}
+                className="nexus-send-modern-btn"
+              >
+                <Send className="size-4" />
+                Send
+              </button>
+            </div>
+          </form>
+        )}
     </div>
   );
 };

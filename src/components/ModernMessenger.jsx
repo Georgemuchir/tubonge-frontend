@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { 
   Search, Phone, Video, Info, Image, Mic, Send, Smile, 
   ArrowLeft, UserPlus, MoreVertical, PlusCircle, Paperclip,
-  Check, CheckCheck
+  Check, CheckCheck, Users
 } from 'lucide-react';
 import UserSearch from './UserSearch';
+import FriendRequests from './FriendRequests';
 
 const ModernMessenger = () => {
   const [selectedChat, setSelectedChat] = useState(null);
   const [message, setMessage] = useState('');
   const [showUserSearch, setShowUserSearch] = useState(false);
+  const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Sample chat data
@@ -103,12 +105,22 @@ const ModernMessenger = () => {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
               Messages
             </h1>
-            <button
-              onClick={() => setShowUserSearch(true)}
-              className="p-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/50"
-            >
-              <UserPlus className="w-5 h-5" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowFriendRequests(true)}
+                className="p-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-blue-500/50"
+                title="Friend Requests"
+              >
+                <Users className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setShowUserSearch(true)}
+                className="p-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/50"
+                title="Add Friend"
+              >
+                <UserPlus className="w-5 h-5" />
+              </button>
+            </div>
           </div>
           
           {/* Search Bar */}
@@ -311,6 +323,11 @@ const ModernMessenger = () => {
       {/* User Search Modal */}
       {showUserSearch && (
         <UserSearch onClose={() => setShowUserSearch(false)} />
+      )}
+
+      {/* Friend Requests Modal */}
+      {showFriendRequests && (
+        <FriendRequests isOpen={showFriendRequests} onClose={() => setShowFriendRequests(false)} />
       )}
 
       {/* Animations */}

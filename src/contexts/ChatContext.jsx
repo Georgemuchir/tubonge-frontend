@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useRef } from 'react';
-import { messagesAPI } from '../services/api';
+import { messagesAPI, friendsAPI } from '../services/api';
 import socketService from '../services/socket';
 import { useAuth } from './AuthContext';
 
@@ -146,6 +146,24 @@ export const ChatProvider = ({ children }) => {
 
   // Setup socket event listeners
   const setupSocketListeners = () => {
+    // WhatsApp-style: conversation:update event
+    // Updates conversation list when new messages arrive
+    socketService.onConversationUpdate((update) => {
+      console.log('🔄 Conversation update:', update);
+      
+      const updatedConv = {
+        id: update.id,
+        last_message: { content: update.last_message },
+        last_message_time: update.last_message_time,
+        updated_at: update.updated_at
+      };
+      
+      dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConv });
+      
+      // Also reload full conversations to get accurate unread counts
+      loadConversations();
+    });
+
     // New message received (from other users)
     socketService.onNewMessage((message) => {
       console.log('📨 Received new message:', message);
@@ -158,15 +176,7 @@ export const ChatProvider = ({ children }) => {
         conv => conv.id === message.conversation_id
       );
       
-      if (conversationExists) {
-        // Update existing conversation's last message
-        const updatedConv = {
-          id: message.conversation_id,
-          last_message: { content: message.content },
-          updated_at: message.timestamp
-        };
-        dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConv });
-      } else {
+      if (!conversationExists) {
         // New conversation - reload all conversations to get it
         console.log('📬 New conversation detected, reloading...');
         loadConversations();
@@ -302,11 +312,6 @@ export const ChatProvider = ({ children }) => {
       return;
     }
     
-    if (!state.activeConversation.id) {
-      console.error('Cannot send message: Active conversation has no ID', state.activeConversation);
-      return;
-    }
-    
     if (!user) {
       console.error('Cannot send message: No user');
       return;
@@ -318,42 +323,51 @@ export const ChatProvider = ({ children }) => {
     }
 
     try {
-      console.log(`Sending message to conversation ${state.activeConversation.id}`);
+      console.log(`Sending message to conversation ${state.activeConversation._id || state.activeConversation.id}`);
       
       // Create optimistic message immediately for instant feedback
       const optimisticMessage = {
         id: `temp-${Date.now()}`,
-        conversation_id: state.activeConversation.id,
-        content: content.trim(),
-        sender_id: user.id,
-        timestamp: new Date().toISOString(),
-        message_type: messageType,
-        read: false
+        conversation_id: state.activeConversation._id || state.activeConversation.id,
+        text: content.trim(),
+        sender_id: user._id || user.id,
+        created_at: new Date().toISOString(),
+        status: 'sending'
       };
       
       // Add optimistic message to UI immediately
       dispatch({ type: 'ADD_MESSAGE', payload: optimisticMessage });
 
-      // Send via socket for real-time delivery
-      socketService.sendMessage({
-        conversation_id: state.activeConversation.id,
-        content: content.trim(),
-        sender_id: user.id,
-        message_type: messageType
-      });
-
-      // Also persist via API (optional, backend handles via socket)
-      try {
-        await messagesAPI.sendMessage(state.activeConversation.id, {
-          content: content.trim(),
-          message_type: messageType
-        });
-      } catch (apiError) {
-        console.warn('API persistence failed (socket sent):', apiError);
+      // Send via NEW strict API
+      const receiverUsername = state.activeConversation.participant?.username;
+      const conversationId = state.activeConversation._id || state.activeConversation.id;
+      
+      const response = await messagesAPI.sendMessage(receiverUsername, content.trim(), conversationId);
+      
+      if (response.status === 403 && response.data?.code === 'REQUEST_NOT_ACCEPTED') {
+        console.error('❌ Cannot send message: Friend request not accepted');
+        alert('You must send and get approval for a friend request before messaging this user.');
+        // Remove optimistic message
+        dispatch({ type: 'SET_MESSAGES', payload: state.messages.filter(m => m.id !== optimisticMessage.id) });
+        return;
       }
+      
+      // Replace optimistic message with real one
+      const realMessage = response.data;
+      dispatch({ type: 'UPDATE_MESSAGE', payload: { ...optimisticMessage, ...realMessage, status: 'sent' } });
+      
+      // Send via socket for real-time delivery to other user
+      socketService.sendMessage({
+        conversation_id: conversationId,
+        text: content.trim(),
+        sender_id: user._id || user.id
+      });
 
     } catch (error) {
       console.error('Failed to send message:', error);
+      if (error.response?.status === 403) {
+        alert('You cannot message this user. Friend request must be accepted first.');
+      }
     }
   };
 
@@ -388,6 +402,51 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Friend Request Functions (NEW - STRICT PERMISSION MODEL)
+  const sendFriendRequest = async (username) => {
+    try {
+      const response = await friendsAPI.sendRequest(username);
+      console.log('✅ Friend request sent to:', username);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to send friend request:', error);
+      throw error;
+    }
+  };
+
+  const acceptFriendRequest = async (requestId) => {
+    try {
+      const response = await friendsAPI.acceptRequest(requestId);
+      console.log('✅ Friend request accepted, conversation:', response.data.conversationId);
+      // Reload conversations to show new conversation
+      await loadConversations();
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to accept friend request:', error);
+      throw error;
+    }
+  };
+
+  const getRelationshipStatus = async (username) => {
+    try {
+      const response = await friendsAPI.getRelationshipStatus(username);
+      return response.data.relationship; // NONE, OUTGOING_PENDING, INCOMING_PENDING, ACCEPTED, BLOCKED
+    } catch (error) {
+      console.error('❌ Failed to get relationship status:', error);
+      return 'NONE';
+    }
+  };
+
+  const getIncomingRequests = async () => {
+    try {
+      const response = await friendsAPI.getIncomingRequests();
+      return response.data || [];
+    } catch (error) {
+      console.error('❌ Failed to get incoming requests:', error);
+      return [];
+    }
+  };
+
   const value = {
     ...state,
     setActiveConversation,
@@ -396,6 +455,11 @@ export const ChatProvider = ({ children }) => {
     sendTyping,
     createConversation,
     loadConversations,
+    // Friend request functions
+    sendFriendRequest,
+    acceptFriendRequest,
+    getRelationshipStatus,
+    getIncomingRequests,
   };
 
   return (

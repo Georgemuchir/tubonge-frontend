@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
-import { Search, X, UserPlus, User } from 'lucide-react';
-import { usersAPI } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { Search, X, UserPlus, User, MessageCircle, Clock } from 'lucide-react';
+import { usersAPI, friendsAPI } from '../services/api';
+import { useChat } from '../contexts/ChatContext';
 
 const UserSearch = ({ isOpen, onClose, onAddContact }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [relationshipStatuses, setRelationshipStatuses] = useState({}); // username -> status
+  const { sendFriendRequest, getRelationshipStatus } = useChat();
 
   const handleSearch = async (email) => {
     if (!email.trim()) {
       setSearchResults([]);
+      setRelationshipStatuses({});
       setError('');
       return;
     }
@@ -23,22 +27,114 @@ const UserSearch = ({ isOpen, onClose, onAddContact }) => {
       // Backend returns { users: [...] }, axios gives us .data automatically
       const users = response.data?.users || [];
       setSearchResults(users);
+      
+      // Load relationship status for each user
+      const statuses = {};
+      for (const user of users) {
+        try {
+          const status = await getRelationshipStatus(user.username);
+          statuses[user.username] = status;
+        } catch (err) {
+          console.error(`Failed to get status for ${user.username}:`, err);
+          statuses[user.username] = 'NONE';
+        }
+      }
+      setRelationshipStatuses(statuses);
     } catch (err) {
       console.error('Search error:', err);
       setError('Failed to search users. Please try again.');
       setSearchResults([]);
+      setRelationshipStatuses({});
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddContact = (user) => {
+  const handleSendFriendRequest = async (user) => {
+    try {
+      await sendFriendRequest(user.username);
+      // Update status locally to show pending
+      setRelationshipStatuses(prev => ({
+        ...prev,
+        [user.username]: 'OUTGOING_PENDING'
+      }));
+    } catch (err) {
+      console.error('Failed to send friend request:', err);
+      alert('Failed to send friend request. Please try again.');
+    }
+  };
+
+  const handleMessageUser = (user) => {
+    // User is already a friend (status = ACCEPTED), allow messaging
     if (onAddContact) {
       onAddContact(user);
     }
     setSearchQuery('');
     setSearchResults([]);
+    setRelationshipStatuses({});
     onClose();
+  };
+
+  const renderActionButton = (user) => {
+    const status = relationshipStatuses[user.username] || 'NONE';
+
+    switch (status) {
+      case 'ACCEPTED':
+        return (
+          <button
+            onClick={() => handleMessageUser(user)}
+            className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-md text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+          >
+            <MessageCircle size={16} />
+            Message
+          </button>
+        );
+      
+      case 'OUTGOING_PENDING':
+        return (
+          <button
+            disabled
+            className="px-4 py-2 bg-gray-600 text-gray-300 rounded-md text-sm font-medium cursor-not-allowed flex items-center gap-2"
+          >
+            <Clock size={16} />
+            Pending
+          </button>
+        );
+      
+      case 'INCOMING_PENDING':
+        return (
+          <button
+            disabled
+            className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium cursor-not-allowed flex items-center gap-2"
+            title="Accept this request in your inbox"
+          >
+            <Clock size={16} />
+            Accept in Inbox
+          </button>
+        );
+      
+      case 'BLOCKED':
+        return (
+          <button
+            disabled
+            className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium cursor-not-allowed"
+          >
+            Blocked
+          </button>
+        );
+      
+      case 'NONE':
+      default:
+        return (
+          <button
+            onClick={() => handleSendFriendRequest(user)}
+            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+          >
+            <UserPlus size={16} />
+            Add Friend
+          </button>
+        );
+    }
   };
 
   if (!isOpen) return null;
@@ -94,12 +190,7 @@ const UserSearch = ({ isOpen, onClose, onAddContact }) => {
                         <p className="text-sm text-gray-400">{user.email}</p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleAddContact(user)}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
-                    >
-                      Chat
-                    </button>
+                    {renderActionButton(user)}
                   </div>
                 ))}
               </div>

@@ -47,15 +47,50 @@ export const usersAPI = {
   getOnlineUsers: () => api.get('/users/online'),
 };
 
-// Messages API
+// Friend Requests API (NEW - STRICT PERMISSION MODEL)
+export const friendsAPI = {
+  // Search user by exact username
+  searchUser: (username) => api.get(`/users/search?q=${username}`),
+  
+  // Send friend request
+  sendRequest: (username) => api.post('/friends/send', { username }),
+  
+  // Get incoming friend requests
+  getIncomingRequests: () => api.get('/friends/incoming'),
+  
+  // Accept friend request
+  acceptRequest: (requestId) => api.post('/friends/accept', { requestId }),
+  
+  // Get relationship status with a user
+  getRelationshipStatus: (username) => api.get(`/friends/status?username=${username}`),
+  
+  // Get all friends
+  getFriends: () => api.get('/friends/list'),
+};
+
+// Messages API (UPDATED - STRICT PERMISSION MODEL)
 export const messagesAPI = {
-  getConversations: () => api.get('/messages/conversations'),
+  // Get all conversations (inbox)
+  getConversations: () => api.get('/messages/inbox'),
+  
+  // Get messages for a conversation
   getMessages: (conversationId, page = 1, limit = 50) =>
-    api.get(`/messages/conversations/${conversationId}/messages?page=${page}&limit=${limit}`),
-  sendMessage: (conversationId, messageData) =>
-    api.post(`/messages/conversations/${conversationId}/messages`, messageData),
-  createConversation: (participantId) =>
-    api.post('/messages/conversations', { participant_id: participantId }),
+    api.get(`/messages/${conversationId}?page=${page}&limit=${limit}`),
+  
+  // Send message (STRICT: requires friendship)
+  sendMessage: (receiverUsername, text, conversationId = null) => {
+    const payload = { text };
+    if (conversationId) {
+      payload.conversationId = conversationId;
+    } else {
+      payload.receiverUsername = receiverUsername;
+    }
+    return api.post('/messages/send', payload);
+  },
+  
+  // Mark messages as read
+  markAsRead: (conversationId) =>
+    api.post(`/messages/${conversationId}/mark-read`),
 };
 
 export default api;
