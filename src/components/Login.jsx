@@ -7,7 +7,9 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
+    // username: '' // Only used if required
   });
+  const [showUsername, setShowUsername] = useState(false);
   const [error, setError] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const { login, loading } = useAuth();
@@ -25,11 +27,14 @@ const Login = () => {
     e.preventDefault();
     
     const result = await login(formData);
-
     if (result.success) {
       navigate('/');
     } else {
       setError(result.error);
+      if (result.error && result.error.toLowerCase().includes('username')) {
+        setShowUsername(true);
+        setFormData({ ...formData, username: '' });
+      }
     }
   };
 
@@ -77,23 +82,40 @@ const Login = () => {
             </div>
           )}
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Input */}
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Mail className="w-5 h-5 text-purple-300 group-focus-within:text-purple-400 transition-colors" />
+            {/* Login Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {showUsername && (
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Mail className="w-5 h-5 text-indigo-300 group-focus-within:text-indigo-400 transition-colors" />
+                  </div>
+                  <input
+                    type="text"
+                    name="username"
+                    value={formData.username || ''}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all backdrop-blur-sm"
+                    placeholder="Set your username"
+                    required
+                    minLength={3}
+                  />
+                </div>
+              )}
+              {/* Email Input */}
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="w-5 h-5 text-purple-300 group-focus-within:text-purple-400 transition-colors" />
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full pl-12 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all backdrop-blur-sm"
+                  placeholder="Email address"
+                  required
+                />
               </div>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full pl-12 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all backdrop-blur-sm"
-                placeholder="Email address"
-                required
-              />
-            </div>
 
             {/* Password Input */}
             <div className="relative group">

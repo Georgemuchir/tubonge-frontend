@@ -478,13 +478,14 @@ const WhatsAppMessenger = () => {
 
     const handleNewMessage = (newMessage) => {
       const senderId = newMessage.sender_id;
-      
-      if (selectedUser && senderId === (selectedUser.id || selectedUser._id)) {
+      const receiverId = newMessage.receiver_id;
+      const selectedId = selectedUser && (selectedUser.id || selectedUser._id);
+
+      // Show message if it's part of the current chat (sender or receiver)
+      if (selectedUser && (senderId === selectedId || receiverId === selectedId)) {
         setMessages(prevMessages => [...prevMessages, newMessage]);
       }
-      
       fetchInbox();
-      
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('New message from Pinglo', {
           body: newMessage.content.substring(0, 50),

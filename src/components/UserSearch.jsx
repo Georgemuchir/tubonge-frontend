@@ -18,10 +18,10 @@ const UserSearch = ({ isOpen, onClose, onAddContact }) => {
       setError('');
       return;
     }
-    
+
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await usersAPI.searchUsers(email);
       // Backend returns { users: [...] }, axios gives us .data automatically
@@ -148,35 +148,36 @@ const UserSearch = ({ isOpen, onClose, onAddContact }) => {
             <X size={20} />
           </button>
         </div>
-        
+
         <div className="p-4">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
-              type="email"
+              type="text"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 handleSearch(e.target.value);
               }}
-              placeholder="Search by name or email..."
+              placeholder="Search by exact username or email..."
               className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
             />
+            <div className="text-xs text-gray-400 mt-1">You must enter the exact username (e.g. <b>testuser_c2a2a8</b>) or email.</div>
           </div>
-          
+
           <div className="max-h-60 overflow-y-auto">
             {error && (
               <div className="text-center py-4 text-red-400 text-sm">
                 {error}
               </div>
             )}
-            
+
             {loading && (
               <div className="text-center py-4">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
               </div>
             )}
-            
+
             {!loading && !error && searchResults.length > 0 && (
               <div className="space-y-2">
                 {searchResults.map((user) => (
@@ -195,7 +196,7 @@ const UserSearch = ({ isOpen, onClose, onAddContact }) => {
                 ))}
               </div>
             )}
-            
+
             {!loading && !error && searchQuery && searchResults.length === 0 && (
               <div className="text-center py-8 text-gray-400">
                 <User size={32} className="mx-auto mb-2 opacity-50" />
