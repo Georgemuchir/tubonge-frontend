@@ -7,6 +7,7 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    username: '',
     password: '',
     confirmPassword: ''
   });
@@ -39,6 +40,7 @@ const Register = () => {
     const result = await register({
       name: formData.name,
       email: formData.email,
+      username: formData.username,
       password: formData.password
     });
 
@@ -126,6 +128,22 @@ const Register = () => {
                 className="w-full pl-12 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all backdrop-blur-sm"
                 placeholder="Full name"
                 required
+              />
+            </div>
+            {/* Username Input */}
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <User className="w-5 h-5 text-indigo-300 group-focus-within:text-indigo-400 transition-colors" />
+              </div>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                className="w-full pl-12 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all backdrop-blur-sm"
+                placeholder="Unique username"
+                required
+                minLength={3}
               />
             </div>
 

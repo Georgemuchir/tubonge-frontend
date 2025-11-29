@@ -57,15 +57,16 @@ const UserSearch = ({ isOpen, onClose, onAddContact }) => {
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
-              type="email"
+              type="text"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 handleSearch(e.target.value);
               }}
-              placeholder="Search by name or email..."
+              placeholder="Search by exact username or email..."
               className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
             />
+            <div className="text-xs text-gray-400 mt-1">You must enter the exact username (e.g. <b>testuser_c2a2a8</b>) or email.</div>
           </div>
 
           <div className="max-h-60 overflow-y-auto">
