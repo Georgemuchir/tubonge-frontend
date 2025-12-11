@@ -830,10 +830,10 @@ const WhatsAppMessenger = () => {
           </div>
           
           <div className="whatsapp-header p-3 flex items-center gap-2 border-l border-gray-800 safe-area-bottom">
-            <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
+            <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target">
               <Smile className="w-6 h-6" />
             </button>
-            <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
+            <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target">
               <Paperclip className="w-6 h-6" />
             </button>
             <div className="flex-1 whatsapp-input rounded-lg px-3 py-2 md:px-4 md:py-2">
