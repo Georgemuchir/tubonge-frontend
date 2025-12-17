@@ -300,6 +300,7 @@ const StandaloneMessenger = () => {
       if (response.ok) {
         const data = await response.json();
         setInbox(data.inbox || []);
+        console.log('DEBUG: inbox data', data.inbox);
         setTotalUnread(data.total_unread || 0);
         
         // Update unread messages state
