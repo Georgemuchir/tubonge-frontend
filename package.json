@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+    "lint:fix": "eslint . --fix",
   "dependencies": {
     "@headlessui/react": "^1.7.17",
     "axios": "^1.6.2",
