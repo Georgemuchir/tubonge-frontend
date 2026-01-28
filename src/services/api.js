@@ -70,6 +70,14 @@ export const friendsAPI = {
 
 // Messages API (UPDATED - STRICT PERMISSION MODEL)
 export const messagesAPI = {
+    // Upload image for chat
+    uploadImage: (file) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      return api.post('/messages/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
   // Get all conversations (inbox)
   getConversations: () => api.get('/messages/inbox'),
   

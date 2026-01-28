@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { messagesAPI } from '../../services/api';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic } from 'lucide-react';
@@ -7,6 +8,7 @@ import TypingIndicator from './TypingIndicator';
 import { AlertTriangle } from 'lucide-react';
 
 const ChatWindow = () => {
+  const imageInputRef = useRef(null);
   const { 
     activeConversation, 
     messages, 
@@ -14,12 +16,13 @@ const ChatWindow = () => {
     sendMessage, 
     sendTyping,
     typingUsers,
-    setActiveConversation 
+    setActiveConversation,
     getRelationshipStatus
   } = useChat();
   const { user } = useAuth();
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const [relationshipStatus, setRelationshipStatus] = useState('NONE');
@@ -65,13 +68,32 @@ const ChatWindow = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+
   const handleSendMessage = (e) => {
     e.preventDefault();
-    
     if (messageText.trim()) {
       sendMessage(messageText);
       setMessageText('');
       setIsTyping(false);
+    }
+  };
+
+  // Handle image file selection and upload
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const res = await messagesAPI.uploadImage(file);
+      if (res.data && res.data.url) {
+        // Send image message (sendMessage can be extended to support type)
+        sendMessage(res.data.url, 'image');
+      }
+    } catch (err) {
+      alert('Failed to upload image.');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
     }
   };
 
@@ -228,77 +250,109 @@ const ChatWindow = () => {
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
             Checking permission…
           </div>
-        ) : relationshipStatus !== 'ACCEPTED' ? (
-          <div className="flex flex-col items-center justify-center py-6 text-yellow-400">
-            <AlertTriangle className="mb-2" size={32} />
-            <div className="font-semibold text-lg">You can't send messages yet</div>
-            {relationshipStatus === 'OUTGOING_PENDING' && (
-              <div className="text-sm mt-1">Friend request sent. Waiting for acceptance.</div>
-            )}
-            {relationshipStatus === 'INCOMING_PENDING' && (
-              <div className="text-sm mt-1">You have a friend request from this user. Accept it in your inbox to start chatting.</div>
-            )}
-            {relationshipStatus === 'NONE' && (
-              <div className="text-sm mt-1">Send a friend request to start chatting.</div>
-            )}
-            {relationshipStatus === 'BLOCKED' && (
-              <div className="text-sm mt-1">You have blocked this user.</div>
-            )}
-          </div>
         ) : (
-          <form
-            className="nexus-input-modern"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage(e);
-            }}
-          >
-            <div className="nexus-input-container-modern">
-              <button 
-                type="button" 
-                className="nexus-attachment-btn" 
-                aria-label="Attach image"
-              >
-                <ImageIcon className="size-5 text-white/80" />
-              </button>
-            
-              <textarea
-                rows={1}
-                value={messageText}
-                onChange={handleInputChange}
-                placeholder="Type a message…"
-                className="nexus-textarea-modern"
-                onInput={(e) => {
-                  const ta = e.currentTarget;
-                  ta.style.height = "auto";
-                  ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
-                }}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage(e);
-                  }
-                }}
-              />
-            
-              <button 
-                type="button" 
-                className="nexus-voice-btn" 
-                aria-label="Voice message"
-              >
-                <Mic className="size-5 text-white/80" />
-              </button>
-            
-              <button
-                type="submit"
-                disabled={!messageText.trim()}
-                className="nexus-send-modern-btn"
-              >
-                <Send className="size-4" />
-                Send
-              </button>
-            </div>
-          </form>
+          <>
+            {relationshipStatus !== 'ACCEPTED' && (
+              <div className="flex flex-col items-center justify-center py-2 text-yellow-400">
+                <AlertTriangle className="mb-2" size={24} />
+                <div className="font-semibold text-sm">You can't send messages yet</div>
+                {relationshipStatus === 'OUTGOING_PENDING' && (
+                  <div className="text-xs mt-1">Friend request sent. Waiting for acceptance.</div>
+                )}
+                {relationshipStatus === 'INCOMING_PENDING' && (
+                  <div className="text-xs mt-1">You have a friend request from this user. <b>Accept it in your inbox to start chatting.</b></div>
+                )}
+                {relationshipStatus === 'NONE' && (
+                  <div className="text-xs mt-1">Send a friend request to start chatting.</div>
+                )}
+                {relationshipStatus === 'BLOCKED' && (
+                  <div className="text-xs mt-1">You have blocked this user.</div>
+                )}
+              </div>
+            )}
+            <form
+              className="nexus-input-modern"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendMessage(e);
+              }}
+            >
+              <div className="nexus-input-container-modern">
+                <button
+                  type="button"
+                  className="nexus-attachment-btn cursor-pointer hover:bg-blue-700 focus:bg-blue-800 focus:outline-none"
+                  aria-label="Attach image"
+                  onClick={() => {
+                    console.log('Image upload button clicked', relationshipStatus);
+                    if (relationshipStatus !== 'ACCEPTED') return;
+                    if (imageInputRef.current) imageInputRef.current.click();
+                  }}
+                  disabled={uploadingImage || relationshipStatus !== 'ACCEPTED'}
+                  tabIndex={0}
+                  style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 8 }}
+                  title={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to send images' : 'Attach image'}
+                >
+                  <ImageIcon className="size-5 text-white/80" />
+                </button>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    console.log('File input onChange', e.target.files);
+                    handleImageChange(e);
+                  }}
+                  disabled={uploadingImage || relationshipStatus !== 'ACCEPTED'}
+                />
+                {uploadingImage && (
+                  <span className="text-xs text-gray-400 ml-2">Uploading...</span>
+                )}
+
+                <textarea
+                  rows={1}
+                  value={messageText}
+                  onChange={handleInputChange}
+                  placeholder={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to chat' : 'Type a message…'}
+                  className="nexus-textarea-modern"
+                  onInput={(e) => {
+                    const ta = e.currentTarget;
+                    ta.style.height = "auto";
+                    ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage(e);
+                    }
+                  }}
+                  disabled={relationshipStatus !== 'ACCEPTED'}
+                  style={relationshipStatus !== 'ACCEPTED' ? { background: '#222', color: '#aaa', cursor: 'not-allowed' } : {}}
+                  title={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to chat' : ''}
+                />
+
+                <button 
+                  type="button" 
+                  className="nexus-voice-btn" 
+                  aria-label="Voice message"
+                  disabled={relationshipStatus !== 'ACCEPTED'}
+                  title={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to send voice messages' : ''}
+                >
+                  <Mic className="size-5 text-white/80" />
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!messageText.trim() || relationshipStatus !== 'ACCEPTED'}
+                  className="nexus-send-modern-btn"
+                  title={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to send messages' : ''}
+                >
+                  <Send className="size-4" />
+                  Send
+                </button>
+              </div>
+            </form>
+          </>
         )}
     </div>
   );
