@@ -428,6 +428,7 @@ const WhatsAppMessenger = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
+  const [conversationId, setConversationId] = useState(null);
   const [message, setMessage] = useState('');
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -581,9 +582,7 @@ const WhatsAppMessenger = () => {
     setSelectedUser(user);
     setLoading(true);
     setShowMobileSidebar(false);
-    
     const userId = user.id || user._id;
-    
     try {
       await fetch(`${API_BASE_URL}/messages/mark-read/${userId}`, {
         method: 'POST',
@@ -591,22 +590,27 @@ const WhatsAppMessenger = () => {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      
       fetchInbox();
     } catch (error) {
       console.error('Mark read error:', error);
     }
-    
     try {
       const response = await fetch(`${API_BASE_URL}/messages/${userId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-
       if (response.ok) {
         const data = await response.json();
         setMessages(data.messages || []);
+        // Set conversationId if available
+        if (data.conversation_id) {
+          setConversationId(data.conversation_id);
+        } else if (data.messages && data.messages.length > 0 && data.messages[0].conversation_id) {
+          setConversationId(data.messages[0].conversation_id);
+        } else {
+          setConversationId(null);
+        }
       }
     } catch (error) {
       console.error('Load messages error:', error);
@@ -617,7 +621,30 @@ const WhatsAppMessenger = () => {
 
   const handleSend = async () => {
     if (!message.trim() || !selectedUser) return;
-    
+    let convId = conversationId;
+    // If no conversationId, create or fetch it
+    if (!convId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/messages/conversations/get-or-create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            user_id: selectedUser.id || selectedUser._id,
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          convId = data.conversation_id;
+          setConversationId(convId);
+        }
+      } catch (error) {
+        console.error('Conversation fetch/create error:', error);
+        return;
+      }
+    }
     try {
       const socket = socketService.socket;
       if (socket && selectedUser) {
@@ -629,7 +656,6 @@ const WhatsAppMessenger = () => {
         });
       }
     } catch (err) {}
-    
     try {
       const response = await fetch(`${API_BASE_URL}/messages/send`, {
         method: 'POST',
@@ -640,9 +666,9 @@ const WhatsAppMessenger = () => {
         body: JSON.stringify({
           recipient_id: selectedUser.id || selectedUser._id,
           content: message,
+          conversation_id: convId,
         }),
       });
-
       if (response.ok) {
         const data = await response.json();
         setMessages([...messages, data.message]);

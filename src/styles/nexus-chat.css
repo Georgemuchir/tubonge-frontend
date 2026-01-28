@@ -24,14 +24,15 @@
 
 /* Mobile-specific styles */
 @media (max-width: 767px) {
+    /* Disabled the following block to allow scrolling on mobile:
     html, body {
         overflow: hidden;
         height: 100vh;
-        height: 100dvh; /* Dynamic viewport height for mobile */
+        height: 100dvh; 
         position: fixed;
         width: 100%;
     }
-    
+    */
     /* Prevent zoom on input focus */
     input, textarea, select {
         font-size: 16px !important;
