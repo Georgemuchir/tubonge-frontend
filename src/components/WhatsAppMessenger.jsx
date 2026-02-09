@@ -442,6 +442,8 @@ const WhatsAppMessenger = () => {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const typingTimeoutRef = useRef(null);
+  const [sendError, setSendError] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   // Fetch inbox on mount
   useEffect(() => {
@@ -620,7 +622,13 @@ const WhatsAppMessenger = () => {
   };
 
   const handleSend = async () => {
-    if (!message.trim() || !selectedUser) return;
+    if (!message.trim()) return;
+    if (!selectedUser) {
+      setSendError('Select a conversation before sending.');
+      return;
+    }
+    setSendError('');
+    setIsSending(true);
     let convId = conversationId;
     // If no conversationId, create or fetch it
     if (!convId) {
@@ -639,9 +647,16 @@ const WhatsAppMessenger = () => {
           const data = await response.json();
           convId = data.conversation_id;
           setConversationId(convId);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          setSendError(errorData.error || 'Failed to create conversation.');
+          setIsSending(false);
+          return;
         }
       } catch (error) {
         console.error('Conversation fetch/create error:', error);
+        setSendError('Network error creating conversation.');
+        setIsSending(false);
         return;
       }
     }
@@ -673,9 +688,16 @@ const WhatsAppMessenger = () => {
         const data = await response.json();
         setMessages([...messages, data.message]);
         setMessage('');
+        fetchInbox();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setSendError(errorData.error || 'Failed to send message.');
       }
     } catch (error) {
       console.error('Send error:', error);
+      setSendError('Network error sending message.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -861,7 +883,13 @@ const WhatsAppMessenger = () => {
             )}
           </div>
           
-          <div className="whatsapp-header p-3 flex items-center gap-2 border-l border-gray-800 safe-area-bottom">
+          <div className="whatsapp-header p-3 border-l border-gray-800 safe-area-bottom">
+            {sendError && (
+              <div className="mb-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs px-3 py-2">
+                {sendError}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
             <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target">
               <Smile className="w-6 h-6" />
             </button>
@@ -908,11 +936,12 @@ const WhatsAppMessenger = () => {
             </div>
             <button
               onClick={handleSend}
-              disabled={!message.trim()}
+              disabled={!message.trim() || isSending}
               className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
             >
               <Send className="w-5 h-5" />
             </button>
+            </div>
           </div>
           </>
         )}
