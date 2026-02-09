@@ -13,6 +13,11 @@ A modern, real-time messaging web application built with React, Tailwind CSS, an
 - **User Search**: Find and start conversations with other users
 - **Responsive Design**: Works perfectly on desktop and mobile
 
+## 📚 Docs
+- See ONBOARDING.md at repo root
+- See ARCHITECTURE.md at repo root
+- See CONTRIBUTING.md at repo root
+
 ## 🛠 Tech Stack
 
 - **Frontend**: React 18 + Vite
@@ -69,6 +74,11 @@ pinglo-frontend/
 ├── public/                  # Static assets
 ├── src/
 │   ├── components/          # React components
+│   │   ├── auth/           # Auth screens
+│   │   │   ├── Login.jsx
+│   │   │   ├── Register.jsx
+│   │   │   ├── ForgotPassword.jsx
+│   │   │   └── ResetPassword.jsx
 │   │   ├── chat/           # Chat-related components
 │   │   │   ├── ChatWindow.jsx
 │   │   │   ├── ConversationList.jsx
@@ -76,8 +86,7 @@ pinglo-frontend/
 │   │   │   ├── TypingIndicator.jsx
 │   │   │   ├── UserSidebar.jsx
 │   │   │   └── UserSearchModal.jsx
-│   │   ├── Login.jsx
-│   │   ├── Register.jsx
+│   │   ├── legacy/         # Legacy/prototype UIs
 │   │   └── Chat.jsx
 │   ├── contexts/           # React Context providers
 │   │   ├── AuthContext.jsx
@@ -97,8 +106,7 @@ pinglo-frontend/
 ## 🎨 Components Overview
 
 ### Authentication
-- **Login**: User login form with validation
-- **Register**: User registration with form validation
+- **Auth screens**: components/auth/*
 - **AuthContext**: Global authentication state management
 
 ### Chat Interface
