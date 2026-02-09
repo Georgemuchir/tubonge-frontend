@@ -11,6 +11,15 @@ const ForgotPassword = () => {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
+  const parseResponse = async (response) => {
+    const text = await response.text();
+    try {
+      return { json: JSON.parse(text), text };
+    } catch {
+      return { json: null, text };
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -25,15 +34,15 @@ const ForgotPassword = () => {
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
 
-      const data = await response.json();
+      const { json, text } = await parseResponse(response);
 
       if (response.ok) {
         setSent(true);
       } else {
-        setError(data.error || 'Failed to send reset email');
+        setError(json?.error || `Request failed (${response.status}). ${text || ''}`.trim());
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(`Network error. ${err?.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }

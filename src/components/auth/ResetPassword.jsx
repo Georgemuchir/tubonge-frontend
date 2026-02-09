@@ -19,6 +19,15 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
+  const parseResponse = async (response) => {
+    const text = await response.text();
+    try {
+      return { json: JSON.parse(text), text };
+    } catch {
+      return { json: null, text };
+    }
+  };
+
   // Verify token on mount
   useEffect(() => {
     if (!token) {
@@ -37,15 +46,15 @@ const ResetPassword = () => {
           body: JSON.stringify({ token }),
         });
 
-        const data = await response.json();
+        const { json, text } = await parseResponse(response);
 
-        if (response.ok && data.valid) {
+        if (response.ok && json?.valid) {
           setTokenValid(true);
         } else {
-          setError(data.error || 'Invalid or expired reset link');
+          setError(json?.error || `Request failed (${response.status}). ${text || ''}`.trim());
         }
       } catch (err) {
-        setError('Network error. Please try again.');
+        setError(`Network error. ${err?.message || 'Please try again.'}`);
       } finally {
         setVerifying(false);
       }
@@ -88,16 +97,16 @@ const ResetPassword = () => {
         body: JSON.stringify({ token, password }),
       });
 
-      const data = await response.json();
+      const { json, text } = await parseResponse(response);
 
       if (response.ok) {
         setSuccess(true);
         setTimeout(() => navigate('/login'), 3000);
       } else {
-        setError(data.error || 'Failed to reset password');
+        setError(json?.error || `Request failed (${response.status}). ${text || ''}`.trim());
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(`Network error. ${err?.message || 'Please try again.'}`);
       console.error('Reset password error:', err);
     } finally {
       setLoading(false);
