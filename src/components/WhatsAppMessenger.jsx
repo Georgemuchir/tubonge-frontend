@@ -468,6 +468,7 @@ const WhatsAppMessenger = () => {
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
   const avatarInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
 
@@ -475,6 +476,13 @@ const WhatsAppMessenger = () => {
   useEffect(() => {
     fetchInbox();
   }, []);
+
+  // Scroll to bottom on open or new messages
+  useEffect(() => {
+    if (!selectedUser) return;
+    if (loading) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [selectedUser, loading, messages]);
 
   const fetchInbox = async () => {
     try {
@@ -997,6 +1005,7 @@ const WhatsAppMessenger = () => {
                 );
               })
             )}
+            <div ref={messagesEndRef} />
           </div>
           
           <div className="whatsapp-header p-3 border-l border-gray-800 safe-area-bottom">
