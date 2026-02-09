@@ -209,7 +209,7 @@ const styles = `
   }
 `;
 
-const UserSearch = ({ onClose, onSelectUser }) => {
+const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -290,8 +290,16 @@ const UserSearch = ({ onClose, onSelectUser }) => {
                 }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
               >
-                <div className={`w-12 h-12 rounded-full ${getAvatarColor(user.name)} flex items-center justify-center text-white font-semibold text-lg`}>
-                  {user.name?.charAt(0).toUpperCase() || 'U'}
+                <div className={`w-12 h-12 rounded-full ${getAvatarColor(user.name)} flex items-center justify-center text-white font-semibold text-lg overflow-hidden`}>
+                  {user.avatar ? (
+                    <img
+                      src={resolveMediaUrl(user.avatar)}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    user.name?.charAt(0).toUpperCase() || 'U'
+                  )}
                 </div>
                 <div className="flex-1">
                   <p className="text-white font-medium">{user.name}</p>
@@ -388,8 +396,16 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
                 <div className="flex items-center gap-4">
                   {/* Avatar Section */}
                   <div className="relative flex-shrink-0">
-                    <div className={`w-16 h-16 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-gray-700/50`}>
-                      {conv.name?.charAt(0).toUpperCase() || 'U'}
+                    <div className={`w-16 h-16 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-gray-700/50 overflow-hidden`}>
+                      {conv.avatar ? (
+                        <img
+                          src={resolveMediaUrl(conv.avatar)}
+                          alt={conv.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        conv.name?.charAt(0).toUpperCase() || 'U'
+                      )}
                     </div>
                     {conv.online && (
                       <div className="absolute bottom-0 right-0 w-4 h-4 green-bg rounded-full border-3 border-gray-900 shadow-lg animate-pulse"></div>
@@ -785,6 +801,7 @@ const WhatsAppMessenger = () => {
       _id: conv.sender_id,
       name: conv.sender_name,
       username: conv.sender_username,
+      avatar: conv.sender_avatar || '',
       lastMessage: conv.last_message || '',
       lastMessageType: conv.last_message_type || 'text',
       lastMessageImageUrl: conv.last_message_image_url || '',
@@ -902,8 +919,16 @@ const WhatsAppMessenger = () => {
                 </button>
               )}
               <div className="relative flex-shrink-0">
-                <div className={`w-10 h-10 rounded-full ${getAvatarColor(selectedUser.name)} flex items-center justify-center text-white font-semibold`}>
-                  {selectedUser.name?.charAt(0).toUpperCase() || 'U'}
+                <div className={`w-10 h-10 rounded-full ${getAvatarColor(selectedUser.name)} flex items-center justify-center text-white font-semibold overflow-hidden`}>
+                  {selectedUser.avatar ? (
+                    <img
+                      src={resolveMediaUrl(selectedUser.avatar)}
+                      alt={selectedUser.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    selectedUser.name?.charAt(0).toUpperCase() || 'U'
+                  )}
                 </div>
                 {(onlineUsers[selectedUser.id] || onlineUsers[selectedUser._id] || selectedUser.online) && (
                   <div className="absolute bottom-0 right-0 w-3 h-3 green-bg rounded-full border-2 border-gray-900 animate-pulse"></div>
@@ -1046,6 +1071,7 @@ const WhatsAppMessenger = () => {
         <UserSearch
           onClose={() => setShowUserSearch(false)}
           onSelectUser={handleUserSelect}
+          resolveMediaUrl={resolveMediaUrl}
         />
       )}
 
