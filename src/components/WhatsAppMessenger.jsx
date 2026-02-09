@@ -629,37 +629,6 @@ const WhatsAppMessenger = () => {
     }
     setSendError('');
     setIsSending(true);
-    let convId = conversationId;
-    // If no conversationId, create or fetch it
-    if (!convId) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/messages/conversations/get-or-create`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: JSON.stringify({
-            user_id: selectedUser.id || selectedUser._id,
-          }),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          convId = data.conversation_id;
-          setConversationId(convId);
-        } else {
-          const errorData = await response.json().catch(() => ({}));
-          setSendError(errorData.error || 'Failed to create conversation.');
-          setIsSending(false);
-          return;
-        }
-      } catch (error) {
-        console.error('Conversation fetch/create error:', error);
-        setSendError('Network error creating conversation.');
-        setIsSending(false);
-        return;
-      }
-    }
     try {
       const socket = socketService.socket;
       if (socket && selectedUser) {
@@ -681,7 +650,6 @@ const WhatsAppMessenger = () => {
         body: JSON.stringify({
           recipient_id: selectedUser.id || selectedUser._id,
           content: message,
-          conversation_id: convId,
         }),
       });
       if (response.ok) {
