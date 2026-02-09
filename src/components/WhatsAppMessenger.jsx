@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 const styles = `
   @keyframes blob {
@@ -425,7 +426,7 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
 };
 
 const WhatsAppMessenger = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
   const [conversationId, setConversationId] = useState(null);
@@ -442,6 +443,8 @@ const WhatsAppMessenger = () => {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const typingTimeoutRef = useRef(null);
+  const messageImageInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
 
@@ -580,6 +583,12 @@ const WhatsAppMessenger = () => {
     }
   };
 
+  const resolveMediaUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${API_ORIGIN}${url}`;
+  };
+
   const handleUserSelect = async (user) => {
     setSelectedUser(user);
     setLoading(true);
@@ -669,6 +678,90 @@ const WhatsAppMessenger = () => {
     }
   };
 
+  const uploadChatImage = async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await fetch(`${API_BASE_URL}/messages/upload-image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: formData,
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Image upload failed');
+    }
+    const data = await response.json();
+    return data.url;
+  };
+
+  const handleSendImage = async (file) => {
+    if (!file) return;
+    if (!selectedUser) {
+      setSendError('Select a conversation before sending.');
+      return;
+    }
+    try {
+      setIsSending(true);
+      setSendError('');
+      const imageUrl = await uploadChatImage(file);
+      const response = await fetch(`${API_BASE_URL}/messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          recipient_id: selectedUser.id || selectedUser._id,
+          content: '📷 Photo',
+          message_type: 'image',
+          image_url: imageUrl,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMessages([...messages, data.message]);
+        fetchInbox();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setSendError(errorData.error || 'Failed to send image.');
+      }
+    } catch (error) {
+      console.error('Image send error:', error);
+      setSendError(error.message || 'Image send failed.');
+    } finally {
+      setIsSending(false);
+      if (messageImageInputRef.current) messageImageInputRef.current.value = '';
+    }
+  };
+
+  const handleAvatarUpload = async (file) => {
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await fetch(`${API_BASE_URL}/users/avatar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: formData,
+      });
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      if (data.avatar) {
+        updateUser({ avatar: data.avatar });
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+    } finally {
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
   const filteredConversations = inbox
     .slice()
     .sort((a, b) => {
@@ -713,9 +806,21 @@ const WhatsAppMessenger = () => {
       `}>
         {/* User Profile */}
         <div className="mb-8">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-teal-400/30 cursor-pointer hover:scale-110 transition-transform">
-            {user?.name?.charAt(0).toUpperCase() || 'P'}
-          </div>
+          <button
+            onClick={() => avatarInputRef.current?.click()}
+            className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-teal-400/30 cursor-pointer hover:scale-110 transition-transform overflow-hidden"
+            title="Change profile photo"
+          >
+            {user?.avatar ? (
+              <img
+                src={resolveMediaUrl(user.avatar)}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              user?.name?.charAt(0).toUpperCase() || 'P'
+            )}
+          </button>
           {totalUnread > 0 && (
             <div className="mt-2 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold text-center shadow-lg animate-pulse">
               {totalUnread}
@@ -837,7 +942,15 @@ const WhatsAppMessenger = () => {
                 return (
                   <div key={msg.id || msg._id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
                     <div className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md`}>
-                      <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
+                      {msg.message_type === 'image' && msg.image_url ? (
+                        <img
+                          src={resolveMediaUrl(msg.image_url)}
+                          alt="Shared"
+                          className="rounded-md max-w-full h-auto"
+                        />
+                      ) : (
+                        <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
+                      )}
                       <div className="flex items-center justify-end gap-1 mt-1">
                         <span className="text-xs text-gray-300">{formatTime(msg.timestamp || msg.created_at)}</span>
                         {isSent && (
@@ -861,7 +974,11 @@ const WhatsAppMessenger = () => {
             <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target">
               <Smile className="w-6 h-6" />
             </button>
-            <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target">
+            <button
+              onClick={() => messageImageInputRef.current?.click()}
+              className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
+              title="Send image"
+            >
               <Paperclip className="w-6 h-6" />
             </button>
             <div className="flex-1 whatsapp-input rounded-lg px-3 py-2 md:px-4 md:py-2">
@@ -921,6 +1038,21 @@ const WhatsAppMessenger = () => {
           onSelectUser={handleUserSelect}
         />
       )}
+
+      <input
+        ref={messageImageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleSendImage(e.target.files?.[0])}
+      />
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
+      />
     </div>
   );
 };
