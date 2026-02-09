@@ -307,7 +307,7 @@ const UserSearch = ({ onClose, onSelectUser }) => {
 
 const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery }) => {
   return (
-    <div className="flex-1 flex flex-col whatsapp-bg border-l border-gray-800">
+    <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
       <div className="whatsapp-header p-5 flex items-center justify-between border-b border-gray-700 shadow-lg">
         <div className="flex items-center gap-3">
@@ -680,6 +680,12 @@ const WhatsAppMessenger = () => {
   };
 
   const filteredConversations = inbox
+    .slice()
+    .sort((a, b) => {
+      const timeA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
+      const timeB = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
+      return timeB - timeA;
+    })
     .filter(conv => 
       conv.sender_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conv.sender_username?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -689,7 +695,7 @@ const WhatsAppMessenger = () => {
       _id: conv.sender_id,
       name: conv.sender_name,
       username: conv.sender_username,
-      lastMessage: conv.last_message,
+      lastMessage: conv.last_message || '',
       time: formatTime(conv.last_message_time),
       unread: conv.unread_count,
       online: onlineUsers[conv.sender_id] || false,
@@ -697,7 +703,7 @@ const WhatsAppMessenger = () => {
     }));
 
   return (
-    <div className="h-screen whatsapp-bg flex overflow-hidden">
+    <div className="h-screen whatsapp-bg flex overflow-hidden min-h-0">
       <style>{styles}</style>
       
       {/* Mobile Overlay */}
@@ -765,7 +771,7 @@ const WhatsAppMessenger = () => {
       </div>
       
       {/* Chat Area */}
-      <div className={`flex-1 flex flex-col ${isMobile && selectedUser ? 'mobile-chat' : ''}`}>
+      <div className={`flex-1 flex flex-col min-h-0 ${isMobile && selectedUser ? 'mobile-chat' : ''}`}>
         {!selectedUser ? (
           <ConversationsView 
             conversations={filteredConversations}
