@@ -306,7 +306,7 @@ const UserSearch = ({ onClose, onSelectUser }) => {
   );
 };
 
-const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery }) => {
+const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery, resolveMediaUrl }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
@@ -406,8 +406,15 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-gray-400 text-sm truncate flex-1">
-                        {conv.lastMessage || 'No messages yet'}
+                        {conv.lastMessageType === 'image' ? '📷 Photo' : (conv.lastMessage || 'No messages yet')}
                       </p>
+                      {conv.lastMessageType === 'image' && conv.lastMessageImageUrl && (
+                        <img
+                          src={resolveMediaUrl(conv.lastMessageImageUrl)}
+                          alt=""
+                          className="w-10 h-10 rounded-md object-cover border border-gray-700"
+                        />
+                      )}
                       {conv.unread > 0 && (
                         <span className="flex-shrink-0 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold shadow-lg">
                           {conv.unread}
@@ -779,6 +786,8 @@ const WhatsAppMessenger = () => {
       name: conv.sender_name,
       username: conv.sender_username,
       lastMessage: conv.last_message || '',
+      lastMessageType: conv.last_message_type || 'text',
+      lastMessageImageUrl: conv.last_message_image_url || '',
       time: formatTime(conv.last_message_time),
       unread: conv.unread_count,
       online: onlineUsers[conv.sender_id] || false,
@@ -877,6 +886,7 @@ const WhatsAppMessenger = () => {
             getAvatarColor={getAvatarColor}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            resolveMediaUrl={resolveMediaUrl}
           />
         ) : (
           <>
