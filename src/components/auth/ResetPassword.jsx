@@ -38,7 +38,7 @@ const ResetPassword = () => {
 
     const verifyToken = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/auth/verify-reset-token`, {
+        const response = await fetch(`${API_BASE_URL}/verify-reset-token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      const response = await fetch(`${API_BASE_URL}/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
