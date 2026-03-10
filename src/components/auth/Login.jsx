@@ -30,7 +30,18 @@ const Login = () => {
     if (result.success) {
       navigate('/');
     } else {
-      setError(result.error);
+      // Map backend error to user-friendly message
+      let message = result.error || 'Login failed. Please try again.';
+      if (message.toLowerCase().includes('invalid credentials')) {
+        message = 'Incorrect email or password. Please try again or reset your password.';
+      } else if (message.toLowerCase().includes('email and password are required')) {
+        message = 'Please enter both your email and password.';
+      } else if (message.toLowerCase().includes('user not found')) {
+        message = 'No account found with that email. Please check your email or register.';
+      } else if (message.toLowerCase().includes('firebase id token')) {
+        message = 'Login with Google failed. Please try again.';
+      }
+      setError(message);
       if (result.error && result.error.toLowerCase().includes('username')) {
         setShowUsername(true);
         setFormData({ ...formData, username: '' });
