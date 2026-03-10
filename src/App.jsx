@@ -108,7 +108,7 @@ const router = createBrowserRouter(
       element: (
         <AuthProvider>
           <div className="App">
-            <Navigate to="/" />
+            <Navigate to="/login" replace />
           </div>
         </AuthProvider>
       ),
