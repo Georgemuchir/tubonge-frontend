@@ -23,7 +23,7 @@ class ChatAPI {
   async handleResponse(response) {
     if (response.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Do not redirect; let the UI handle the error
       return;
     }
 
