@@ -11,6 +11,7 @@ const Login = () => {
   });
   const [showUsername, setShowUsername] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const { login, loading } = useAuth();
   const navigate = useNavigate();
@@ -28,7 +29,8 @@ const Login = () => {
 
     const result = await login(formData);
     if (result.success) {
-      navigate('/');
+      setSuccess('Login successful! Redirecting...');
+      setTimeout(() => navigate('/'), 1200);
     } else {
       // Map backend error to user-friendly message
       let message = result.error || 'Login failed. Please try again.';
@@ -42,6 +44,7 @@ const Login = () => {
         message = 'Login with Google failed. Please try again.';
       }
       setError(message);
+      setSuccess('');
       if (result.error && result.error.toLowerCase().includes('username')) {
         setShowUsername(true);
         setFormData({ ...formData, username: '' });
@@ -90,6 +93,13 @@ const Login = () => {
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl backdrop-blur-sm">
               <p className="text-red-200 text-sm text-center font-medium">{error}</p>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-xl backdrop-blur-sm">
+              <p className="text-green-200 text-sm text-center font-medium">{success}</p>
             </div>
           )}
 
