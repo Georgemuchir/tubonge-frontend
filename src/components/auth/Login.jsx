@@ -28,6 +28,7 @@ const Login = () => {
     e.preventDefault();
 
     const result = await login(formData);
+    console.log('Login result:', result); // DEBUG LOG
     if (result.success) {
       setSuccess('Login successful! Redirecting...');
       setTimeout(() => navigate('/'), 1200);
