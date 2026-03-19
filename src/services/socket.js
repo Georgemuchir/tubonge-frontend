@@ -98,6 +98,94 @@ class SocketService {
     }
   }
 
+  // ── WebRTC Call Signaling ──
+
+  callUser(callerId, calleeId, signalData, callType = 'video') {
+    if (this.socket?.connected) {
+      this.socket.emit('call_user', {
+        caller_id: callerId,
+        callee_id: calleeId,
+        signal_data: signalData,
+        call_type: callType
+      });
+    }
+  }
+
+  acceptCall(callerId, calleeId, signalData) {
+    if (this.socket?.connected) {
+      this.socket.emit('call_accepted', {
+        caller_id: callerId,
+        callee_id: calleeId,
+        signal_data: signalData
+      });
+    }
+  }
+
+  rejectCall(callerId, calleeId) {
+    if (this.socket?.connected) {
+      this.socket.emit('call_rejected', {
+        caller_id: callerId,
+        callee_id: calleeId
+      });
+    }
+  }
+
+  endCall(callerId, calleeId, endedBy) {
+    if (this.socket?.connected) {
+      this.socket.emit('call_ended', {
+        caller_id: callerId,
+        callee_id: calleeId,
+        ended_by: endedBy
+      });
+    }
+  }
+
+  sendIceCandidate(targetId, fromId, candidate) {
+    if (this.socket?.connected) {
+      this.socket.emit('ice_candidate', {
+        target_id: targetId,
+        from_id: fromId,
+        candidate: candidate
+      });
+    }
+  }
+
+  onIncomingCall(callback) {
+    if (this.socket) {
+      this.socket.on('incoming_call', callback);
+    }
+  }
+
+  onCallAccepted(callback) {
+    if (this.socket) {
+      this.socket.on('call_accepted', callback);
+    }
+  }
+
+  onCallRejected(callback) {
+    if (this.socket) {
+      this.socket.on('call_rejected', callback);
+    }
+  }
+
+  onCallEnded(callback) {
+    if (this.socket) {
+      this.socket.on('call_ended', callback);
+    }
+  }
+
+  onCallUnavailable(callback) {
+    if (this.socket) {
+      this.socket.on('call_unavailable', callback);
+    }
+  }
+
+  onIceCandidate(callback) {
+    if (this.socket) {
+      this.socket.on('ice_candidate', callback);
+    }
+  }
+
   // Event listeners
   onNewMessage(callback) {
     if (this.socket) {

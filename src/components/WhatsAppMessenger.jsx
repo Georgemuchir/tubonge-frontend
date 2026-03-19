@@ -3,6 +3,7 @@ import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
+import CallManager from './call/CallManager';
 
 const normalizeApiBaseUrl = (url) => {
   const trimmed = (url || '').trim().replace(/\/+$/, '');
@@ -962,6 +963,11 @@ const WhatsAppMessenger = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <CallManager
+                currentUser={user}
+                selectedUser={selectedUser}
+                onlineUsers={onlineUsers}
+              />
               <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
                 <Search className="w-5 h-5" />
               </button>
