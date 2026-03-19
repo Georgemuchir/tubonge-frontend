@@ -11,8 +11,6 @@ const Login = () => {
   });
   const [showUsername, setShowUsername] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [isHovered, setIsHovered] = useState(false);
   const { login, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -28,10 +26,8 @@ const Login = () => {
     e.preventDefault();
 
     const result = await login(formData);
-    console.log('Login result:', result); // DEBUG LOG
     if (result.success) {
-      setSuccess('Login successful! Redirecting...');
-      setTimeout(() => navigate('/'), 1200);
+      navigate('/');
     } else {
       // Map backend error to user-friendly message
       let message = result.error || 'Login failed. Please try again.';
@@ -45,7 +41,6 @@ const Login = () => {
         message = 'Login with Google failed. Please try again.';
       }
       setError(message);
-      setSuccess('');
       if (result.error && result.error.toLowerCase().includes('username')) {
         setShowUsername(true);
         setFormData({ ...formData, username: '' });
@@ -75,8 +70,6 @@ const Login = () => {
           <div className="text-center mb-8">
             <div
               className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg mb-4 transform transition-transform hover:scale-110 hover:rotate-3"
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
             >
               <MessageCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
             </div>
@@ -92,15 +85,8 @@ const Login = () => {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm text-center font-medium">
-              {error}
-            </div>
-          )}
-
-          {/* Success Message */}
-          {success && (
-            <div className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-xl backdrop-blur-sm">
-              <p className="text-green-200 text-sm text-center font-medium">{success}</p>
+            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl backdrop-blur-sm">
+              <p className="text-red-200 text-sm text-center font-medium">{error}</p>
             </div>
           )}
 
@@ -211,7 +197,7 @@ const Login = () => {
 
         {/* Footer Text */}
         <p className="text-center text-purple-300/60 text-xs mt-6">
-          © 2025 Pinglo. Secure messaging made simple.
+          © 2026 Pinglo. Secure messaging made simple.
         </p>
       </div>
 

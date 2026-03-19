@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Check, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL } from '../../services/api';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -64,10 +63,7 @@ const ResetPassword = () => {
   }, [token]);
 
   const validatePassword = (pass) => {
-    if (pass.length < 8) return 'Password must be at least 8 characters';
-    if (!/[A-Z]/.test(pass)) return 'Password must contain at least one uppercase letter';
-    if (!/[a-z]/.test(pass)) return 'Password must contain at least one lowercase letter';
-    if (!/[0-9]/.test(pass)) return 'Password must contain at least one number';
+    if (pass.length < 6) return 'Password must be at least 6 characters';
     return null;
   };
 
@@ -107,7 +103,6 @@ const ResetPassword = () => {
       }
     } catch (err) {
       setError(`Network error. ${err?.message || 'Please try again.'}`);
-      console.error('Reset password error:', err);
     } finally {
       setLoading(false);
     }
@@ -222,13 +217,9 @@ const ResetPassword = () => {
           </div>
 
           <div className="text-xs text-gray-400 space-y-1">
-            <p>Password must contain:</p>
-            <ul className="list-disc list-inside space-y-0.5">
-              <li className={password.length >= 8 ? 'text-green-400' : ''}>At least 8 characters</li>
-              <li className={/[A-Z]/.test(password) ? 'text-green-400' : ''}>One uppercase letter</li>
-              <li className={/[a-z]/.test(password) ? 'text-green-400' : ''}>One lowercase letter</li>
-              <li className={/[0-9]/.test(password) ? 'text-green-400' : ''}>One number</li>
-            </ul>
+            <p className={password.length >= 6 ? 'text-green-400' : ''}>
+              Password must be at least 6 characters
+            </p>
           </div>
 
           <button

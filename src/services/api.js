@@ -6,7 +6,7 @@ const normalizeApiBaseUrl = (url) => {
   return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 };
 
-const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
+export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
 
 // Create axios instance
 const api = axios.create({
@@ -47,7 +47,7 @@ export const authAPI = {
 
 // Users API
 export const usersAPI = {
-  searchUsers: (query) => api.get(`/users/search?q=${query}`),
+  searchUsers: (query) => api.get(`/users/search?q=${encodeURIComponent(query)}`),
   getProfile: () => api.get('/users/profile'),
   updateProfile: (userData) => api.put('/users/profile', userData),
   getOnlineUsers: () => api.get('/users/online'),

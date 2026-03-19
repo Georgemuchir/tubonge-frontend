@@ -1,6 +1,5 @@
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ChatProvider, useChat } from './contexts/ChatContext';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import ForgotPassword from './components/auth/ForgotPassword';
@@ -44,74 +43,58 @@ const PublicRoute = ({ children }) => {
   return isAuthenticated ? <Navigate to="/" /> : children;
 };
 
-// Create router with v7 future flags enabled
+// Layout component that wraps all routes with AuthProvider
+const AuthLayout = () => (
+  <AuthProvider>
+    <div className="App">
+      <Outlet />
+    </div>
+  </AuthProvider>
+);
+
+// Create router with shared AuthProvider via layout route
 const router = createBrowserRouter(
   [
     {
-      path: "/login",
-      element: (
-        <AuthProvider>
-          <div className="App">
+      element: <AuthLayout />,
+      children: [
+        {
+          path: "/login",
+          element: (
             <PublicRoute>
               <Login />
             </PublicRoute>
-          </div>
-        </AuthProvider>
-      ),
-    },
-    {
-      path: "/register", 
-      element: (
-        <AuthProvider>
-          <div className="App">
+          ),
+        },
+        {
+          path: "/register",
+          element: (
             <PublicRoute>
               <Register />
             </PublicRoute>
-          </div>
-        </AuthProvider>
-      ),
-    },
-    {
-      path: "/forgot-password",
-      element: (
-        <AuthProvider>
-          <div className="App">
-            <ForgotPassword />
-          </div>
-        </AuthProvider>
-      ),
-    },
-    {
-      path: "/reset-password",
-      element: (
-        <AuthProvider>
-          <div className="App">
-            <ResetPassword />
-          </div>
-        </AuthProvider>
-      ),
-    },
-    {
-      path: "/",
-      element: (
-        <AuthProvider>
-          <div className="App">
+          ),
+        },
+        {
+          path: "/forgot-password",
+          element: <ForgotPassword />,
+        },
+        {
+          path: "/reset-password",
+          element: <ResetPassword />,
+        },
+        {
+          path: "/",
+          element: (
             <ProtectedRoute>
               <WhatsAppMessenger />
             </ProtectedRoute>
-          </div>
-        </AuthProvider>
-      ),
-    },
-    {
-      path: "*",
-      element: (
-        <AuthProvider>
-          <div className="App">
-            <Navigate to="/login" replace />
-          </div>
-        </AuthProvider>
-      ),
+          ),
+        },
+        {
+          path: "*",
+          element: <Navigate to="/" />,
+        },
+      ],
     },
   ],
   {
