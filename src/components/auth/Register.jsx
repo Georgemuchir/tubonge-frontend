@@ -12,7 +12,6 @@ const Register = () => {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
-  const [isHovered, setIsHovered] = useState(false);
   const { register, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -91,8 +90,6 @@ const Register = () => {
           <div className="text-center mb-8">
             <div
               className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl shadow-lg mb-4 transform transition-transform hover:scale-110 hover:rotate-3"
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
             >
               <MessageCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
             </div>
@@ -269,7 +266,7 @@ const Register = () => {
 
         {/* Footer Text */}
         <p className="text-center text-purple-300/60 text-xs mt-6">
-          © 2025 Pinglo. Secure messaging made simple.
+          © 2026 Pinglo. Secure messaging made simple.
         </p>
       </div>
 

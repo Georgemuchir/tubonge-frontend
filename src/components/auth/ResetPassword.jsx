@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Check, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL } from '../../services/api';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -38,7 +37,7 @@ const ResetPassword = () => {
 
     const verifyToken = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/verify-reset-token`, {
+        const response = await fetch(`${API_BASE_URL}/auth/verify-reset-token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -64,10 +63,7 @@ const ResetPassword = () => {
   }, [token]);
 
   const validatePassword = (pass) => {
-    if (pass.length < 8) return 'Password must be at least 8 characters';
-    if (!/[A-Z]/.test(pass)) return 'Password must contain at least one uppercase letter';
-    if (!/[a-z]/.test(pass)) return 'Password must contain at least one lowercase letter';
-    if (!/[0-9]/.test(pass)) return 'Password must contain at least one number';
+    if (pass.length < 6) return 'Password must be at least 6 characters';
     return null;
   };
 
@@ -89,7 +85,7 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/reset-password`, {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +103,6 @@ const ResetPassword = () => {
       }
     } catch (err) {
       setError(`Network error. ${err?.message || 'Please try again.'}`);
-      console.error('Reset password error:', err);
     } finally {
       setLoading(false);
     }
