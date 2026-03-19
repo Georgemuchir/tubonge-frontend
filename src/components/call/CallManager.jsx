@@ -79,10 +79,12 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
 
   // ── Start a call (caller) ──
   const startCall = useCallback(async (type) => {
+    console.log('[CALL] startCall called, type:', type, 'selectedUser:', selectedUser?.name, 'callState:', callState);
     if (!selectedUser || callState !== CALL_STATE.IDLE) return;
 
     const targetId = selectedUser.id || selectedUser._id;
     const isOnline = onlineUsers?.[targetId];
+    console.log('[CALL] targetId:', targetId, 'isOnline:', isOnline, 'onlineUsers:', onlineUsers);
     if (!isOnline) {
       setError('User is offline');
       setTimeout(() => setError(''), 3000);
@@ -93,7 +95,10 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       setCallType(type);
       setCallState(CALL_STATE.CALLING);
 
+      console.log('[CALL] Getting media...');
       const stream = await getMedia(type);
+      console.log('[CALL] Got media stream, tracks:', stream.getTracks().map(t => t.kind));
+      
       const peer = new Peer({
         initiator: true,
         trickle: true,
@@ -107,6 +112,7 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       });
 
       peer.on('signal', (signalData) => {
+        console.log('[CALL] Peer signal generated, type:', signalData.type || 'candidate', 'sending to:', targetId);
         socketService.callUser(currentUserId, targetId, signalData, type);
       });
 
@@ -251,6 +257,7 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
   // ── Socket event listeners ──
   useEffect(() => {
     const handleIncomingCall = (data) => {
+      console.log('[CALL] Incoming call received:', data);
       if (callState !== CALL_STATE.IDLE) {
         // Already in a call, auto-reject
         socketService.rejectCall(data.caller_id, currentUserId);
@@ -261,12 +268,14 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
     };
 
     const handleCallAccepted = (data) => {
+      console.log('[CALL] Call accepted:', data);
       if (peerRef.current && data.signal_data) {
         peerRef.current.signal(data.signal_data);
       }
     };
 
     const handleCallRejected = () => {
+      console.log('[CALL] Call rejected');
       setError('Call was declined');
       setCallState(CALL_STATE.IDLE);
       cleanup();
@@ -274,12 +283,14 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
     };
 
     const handleCallEnded = () => {
+      console.log('[CALL] Call ended');
       setCallState(CALL_STATE.IDLE);
       setIncomingCallData(null);
       cleanup();
     };
 
     const handleCallUnavailable = (data) => {
+      console.log('[CALL] Call unavailable:', data);
       setError(data.reason || 'User unavailable');
       setCallState(CALL_STATE.IDLE);
       cleanup();
