@@ -34,6 +34,8 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const targetIdRef = useRef(null);
   const callTypeRef = useRef('video');
   const iceCandidateBuffer = useRef([]);
+  const answerAppliedRef = useRef(false);
+  const remoteStreamRef = useRef(null);
 
   const currentUserId = currentUser?.id || currentUser?._id;
 
@@ -101,6 +103,8 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
     targetIdRef.current = null;
     iceCandidateBuffer.current = [];
+    answerAppliedRef.current = false;
+    remoteStreamRef.current = null;
     setCallDuration(0);
     setIsMuted(false);
     setIsVideoOff(false);
@@ -136,16 +140,20 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   // ── Robust remote stream attach ──
   const attachRemoteStream = useCallback((remoteStream) => {
     console.log('[CALL] attachRemoteStream, callType:', callTypeRef.current, 'tracks:', remoteStream.getTracks().map(t => t.kind));
+    // Always store in ref so useEffect can re-attach after UI mounts
+    remoteStreamRef.current = remoteStream;
     // Attach to video element (for video calls)
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStream;
       remoteVideoRef.current.volume = 1.0;
       remoteVideoRef.current.play().catch(() => {
-        remoteVideoRef.current.muted = true;
-        remoteVideoRef.current.play().catch(e => console.error('[CALL] Remote video play failed:', e));
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.muted = true;
+          remoteVideoRef.current.play().catch(e => console.error('[CALL] Remote video play failed:', e));
+        }
       });
     }
-    // Attach to audio element (for audio-only calls)
+    // Attach to audio element (always — handles both audio and video calls)
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = remoteStream;
       remoteAudioRef.current.volume = 1.0;
@@ -240,9 +248,12 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       setCallType(type);
       setCallState(CALL_STATE.CALLING);
       setError('');
+      answerAppliedRef.current = false;
 
       const stream = await getMedia(type);
       console.log('[CALL] Got media, tracks:', stream.getTracks().map(t => t.kind));
+      // Ensure audio tracks are enabled
+      stream.getAudioTracks().forEach(t => { t.enabled = true; });
 
       const peer = new Peer({
         initiator: true,
@@ -339,8 +350,14 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       callTypeRef.current = type;
       targetIdRef.current = incomingCallData.caller_id;
 
+      // Transition to CALLING first so the call UI renders
+      // (mounts localVideoRef / remoteVideoRef / remoteAudioRef)
+      setCallState(CALL_STATE.CALLING);
+
       const stream = await getMedia(type);
       console.log('[CALL] Callee got media, tracks:', stream.getTracks().map(t => t.kind));
+      // Ensure audio tracks are enabled
+      stream.getAudioTracks().forEach(t => { t.enabled = true; });
 
       const peer = new Peer({
         initiator: false,
@@ -403,11 +420,12 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       // Apply any buffered ICE candidates
       if (iceCandidateBuffer.current.length > 0) {
         console.log('[CALL] Applying', iceCandidateBuffer.current.length, 'buffered ICE candidates');
-        iceCandidateBuffer.current.forEach(c => peer.signal(c));
+        iceCandidateBuffer.current.forEach(c => {
+          if (!peer.destroyed) peer.signal(c);
+        });
         iceCandidateBuffer.current = [];
       }
-
-      setCallState(CALL_STATE.CONNECTED);
+      // Do NOT setCallState(CONNECTED) here — let peer.on('connect') handle it
     } catch (err) {
       console.error('[CALL] acceptCall error:', err);
       rejectCall();
@@ -454,6 +472,33 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     }
   }, [callState]);
 
+  // ── Ensure remote stream is attached after UI mounts ──
+  useEffect(() => {
+    if (
+      (callState === CALL_STATE.CALLING || callState === CALL_STATE.CONNECTED) &&
+      remoteStreamRef.current
+    ) {
+      // Re-attach remote stream to video/audio elements if they're mounted but empty
+      if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
+        console.log('[CALL] Re-attaching remote stream to video element');
+        remoteVideoRef.current.srcObject = remoteStreamRef.current;
+        remoteVideoRef.current.volume = 1.0;
+        remoteVideoRef.current.play().catch(() => {
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.muted = true;
+            remoteVideoRef.current.play().catch(() => {});
+          }
+        });
+      }
+      if (remoteAudioRef.current && !remoteAudioRef.current.srcObject) {
+        console.log('[CALL] Re-attaching remote stream to audio element');
+        remoteAudioRef.current.srcObject = remoteStreamRef.current;
+        remoteAudioRef.current.volume = 1.0;
+        remoteAudioRef.current.play().catch(() => {});
+      }
+    }
+  }, [callState]);
+
   // ── Expose startCall to parent via ref ──
   useImperativeHandle(ref, () => ({
     startCall,
@@ -488,13 +533,17 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     };
 
     const handleCallAccepted = (data) => {
-      console.log('[CALL] ✅ call_accepted event, signaling answer to peer');
+      console.log('[CALL] ✅ call_accepted event, answerApplied:', answerAppliedRef.current, 'peerDestroyed:', peerRef.current?.destroyed);
       if (callTimeoutRef.current) {
         clearTimeout(callTimeoutRef.current);
         callTimeoutRef.current = null;
       }
-      if (peerRef.current && data.signal_data) {
+      // Guard: only signal the answer SDP ONCE to prevent "Called in wrong state: stable"
+      if (peerRef.current && !peerRef.current.destroyed && data.signal_data && !answerAppliedRef.current) {
+        answerAppliedRef.current = true;
         peerRef.current.signal(data.signal_data);
+      } else {
+        console.log('[CALL] Ignoring duplicate/stale call_accepted');
       }
     };
 
@@ -531,15 +580,17 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
     const handleIceCandidate = (data) => {
       console.log('[CALL] 🧊 ice_candidate received from', data.from_id);
-      if (peerRef.current) {
+      if (peerRef.current && !peerRef.current.destroyed) {
         try {
           peerRef.current.signal(data.candidate);
         } catch (e) {
           console.warn('[CALL] Failed to signal ICE candidate:', e.message);
         }
-      } else {
+      } else if (!peerRef.current) {
         console.log('[CALL] Buffering ICE candidate (peer not ready)');
         iceCandidateBuffer.current.push(data.candidate);
+      } else {
+        console.log('[CALL] Dropping ICE candidate — peer destroyed');
       }
     };
 
