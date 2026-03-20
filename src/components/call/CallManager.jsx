@@ -26,13 +26,20 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
   const remoteVideoRef = useRef(null);
   const callTimerRef = useRef(null);
   const ringtoneRef = useRef(null);
+  const callTimeoutRef = useRef(null);
+  const callStateRef = useRef(callState); // track callState in refs for callbacks
 
   const currentUserId = currentUser?.id || currentUser?._id;
+
+  // Keep callState ref in sync for use inside peer callbacks
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
 
   // ── Cleanup ──
   const cleanup = useCallback(() => {
     if (peerRef.current) {
-      peerRef.current.destroy();
+      try { peerRef.current.destroy(); } catch (e) { /* ignore */ }
       peerRef.current = null;
     }
     if (localStreamRef.current) {
@@ -42,6 +49,10 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
       callTimerRef.current = null;
+    }
+    if (callTimeoutRef.current) {
+      clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = null;
     }
     if (ringtoneRef.current) {
       ringtoneRef.current.pause();
@@ -83,17 +94,12 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
     if (!selectedUser || callState !== CALL_STATE.IDLE) return;
 
     const targetId = selectedUser.id || selectedUser._id;
-    const isOnline = onlineUsers?.[targetId];
-    console.log('[CALL] targetId:', targetId, 'isOnline:', isOnline, 'onlineUsers:', onlineUsers);
-    if (!isOnline) {
-      setError('User is offline');
-      setTimeout(() => setError(''), 3000);
-      return;
-    }
+    console.log('[CALL] targetId:', targetId);
 
     try {
       setCallType(type);
       setCallState(CALL_STATE.CALLING);
+      setError('');
 
       console.log('[CALL] Getting media...');
       const stream = await getMedia(type);
@@ -107,6 +113,7 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
           ]
         }
       });
@@ -117,12 +124,18 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       });
 
       peer.on('stream', (remoteStream) => {
+        console.log('[CALL] Received remote stream');
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
         }
       });
 
       peer.on('connect', () => {
+        console.log('[CALL] Peer connected!');
+        if (callTimeoutRef.current) {
+          clearTimeout(callTimeoutRef.current);
+          callTimeoutRef.current = null;
+        }
         setCallState(CALL_STATE.CONNECTED);
         callTimerRef.current = setInterval(() => {
           setCallDuration(d => d + 1);
@@ -130,31 +143,61 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       });
 
       peer.on('close', () => {
-        endCall();
+        console.log('[CALL] Peer closed, current state:', callStateRef.current);
+        // Only end call if we were connected — during CALLING, ignore close
+        if (callStateRef.current === CALL_STATE.CONNECTED) {
+          endCall();
+        }
       });
 
       peer.on('error', (err) => {
-        console.error('Peer error:', err);
-        setError('Connection failed');
-        endCall();
+        console.error('[CALL] Peer error:', err.message, 'state:', callStateRef.current);
+        // During CALLING state, don't kill the UI — server-side call_unavailable will handle it
+        if (callStateRef.current === CALL_STATE.CONNECTED) {
+          setError('Connection lost');
+          endCall();
+        }
+        // During CALLING, just log — keep ringing
       });
 
       peerRef.current = peer;
+
+      // 30-second timeout for unanswered calls
+      callTimeoutRef.current = setTimeout(() => {
+        console.log('[CALL] Call timeout — no answer');
+        if (callStateRef.current === CALL_STATE.CALLING) {
+          setError('No answer');
+          socketService.endCall(currentUserId, targetId, currentUserId);
+          // Record missed call so callee sees it
+          socketService.missedCall(currentUserId, targetId, type);
+          setCallState(CALL_STATE.IDLE);
+          cleanup();
+          setTimeout(() => setError(''), 3000);
+        }
+      }, 30000);
+
     } catch (err) {
+      console.error('[CALL] startCall error:', err);
+      setError(err.name === 'NotAllowedError' ? 'Microphone/camera permission denied' : 'Failed to start call');
       setCallState(CALL_STATE.IDLE);
       cleanup();
+      setTimeout(() => setError(''), 3000);
     }
-  }, [selectedUser, callState, currentUserId, onlineUsers, getMedia, cleanup]);
+  }, [selectedUser, callState, currentUserId, getMedia, cleanup]);
 
   // ── Accept incoming call ──
   const acceptCall = useCallback(async () => {
+    console.log('[CALL] acceptCall called, incomingCallData:', incomingCallData?.caller_name);
     if (!incomingCallData) return;
 
     try {
       const type = incomingCallData.call_type || 'video';
       setCallType(type);
 
+      console.log('[CALL] Callee getting media...');
       const stream = await getMedia(type);
+      console.log('[CALL] Callee got media, tracks:', stream.getTracks().map(t => t.kind));
+
       const peer = new Peer({
         initiator: false,
         trickle: true,
@@ -163,11 +206,13 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
           ]
         }
       });
 
       peer.on('signal', (signalData) => {
+        console.log('[CALL] Callee signal generated, type:', signalData.type || 'candidate');
         socketService.acceptCall(
           incomingCallData.caller_id,
           currentUserId,
@@ -176,12 +221,14 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       });
 
       peer.on('stream', (remoteStream) => {
+        console.log('[CALL] Callee received remote stream');
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
         }
       });
 
       peer.on('connect', () => {
+        console.log('[CALL] Callee peer connected!');
         setCallState(CALL_STATE.CONNECTED);
         callTimerRef.current = setInterval(() => {
           setCallDuration(d => d + 1);
@@ -189,13 +236,18 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       });
 
       peer.on('close', () => {
-        endCall();
+        console.log('[CALL] Callee peer closed, state:', callStateRef.current);
+        if (callStateRef.current === CALL_STATE.CONNECTED) {
+          endCall();
+        }
       });
 
       peer.on('error', (err) => {
-        console.error('Peer error:', err);
-        setError('Connection failed');
-        endCall();
+        console.error('[CALL] Callee peer error:', err.message, 'state:', callStateRef.current);
+        if (callStateRef.current === CALL_STATE.CONNECTED) {
+          setError('Connection lost');
+          endCall();
+        }
       });
 
       // Signal the incoming offer to our peer
@@ -203,6 +255,7 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       peerRef.current = peer;
       setCallState(CALL_STATE.CONNECTED);
     } catch (err) {
+      console.error('[CALL] acceptCall error:', err);
       rejectCall();
     }
   }, [incomingCallData, currentUserId, getMedia]);
@@ -220,17 +273,24 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
   // ── End active call ──
   const endCall = useCallback(() => {
     const targetId = selectedUser?.id || selectedUser?._id || incomingCallData?.caller_id;
+    const wasCalling = callStateRef.current === CALL_STATE.CALLING;
+
     if (targetId) {
       socketService.endCall(
         incomingCallData ? incomingCallData.caller_id : currentUserId,
         incomingCallData ? currentUserId : targetId,
         currentUserId
       );
+
+      // If caller hangs up while still ringing → missed call
+      if (wasCalling && !incomingCallData) {
+        socketService.missedCall(currentUserId, targetId, callType);
+      }
     }
     setIncomingCallData(null);
     setCallState(CALL_STATE.IDLE);
     cleanup();
-  }, [selectedUser, incomingCallData, currentUserId, cleanup]);
+  }, [selectedUser, incomingCallData, currentUserId, callType, cleanup]);
 
   // ── Toggle mute ──
   const toggleMute = useCallback(() => {
@@ -269,6 +329,11 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
 
     const handleCallAccepted = (data) => {
       console.log('[CALL] Call accepted:', data);
+      // Clear the ringing timeout
+      if (callTimeoutRef.current) {
+        clearTimeout(callTimeoutRef.current);
+        callTimeoutRef.current = null;
+      }
       if (peerRef.current && data.signal_data) {
         peerRef.current.signal(data.signal_data);
       }
@@ -276,6 +341,10 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
 
     const handleCallRejected = () => {
       console.log('[CALL] Call rejected');
+      if (callTimeoutRef.current) {
+        clearTimeout(callTimeoutRef.current);
+        callTimeoutRef.current = null;
+      }
       setError('Call was declined');
       setCallState(CALL_STATE.IDLE);
       cleanup();
@@ -291,6 +360,10 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
 
     const handleCallUnavailable = (data) => {
       console.log('[CALL] Call unavailable:', data);
+      if (callTimeoutRef.current) {
+        clearTimeout(callTimeoutRef.current);
+        callTimeoutRef.current = null;
+      }
       setError(data.reason || 'User unavailable');
       setCallState(CALL_STATE.IDLE);
       cleanup();

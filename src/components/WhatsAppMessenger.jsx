@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, Search, Plus, Phone, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
@@ -429,7 +429,12 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-gray-400 text-sm truncate flex-1">
-                        {conv.lastMessageType === 'image' ? '📷 Photo' : (conv.lastMessage || 'No messages yet')}
+                        {conv.lastMessageType === 'missed_call' ? (
+                          <span className="text-red-400 flex items-center gap-1">
+                            <PhoneOff className="w-3.5 h-3.5 inline" />
+                            {conv.lastMessage || 'Missed call'}
+                          </span>
+                        ) : conv.lastMessageType === 'image' ? '📷 Photo' : (conv.lastMessage || 'No messages yet')}
                       </p>
                       {conv.lastMessageType === 'image' && conv.lastMessageImageUrl && (
                         <img
@@ -994,6 +999,22 @@ const WhatsAppMessenger = () => {
             ) : (
               messages.map((msg) => {
                 const isSent = msg.sender_id === user?.id || msg.sender_id === user?._id;
+
+                // ── Missed call message ──
+                if (msg.message_type === 'missed_call') {
+                  return (
+                    <div key={msg.id || msg._id} className="flex justify-center my-2" style={{animation: 'fadeIn 0.3s ease-out'}}>
+                      <div className="flex items-center gap-2 bg-gray-800/70 border border-gray-700 rounded-full px-4 py-2 shadow">
+                        <PhoneOff className={`w-4 h-4 ${isSent ? 'text-gray-400' : 'text-red-400'}`} />
+                        <span className={`text-sm ${isSent ? 'text-gray-300' : 'text-red-300'}`}>
+                          {msg.content}
+                        </span>
+                        <span className="text-xs text-gray-500">{formatTime(msg.timestamp || msg.created_at)}</span>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={msg.id || msg._id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
                     <div className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md`}>

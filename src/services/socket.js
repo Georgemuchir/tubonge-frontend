@@ -101,6 +101,7 @@ class SocketService {
   // ── WebRTC Call Signaling ──
 
   callUser(callerId, calleeId, signalData, callType = 'video') {
+    console.log('[SOCKET] callUser:', { callerId, calleeId, callType, connected: this.socket?.connected });
     if (this.socket?.connected) {
       this.socket.emit('call_user', {
         caller_id: callerId,
@@ -108,6 +109,8 @@ class SocketService {
         signal_data: signalData,
         call_type: callType
       });
+    } else {
+      console.error('[SOCKET] Cannot call — socket not connected!');
     }
   }
 
@@ -146,6 +149,17 @@ class SocketService {
         target_id: targetId,
         from_id: fromId,
         candidate: candidate
+      });
+    }
+  }
+
+  missedCall(callerId, calleeId, callType = 'video') {
+    console.log('[SOCKET] missedCall:', { callerId, calleeId, callType });
+    if (this.socket?.connected) {
+      this.socket.emit('missed_call', {
+        caller_id: callerId,
+        callee_id: calleeId,
+        call_type: callType
       });
     }
   }
