@@ -430,6 +430,20 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     }
   }, []);
 
+  // ── Ensure local video is shown after UI mounts (fixes callee local preview) ──
+  useEffect(() => {
+    if (
+      (callState === CALL_STATE.CALLING || callState === CALL_STATE.CONNECTED) &&
+      localStreamRef.current &&
+      localVideoRef.current &&
+      !localVideoRef.current.srcObject
+    ) {
+      console.log('[CALL] Re-attaching local stream to video element (callee fix)');
+      localVideoRef.current.srcObject = localStreamRef.current;
+      localVideoRef.current.muted = true;
+    }
+  }, [callState]);
+
   // ── Expose startCall to parent via ref ──
   useImperativeHandle(ref, () => ({
     startCall,
