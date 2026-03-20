@@ -481,6 +481,7 @@ const WhatsAppMessenger = () => {
   const messageImageInputRef = useRef(null);
   const avatarInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const callManagerRef = useRef(null);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
 
@@ -968,11 +969,21 @@ const WhatsAppMessenger = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <CallManager
-                currentUser={user}
-                selectedUser={selectedUser}
-                onlineUsers={onlineUsers}
-              />
+              {/* Call buttons */}
+              <button
+                onClick={() => callManagerRef.current?.startCall('audio')}
+                className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
+                title="Voice call"
+              >
+                <Phone className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => callManagerRef.current?.startCall('video')}
+                className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
+                title="Video call"
+              >
+                <Video className="w-5 h-5" />
+              </button>
               <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
                 <Search className="w-5 h-5" />
               </button>
@@ -1130,6 +1141,13 @@ const WhatsAppMessenger = () => {
         accept="image/*"
         className="hidden"
         onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
+      />
+
+      {/* Global CallManager — always mounted so calls survive navigation */}
+      <CallManager
+        ref={callManagerRef}
+        currentUser={user}
+        selectedUser={selectedUser}
       />
     </div>
   );

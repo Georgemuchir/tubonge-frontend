@@ -1,19 +1,18 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, X, PhoneIncoming } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, PhoneIncoming } from 'lucide-react';
 import Peer from 'simple-peer';
 import socketService from '../../services/socket';
 
-// ── Call States ──
 const CALL_STATE = {
   IDLE: 'idle',
-  CALLING: 'calling',        // outgoing ring
-  INCOMING: 'incoming',      // incoming ring
-  CONNECTED: 'connected',    // active call
+  CALLING: 'calling',
+  INCOMING: 'incoming',
+  CONNECTED: 'connected',
 };
 
-const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
+const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const [callState, setCallState] = useState(CALL_STATE.IDLE);
-  const [callType, setCallType] = useState('video'); // 'audio' | 'video'
+  const [callType, setCallType] = useState('video');
   const [incomingCallData, setIncomingCallData] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -25,21 +24,23 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const callTimerRef = useRef(null);
-  const ringtoneRef = useRef(null);
   const callTimeoutRef = useRef(null);
-  const callStateRef = useRef(callState); // track callState in refs for callbacks
+  const callStateRef = useRef(callState);
+  const selectedUserRef = useRef(selectedUser);
+  const targetIdRef = useRef(null);
+  const callTypeRef = useRef('video');
+  const iceCandidateBuffer = useRef([]);
 
   const currentUserId = currentUser?.id || currentUser?._id;
 
-  // Keep callState ref in sync for use inside peer callbacks
-  useEffect(() => {
-    callStateRef.current = callState;
-  }, [callState]);
+  useEffect(() => { callStateRef.current = callState; }, [callState]);
+  useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
 
   // ── Cleanup ──
   const cleanup = useCallback(() => {
+    console.log('[CALL] cleanup called');
     if (peerRef.current) {
-      try { peerRef.current.destroy(); } catch (e) { /* ignore */ }
+      try { peerRef.current.destroy(); } catch (e) { /* ok */ }
       peerRef.current = null;
     }
     if (localStreamRef.current) {
@@ -54,57 +55,66 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       clearTimeout(callTimeoutRef.current);
       callTimeoutRef.current = null;
     }
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current = null;
-    }
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    targetIdRef.current = null;
+    iceCandidateBuffer.current = [];
     setCallDuration(0);
     setIsMuted(false);
     setIsVideoOff(false);
-    setError('');
   }, []);
 
   // ── Get user media ──
   const getMedia = useCallback(async (type) => {
-    try {
-      const constraints = {
-        audio: true,
-        video: type === 'video' ? { width: 640, height: 480, facingMode: 'user' } : false
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      localStreamRef.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-      return stream;
-    } catch (err) {
-      console.error('Media access error:', err);
-      setError(err.name === 'NotAllowedError'
-        ? 'Camera/microphone permission denied'
-        : 'Could not access camera/microphone');
-      throw err;
-    }
+    const constraints = {
+      audio: true,
+      video: type === 'video' ? { width: 640, height: 480, facingMode: 'user' } : false
+    };
+    console.log('[CALL] getUserMedia constraints:', constraints);
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    localStreamRef.current = stream;
+    if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+    return stream;
   }, []);
 
-  // ── Start a call (caller) ──
-  const startCall = useCallback(async (type) => {
-    console.log('[CALL] startCall called, type:', type, 'selectedUser:', selectedUser?.name, 'callState:', callState);
-    if (!selectedUser || callState !== CALL_STATE.IDLE) return;
+  // ── End active call ──
+  const endCall = useCallback(() => {
+    const tid = targetIdRef.current;
+    const wasCalling = callStateRef.current === CALL_STATE.CALLING;
+    console.log('[CALL] endCall, target:', tid, 'wasCalling:', wasCalling);
 
-    const targetId = selectedUser.id || selectedUser._id;
-    console.log('[CALL] targetId:', targetId);
+    if (tid) {
+      socketService.endCall(currentUserId, tid, currentUserId);
+      if (wasCalling) {
+        socketService.missedCall(currentUserId, tid, callTypeRef.current);
+      }
+    }
+    setIncomingCallData(null);
+    setCallState(CALL_STATE.IDLE);
+    cleanup();
+  }, [currentUserId, cleanup]);
+
+  // ── Start a call (caller side) ──
+  const startCall = useCallback(async (type) => {
+    const su = selectedUserRef.current;
+    console.log('[CALL] startCall', type, 'to', su?.name, 'state:', callStateRef.current);
+    if (!su || callStateRef.current !== CALL_STATE.IDLE) {
+      console.log('[CALL] startCall blocked — no user or not idle');
+      return;
+    }
+
+    const targetId = su.id || su._id;
+    targetIdRef.current = targetId;
+    callTypeRef.current = type;
 
     try {
       setCallType(type);
       setCallState(CALL_STATE.CALLING);
       setError('');
 
-      console.log('[CALL] Getting media...');
       const stream = await getMedia(type);
-      console.log('[CALL] Got media stream, tracks:', stream.getTracks().map(t => t.kind));
-      
+      console.log('[CALL] Got media, tracks:', stream.getTracks().map(t => t.kind));
+
       const peer = new Peer({
         initiator: true,
         trickle: true,
@@ -118,58 +128,59 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
         }
       });
 
-      peer.on('signal', (signalData) => {
-        console.log('[CALL] Peer signal generated, type:', signalData.type || 'candidate', 'sending to:', targetId);
-        socketService.callUser(currentUserId, targetId, signalData, type);
-      });
+      let offerSent = false;
 
-      peer.on('stream', (remoteStream) => {
-        console.log('[CALL] Received remote stream');
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = remoteStream;
+      peer.on('signal', (signalData) => {
+        if (!offerSent && signalData.type === 'offer') {
+          console.log('[CALL] Sending SDP offer to', targetId);
+          socketService.callUser(currentUserId, targetId, signalData, type);
+          offerSent = true;
+        } else {
+          console.log('[CALL] Sending ICE candidate to', targetId);
+          socketService.sendIceCandidate(targetId, currentUserId, signalData);
         }
       });
 
+      peer.on('stream', (remoteStream) => {
+        console.log('[CALL] Got remote stream');
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+      });
+
       peer.on('connect', () => {
-        console.log('[CALL] Peer connected!');
+        console.log('[CALL] Peer data channel connected');
         if (callTimeoutRef.current) {
           clearTimeout(callTimeoutRef.current);
           callTimeoutRef.current = null;
         }
         setCallState(CALL_STATE.CONNECTED);
-        callTimerRef.current = setInterval(() => {
-          setCallDuration(d => d + 1);
-        }, 1000);
+        callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
       });
 
       peer.on('close', () => {
-        console.log('[CALL] Peer closed, current state:', callStateRef.current);
-        // Only end call if we were connected — during CALLING, ignore close
-        if (callStateRef.current === CALL_STATE.CONNECTED) {
-          endCall();
-        }
+        console.log('[CALL] Peer closed, state:', callStateRef.current);
+        if (callStateRef.current === CALL_STATE.CONNECTED) endCall();
       });
 
       peer.on('error', (err) => {
         console.error('[CALL] Peer error:', err.message, 'state:', callStateRef.current);
-        // During CALLING state, don't kill the UI — server-side call_unavailable will handle it
         if (callStateRef.current === CALL_STATE.CONNECTED) {
           setError('Connection lost');
           endCall();
         }
-        // During CALLING, just log — keep ringing
       });
 
       peerRef.current = peer;
 
-      // 30-second timeout for unanswered calls
+      // 30s timeout for unanswered calls
       callTimeoutRef.current = setTimeout(() => {
-        console.log('[CALL] Call timeout — no answer');
         if (callStateRef.current === CALL_STATE.CALLING) {
+          console.log('[CALL] Timeout — no answer');
           setError('No answer');
-          socketService.endCall(currentUserId, targetId, currentUserId);
-          // Record missed call so callee sees it
-          socketService.missedCall(currentUserId, targetId, type);
+          const tid = targetIdRef.current;
+          if (tid) {
+            socketService.endCall(currentUserId, tid, currentUserId);
+            socketService.missedCall(currentUserId, tid, type);
+          }
           setCallState(CALL_STATE.IDLE);
           cleanup();
           setTimeout(() => setError(''), 3000);
@@ -178,23 +189,24 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
 
     } catch (err) {
       console.error('[CALL] startCall error:', err);
-      setError(err.name === 'NotAllowedError' ? 'Microphone/camera permission denied' : 'Failed to start call');
+      setError(err.name === 'NotAllowedError' ? 'Camera/mic permission denied' : 'Failed to start call');
       setCallState(CALL_STATE.IDLE);
       cleanup();
       setTimeout(() => setError(''), 3000);
     }
-  }, [selectedUser, callState, currentUserId, getMedia, cleanup]);
+  }, [currentUserId, getMedia, cleanup, endCall]);
 
-  // ── Accept incoming call ──
+  // ── Accept incoming call (callee side) ──
   const acceptCall = useCallback(async () => {
-    console.log('[CALL] acceptCall called, incomingCallData:', incomingCallData?.caller_name);
     if (!incomingCallData) return;
+    console.log('[CALL] Accepting call from', incomingCallData.caller_name);
 
     try {
       const type = incomingCallData.call_type || 'video';
       setCallType(type);
+      callTypeRef.current = type;
+      targetIdRef.current = incomingCallData.caller_id;
 
-      console.log('[CALL] Callee getting media...');
       const stream = await getMedia(type);
       console.log('[CALL] Callee got media, tracks:', stream.getTracks().map(t => t.kind));
 
@@ -211,54 +223,61 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
         }
       });
 
-      peer.on('signal', (signalData) => {
-        console.log('[CALL] Callee signal generated, type:', signalData.type || 'candidate');
-        socketService.acceptCall(
-          incomingCallData.caller_id,
-          currentUserId,
-          signalData
-        );
-      });
+      let answerSent = false;
 
-      peer.on('stream', (remoteStream) => {
-        console.log('[CALL] Callee received remote stream');
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = remoteStream;
+      peer.on('signal', (signalData) => {
+        if (!answerSent && signalData.type === 'answer') {
+          console.log('[CALL] Sending SDP answer to caller');
+          socketService.acceptCall(incomingCallData.caller_id, currentUserId, signalData);
+          answerSent = true;
+        } else {
+          console.log('[CALL] Callee sending ICE candidate');
+          socketService.sendIceCandidate(incomingCallData.caller_id, currentUserId, signalData);
         }
       });
 
+      peer.on('stream', (remoteStream) => {
+        console.log('[CALL] Callee got remote stream');
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+      });
+
       peer.on('connect', () => {
-        console.log('[CALL] Callee peer connected!');
+        console.log('[CALL] Callee peer connected');
         setCallState(CALL_STATE.CONNECTED);
-        callTimerRef.current = setInterval(() => {
-          setCallDuration(d => d + 1);
-        }, 1000);
+        callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
       });
 
       peer.on('close', () => {
         console.log('[CALL] Callee peer closed, state:', callStateRef.current);
-        if (callStateRef.current === CALL_STATE.CONNECTED) {
-          endCall();
-        }
+        if (callStateRef.current === CALL_STATE.CONNECTED) endCall();
       });
 
       peer.on('error', (err) => {
-        console.error('[CALL] Callee peer error:', err.message, 'state:', callStateRef.current);
+        console.error('[CALL] Callee peer error:', err.message);
         if (callStateRef.current === CALL_STATE.CONNECTED) {
           setError('Connection lost');
           endCall();
         }
       });
 
-      // Signal the incoming offer to our peer
+      // Signal the caller's SDP offer to our peer
+      console.log('[CALL] Signaling caller offer to peer');
       peer.signal(incomingCallData.signal_data);
       peerRef.current = peer;
+
+      // Apply any buffered ICE candidates
+      if (iceCandidateBuffer.current.length > 0) {
+        console.log('[CALL] Applying', iceCandidateBuffer.current.length, 'buffered ICE candidates');
+        iceCandidateBuffer.current.forEach(c => peer.signal(c));
+        iceCandidateBuffer.current = [];
+      }
+
       setCallState(CALL_STATE.CONNECTED);
     } catch (err) {
       console.error('[CALL] acceptCall error:', err);
       rejectCall();
     }
-  }, [incomingCallData, currentUserId, getMedia]);
+  }, [incomingCallData, currentUserId, getMedia, endCall]);
 
   // ── Reject incoming call ──
   const rejectCall = useCallback(() => {
@@ -270,66 +289,44 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
     cleanup();
   }, [incomingCallData, currentUserId, cleanup]);
 
-  // ── End active call ──
-  const endCall = useCallback(() => {
-    const targetId = selectedUser?.id || selectedUser?._id || incomingCallData?.caller_id;
-    const wasCalling = callStateRef.current === CALL_STATE.CALLING;
-
-    if (targetId) {
-      socketService.endCall(
-        incomingCallData ? incomingCallData.caller_id : currentUserId,
-        incomingCallData ? currentUserId : targetId,
-        currentUserId
-      );
-
-      // If caller hangs up while still ringing → missed call
-      if (wasCalling && !incomingCallData) {
-        socketService.missedCall(currentUserId, targetId, callType);
-      }
-    }
-    setIncomingCallData(null);
-    setCallState(CALL_STATE.IDLE);
-    cleanup();
-  }, [selectedUser, incomingCallData, currentUserId, callType, cleanup]);
-
-  // ── Toggle mute ──
+  // ── Toggle mute / video ──
   const toggleMute = useCallback(() => {
     if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
-      }
+      const t = localStreamRef.current.getAudioTracks()[0];
+      if (t) { t.enabled = !t.enabled; setIsMuted(!t.enabled); }
     }
   }, []);
 
-  // ── Toggle video ──
   const toggleVideo = useCallback(() => {
     if (localStreamRef.current) {
-      const videoTrack = localStreamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOff(!videoTrack.enabled);
-      }
+      const t = localStreamRef.current.getVideoTracks()[0];
+      if (t) { t.enabled = !t.enabled; setIsVideoOff(!t.enabled); }
     }
   }, []);
 
-  // ── Socket event listeners ──
+  // ── Expose startCall to parent via ref ──
+  useImperativeHandle(ref, () => ({
+    startCall,
+  }), [startCall]);
+
+  // ── Socket event listeners (register ONCE per userId) ──
   useEffect(() => {
+    console.log('[CALL] Registering socket listeners, userId:', currentUserId);
+
     const handleIncomingCall = (data) => {
-      console.log('[CALL] Incoming call received:', data);
-      if (callState !== CALL_STATE.IDLE) {
-        // Already in a call, auto-reject
+      console.log('[CALL] incoming_call event:', data.caller_name, data.call_type);
+      if (callStateRef.current !== CALL_STATE.IDLE) {
+        console.log('[CALL] Already in call, auto-rejecting');
         socketService.rejectCall(data.caller_id, currentUserId);
         return;
       }
+      iceCandidateBuffer.current = [];
       setIncomingCallData(data);
       setCallState(CALL_STATE.INCOMING);
     };
 
     const handleCallAccepted = (data) => {
-      console.log('[CALL] Call accepted:', data);
-      // Clear the ringing timeout
+      console.log('[CALL] call_accepted event, signaling answer to peer');
       if (callTimeoutRef.current) {
         clearTimeout(callTimeoutRef.current);
         callTimeoutRef.current = null;
@@ -340,7 +337,7 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
     };
 
     const handleCallRejected = () => {
-      console.log('[CALL] Call rejected');
+      console.log('[CALL] call_rejected event');
       if (callTimeoutRef.current) {
         clearTimeout(callTimeoutRef.current);
         callTimeoutRef.current = null;
@@ -352,14 +349,14 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
     };
 
     const handleCallEnded = () => {
-      console.log('[CALL] Call ended');
+      console.log('[CALL] call_ended event');
       setCallState(CALL_STATE.IDLE);
       setIncomingCallData(null);
       cleanup();
     };
 
     const handleCallUnavailable = (data) => {
-      console.log('[CALL] Call unavailable:', data);
+      console.log('[CALL] call_unavailable:', data.reason);
       if (callTimeoutRef.current) {
         clearTimeout(callTimeoutRef.current);
         callTimeoutRef.current = null;
@@ -370,11 +367,26 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       setTimeout(() => setError(''), 3000);
     };
 
+    const handleIceCandidate = (data) => {
+      console.log('[CALL] ice_candidate received from', data.from_id);
+      if (peerRef.current) {
+        try {
+          peerRef.current.signal(data.candidate);
+        } catch (e) {
+          console.warn('[CALL] Failed to signal ICE candidate:', e.message);
+        }
+      } else {
+        console.log('[CALL] Buffering ICE candidate (peer not ready)');
+        iceCandidateBuffer.current.push(data.candidate);
+      }
+    };
+
     socketService.onIncomingCall(handleIncomingCall);
     socketService.onCallAccepted(handleCallAccepted);
     socketService.onCallRejected(handleCallRejected);
     socketService.onCallEnded(handleCallEnded);
     socketService.onCallUnavailable(handleCallUnavailable);
+    socketService.onIceCandidate(handleIceCandidate);
 
     return () => {
       socketService.off('incoming_call', handleIncomingCall);
@@ -382,22 +394,19 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
       socketService.off('call_rejected', handleCallRejected);
       socketService.off('call_ended', handleCallEnded);
       socketService.off('call_unavailable', handleCallUnavailable);
+      socketService.off('ice_candidate', handleIceCandidate);
     };
-  }, [callState, currentUserId, cleanup]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => cleanup();
-  }, [cleanup]);
-
-  // ── Format duration ──
-  const formatDuration = (s) => {
+  // Format duration
+  const fmt = (s) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
-  // ── Incoming call UI ──
+  // ── INCOMING CALL UI ──
   if (callState === CALL_STATE.INCOMING && incomingCallData) {
     return (
       <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center">
@@ -410,16 +419,10 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
             Incoming {incomingCallData.call_type === 'audio' ? 'voice' : 'video'} call...
           </p>
           <div className="flex justify-center gap-8">
-            <button
-              onClick={rejectCall}
-              className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
-            >
+            <button onClick={rejectCall} className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110">
               <PhoneOff className="w-7 h-7" />
             </button>
-            <button
-              onClick={acceptCall}
-              className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 animate-bounce"
-            >
+            <button onClick={acceptCall} className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 animate-bounce">
               <PhoneIncoming className="w-7 h-7" />
             </button>
           </div>
@@ -428,21 +431,14 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
     );
   }
 
-  // ── Active call / Calling UI ──
+  // ── CALLING / CONNECTED UI ──
   if (callState === CALL_STATE.CALLING || callState === CALL_STATE.CONNECTED) {
-    const remoteName = selectedUser?.name || incomingCallData?.caller_name || 'Unknown';
-
+    const remoteName = selectedUserRef.current?.name || incomingCallData?.caller_name || 'Unknown';
     return (
       <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-        {/* Remote video (full screen) */}
         <div className="flex-1 relative bg-gray-900">
           {callType === 'video' ? (
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
+            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <div className="text-center">
@@ -453,67 +449,36 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
               </div>
             </div>
           )}
-
-          {/* Status overlay */}
           <div className="absolute top-6 left-0 right-0 text-center">
             <p className="text-white text-lg font-medium">
               {callState === CALL_STATE.CALLING ? 'Calling...' : remoteName}
             </p>
             <p className="text-gray-300 text-sm mt-1">
-              {callState === CALL_STATE.CALLING
-                ? `Ringing${callType === 'audio' ? ' (voice)' : ''}`
-                : formatDuration(callDuration)}
+              {callState === CALL_STATE.CALLING ? `Ringing${callType === 'audio' ? ' (voice)' : ''}` : fmt(callDuration)}
             </p>
           </div>
-
-          {/* Local video (picture-in-picture) */}
           {callType === 'video' && (
             <div className="absolute top-20 right-4 w-32 h-44 rounded-xl overflow-hidden bg-gray-800 shadow-xl border-2 border-gray-700">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
+              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
             </div>
           )}
-
-          {/* Error message */}
           {error && (
             <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg text-sm">
               {error}
             </div>
           )}
         </div>
-
-        {/* Call controls */}
         <div className="bg-gray-900/90 backdrop-blur-sm py-6 px-4">
           <div className="flex justify-center items-center gap-6">
-            <button
-              onClick={toggleMute}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 text-white hover:bg-gray-600'
-              }`}
-            >
+            <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 text-white hover:bg-gray-600'}`}>
               {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
             </button>
-
             {callType === 'video' && (
-              <button
-                onClick={toggleVideo}
-                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                  isVideoOff ? 'bg-white text-gray-900' : 'bg-gray-700 text-white hover:bg-gray-600'
-                }`}
-              >
+              <button onClick={toggleVideo} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isVideoOff ? 'bg-white text-gray-900' : 'bg-gray-700 text-white hover:bg-gray-600'}`}>
                 {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
               </button>
             )}
-
-            <button
-              onClick={endCall}
-              className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
-            >
+            <button onClick={endCall} className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110">
               <PhoneOff className="w-7 h-7" />
             </button>
           </div>
@@ -522,30 +487,16 @@ const CallManager = ({ currentUser, selectedUser, onlineUsers }) => {
     );
   }
 
-  // ── Call buttons (shown in chat header) ──
-  return (
-    <>
-      {error && (
-        <div className="absolute top-16 right-4 bg-red-500/90 text-white px-3 py-1.5 rounded-lg text-sm z-50 animate-fadeIn">
-          {error}
-        </div>
-      )}
-      <button
-        onClick={() => startCall('audio')}
-        className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-green-400 transition-colors touch-target"
-        title="Voice Call"
-      >
-        <Phone className="w-5 h-5" />
-      </button>
-      <button
-        onClick={() => startCall('video')}
-        className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-blue-400 transition-colors touch-target"
-        title="Video Call"
-      >
-        <Video className="w-5 h-5" />
-      </button>
-    </>
-  );
-};
+  // ── IDLE — show nothing (header renders its own buttons via ref) ──
+  if (error) {
+    return (
+      <div className="fixed top-4 right-4 bg-red-500/90 text-white px-4 py-2 rounded-lg text-sm z-50">
+        {error}
+      </div>
+    );
+  }
+  return null;
+});
 
+CallManager.displayName = 'CallManager';
 export default CallManager;
