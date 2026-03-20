@@ -25,6 +25,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const remoteVideoRef = useRef(null);
   const callTimerRef = useRef(null);
   const callTimeoutRef = useRef(null);
+  const ringtoneRef = useRef(null);
   const callStateRef = useRef(callState);
   const selectedUserRef = useRef(selectedUser);
   const targetIdRef = useRef(null);
@@ -36,9 +37,46 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   useEffect(() => { callStateRef.current = callState; }, [callState]);
   useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
 
+  // ── Ringtone helpers ──
+  const playRingtone = useCallback(() => {
+    try {
+      // Use Web Audio API oscillator as ringtone (no external file needed)
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 440;
+      gain.gain.value = 0.3;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      // Ring pattern: on 1s, off 2s
+      const interval = setInterval(() => {
+        gain.gain.value = gain.gain.value > 0 ? 0 : 0.3;
+      }, 1000);
+      ringtoneRef.current = { ctx, osc, interval };
+      console.log('[CALL] Ringtone started');
+    } catch (e) {
+      console.warn('[CALL] Could not play ringtone:', e.message);
+    }
+  }, []);
+
+  const stopRingtone = useCallback(() => {
+    if (ringtoneRef.current) {
+      try {
+        clearInterval(ringtoneRef.current.interval);
+        ringtoneRef.current.osc.stop();
+        ringtoneRef.current.ctx.close();
+      } catch (e) { /* ok */ }
+      ringtoneRef.current = null;
+      console.log('[CALL] Ringtone stopped');
+    }
+  }, []);
+
   // ── Cleanup ──
   const cleanup = useCallback(() => {
     console.log('[CALL] cleanup called');
+    stopRingtone();
     if (peerRef.current) {
       try { peerRef.current.destroy(); } catch (e) { /* ok */ }
       peerRef.current = null;
@@ -62,7 +100,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     setCallDuration(0);
     setIsMuted(false);
     setIsVideoOff(false);
-  }, []);
+  }, [stopRingtone]);
 
   // ── Get user media ──
   const getMedia = useCallback(async (type) => {
@@ -200,6 +238,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const acceptCall = useCallback(async () => {
     if (!incomingCallData) return;
     console.log('[CALL] Accepting call from', incomingCallData.caller_name);
+    stopRingtone();
 
     try {
       const type = incomingCallData.call_type || 'video';
@@ -277,17 +316,18 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       console.error('[CALL] acceptCall error:', err);
       rejectCall();
     }
-  }, [incomingCallData, currentUserId, getMedia, endCall]);
+  }, [incomingCallData, currentUserId, getMedia, endCall, stopRingtone]);
 
   // ── Reject incoming call ──
   const rejectCall = useCallback(() => {
+    stopRingtone();
     if (incomingCallData) {
       socketService.rejectCall(incomingCallData.caller_id, currentUserId);
     }
     setIncomingCallData(null);
     setCallState(CALL_STATE.IDLE);
     cleanup();
-  }, [incomingCallData, currentUserId, cleanup]);
+  }, [incomingCallData, currentUserId, cleanup, stopRingtone]);
 
   // ── Toggle mute / video ──
   const toggleMute = useCallback(() => {
@@ -319,7 +359,12 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     console.log('[CALL] Registering socket listeners, userId:', currentUserId, 'socket.id:', socket.id);
 
     const handleIncomingCall = (data) => {
-      console.log('[CALL] 📞 incoming_call event:', data.caller_name, data.call_type);
+      console.log('[CALL] 📞 incoming_call event:', data.caller_name, data.call_type, 'state:', callStateRef.current);
+      // If already showing incoming from same caller, ignore duplicate
+      if (callStateRef.current === CALL_STATE.INCOMING) {
+        console.log('[CALL] Already showing incoming call — ignoring duplicate');
+        return;
+      }
       if (callStateRef.current !== CALL_STATE.IDLE) {
         console.log('[CALL] Already in call, auto-rejecting');
         socketService.rejectCall(data.caller_id, currentUserId);
@@ -328,6 +373,8 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       iceCandidateBuffer.current = [];
       setIncomingCallData(data);
       setCallState(CALL_STATE.INCOMING);
+      // Play ringtone
+      playRingtone();
     };
 
     const handleCallAccepted = (data) => {
@@ -416,9 +463,22 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   if (callState === CALL_STATE.INCOMING && incomingCallData) {
     return (
       <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center">
+        {/* Ring animation CSS */}
+        <style>{`
+          @keyframes ring-pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.4); opacity: 0; }
+            100% { transform: scale(1); opacity: 0; }
+          }
+        `}</style>
         <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-3xl p-8 w-80 text-center shadow-2xl border border-gray-700">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4 animate-pulse">
-            {incomingCallData.caller_name?.charAt(0)?.toUpperCase() || '?'}
+          <div className="relative mx-auto mb-4 w-24 h-24 flex items-center justify-center">
+            {/* Pulsing rings */}
+            <div className="absolute inset-0 rounded-full bg-green-500/30" style={{ animation: 'ring-pulse 1.5s ease-out infinite' }} />
+            <div className="absolute inset-0 rounded-full bg-green-500/20" style={{ animation: 'ring-pulse 1.5s ease-out infinite 0.5s' }} />
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold z-10">
+              {incomingCallData.caller_name?.charAt(0)?.toUpperCase() || '?'}
+            </div>
           </div>
           <h3 className="text-xl font-semibold text-white mb-1">{incomingCallData.caller_name}</h3>
           <p className="text-gray-400 mb-8">
