@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, PhoneIncoming } from 'lucide-react';
-import Peer from 'simple-peer';
+import Peer from 'simple-peer/simplepeer.min.js';
 import socketService from '../../services/socket';
 
 const CALL_STATE = {
