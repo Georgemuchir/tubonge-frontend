@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, PhoneIncoming } from 'lucide-react';
+import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, PhoneIncoming, RefreshCw } from 'lucide-react';
 import Peer from 'simple-peer/simplepeer.min.js';
 import socketService from '../../services/socket';
 
@@ -18,6 +18,8 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [error, setError] = useState('');
+  const [connectionQuality, setConnectionQuality] = useState('good'); // 'good' | 'poor' | 'reconnecting'
+  const [facingMode, setFacingMode] = useState('user');
 
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -105,15 +107,94 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   // ── Get user media ──
   const getMedia = useCallback(async (type) => {
     const constraints = {
-      audio: true,
-      video: type === 'video' ? { width: 640, height: 480, facingMode: 'user' } : false
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 48000,
+        channelCount: 1
+      },
+      video: type === 'video' ? {
+        width: { ideal: 1280, min: 640 },
+        height: { ideal: 720, min: 480 },
+        frameRate: { ideal: 30, min: 15 },
+        facingMode: facingMode
+      } : false
     };
     console.log('[CALL] getUserMedia constraints:', constraints);
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     localStreamRef.current = stream;
-    if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = stream;
+      localVideoRef.current.muted = true; // prevent hearing yourself
+    }
     return stream;
+  }, [facingMode]);
+
+  // ── Robust remote stream attach ──
+  const attachRemoteStream = useCallback((remoteStream) => {
+    if (!remoteVideoRef.current) return;
+    remoteVideoRef.current.srcObject = remoteStream;
+    remoteVideoRef.current.volume = 1.0;
+    remoteVideoRef.current.play().catch(() => {
+      // Autoplay blocked — mute and retry
+      remoteVideoRef.current.muted = true;
+      remoteVideoRef.current.play().catch(e => console.error('[CALL] Remote play failed:', e));
+    });
   }, []);
+
+  // ── Monitor ICE connection quality ──
+  const monitorConnection = useCallback((peer) => {
+    try {
+      const pc = peer._pc;
+      if (!pc) return;
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        console.log('[CALL] ICE state:', state);
+        if (state === 'connected' || state === 'completed') setConnectionQuality('good');
+        else if (state === 'disconnected') {
+          setConnectionQuality('reconnecting');
+          // ICE will try to reconnect automatically
+        } else if (state === 'failed') {
+          setConnectionQuality('poor');
+          setError('Connection lost — call quality degraded');
+          setTimeout(() => setError(''), 3000);
+        }
+      };
+    } catch (e) {
+      console.warn('[CALL] Could not monitor ICE connection:', e.message);
+    }
+  }, []);
+
+  // ── Flip camera (mobile) ──
+  const flipCamera = useCallback(async () => {
+    if (!peerRef.current || !localStreamRef.current) return;
+    const newFacing = facingMode === 'user' ? 'environment' : 'user';
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newFacing, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false // keep existing audio track
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+      // Replace track in peer connection
+      if (peerRef.current._pc) {
+        const sender = peerRef.current._pc.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) await sender.replaceTrack(newVideoTrack);
+      }
+      // Replace track in local stream
+      if (oldVideoTrack) {
+        localStreamRef.current.removeTrack(oldVideoTrack);
+        oldVideoTrack.stop();
+      }
+      localStreamRef.current.addTrack(newVideoTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+      setFacingMode(newFacing);
+      console.log('[CALL] Camera flipped to', newFacing);
+    } catch (e) {
+      console.error('[CALL] Flip camera failed:', e.message);
+    }
+  }, [facingMode]);
 
   // ── End active call ──
   const endCall = useCallback(() => {
@@ -181,7 +262,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
       peer.on('stream', (remoteStream) => {
         console.log('[CALL] Got remote stream');
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+        attachRemoteStream(remoteStream);
       });
 
       peer.on('connect', () => {
@@ -191,6 +272,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
           callTimeoutRef.current = null;
         }
         setCallState(CALL_STATE.CONNECTED);
+        setConnectionQuality('good');
         callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
       });
 
@@ -208,6 +290,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       });
 
       peerRef.current = peer;
+      monitorConnection(peer);
 
       // 30s timeout for unanswered calls
       callTimeoutRef.current = setTimeout(() => {
@@ -277,12 +360,13 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
       peer.on('stream', (remoteStream) => {
         console.log('[CALL] Callee got remote stream');
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+        attachRemoteStream(remoteStream);
       });
 
       peer.on('connect', () => {
         console.log('[CALL] Callee peer connected');
         setCallState(CALL_STATE.CONNECTED);
+        setConnectionQuality('good');
         callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
       });
 
@@ -298,6 +382,8 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
           endCall();
         }
       });
+
+      monitorConnection(peer);
 
       // Signal the caller's SDP offer to our peer
       console.log('[CALL] Signaling caller offer to peer');
@@ -525,7 +611,15 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
           </div>
           {callType === 'video' && (
             <div className="absolute top-20 right-4 w-32 h-44 rounded-xl overflow-hidden bg-gray-800 shadow-xl border-2 border-gray-700">
-              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+            </div>
+          )}
+          {/* Connection quality indicator */}
+          {callState === CALL_STATE.CONNECTED && connectionQuality !== 'good' && (
+            <div className={`absolute top-16 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-medium ${
+              connectionQuality === 'reconnecting' ? 'bg-yellow-500/80 text-black' : 'bg-red-500/80 text-white'
+            }`}>
+              {connectionQuality === 'reconnecting' ? 'Reconnecting...' : 'Poor connection'}
             </div>
           )}
           {error && (
@@ -534,17 +628,22 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
             </div>
           )}
         </div>
-        <div className="bg-gray-900/90 backdrop-blur-sm py-6 px-4">
-          <div className="flex justify-center items-center gap-6">
-            <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 text-white hover:bg-gray-600'}`}>
+        <div className="bg-gray-900/90 backdrop-blur-sm py-6 px-4 safe-bottom">
+          <div className="flex justify-center items-center gap-4">
+            <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 text-white hover:bg-gray-600'}`} title={isMuted ? 'Unmute' : 'Mute'}>
               {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
             </button>
             {callType === 'video' && (
-              <button onClick={toggleVideo} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isVideoOff ? 'bg-white text-gray-900' : 'bg-gray-700 text-white hover:bg-gray-600'}`}>
+              <button onClick={toggleVideo} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isVideoOff ? 'bg-white text-gray-900' : 'bg-gray-700 text-white hover:bg-gray-600'}`} title={isVideoOff ? 'Camera on' : 'Camera off'}>
                 {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
               </button>
             )}
-            <button onClick={endCall} className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110">
+            {callType === 'video' && (
+              <button onClick={flipCamera} className="w-14 h-14 rounded-full bg-gray-700 text-white hover:bg-gray-600 flex items-center justify-center transition-all" title="Flip camera">
+                <RefreshCw className="w-6 h-6" />
+              </button>
+            )}
+            <button onClick={endCall} className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110" title="End call">
               <PhoneOff className="w-7 h-7" />
             </button>
           </div>
