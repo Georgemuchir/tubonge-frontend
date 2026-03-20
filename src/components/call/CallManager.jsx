@@ -311,10 +311,15 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
   // ── Socket event listeners (register ONCE per userId) ──
   useEffect(() => {
-    console.log('[CALL] Registering socket listeners, userId:', currentUserId);
+    const socket = socketService.socket;
+    if (!socket) {
+      console.warn('[CALL] Socket not available yet — listeners NOT registered!');
+      return;
+    }
+    console.log('[CALL] Registering socket listeners, userId:', currentUserId, 'socket.id:', socket.id);
 
     const handleIncomingCall = (data) => {
-      console.log('[CALL] incoming_call event:', data.caller_name, data.call_type);
+      console.log('[CALL] 📞 incoming_call event:', data.caller_name, data.call_type);
       if (callStateRef.current !== CALL_STATE.IDLE) {
         console.log('[CALL] Already in call, auto-rejecting');
         socketService.rejectCall(data.caller_id, currentUserId);
@@ -326,7 +331,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     };
 
     const handleCallAccepted = (data) => {
-      console.log('[CALL] call_accepted event, signaling answer to peer');
+      console.log('[CALL] ✅ call_accepted event, signaling answer to peer');
       if (callTimeoutRef.current) {
         clearTimeout(callTimeoutRef.current);
         callTimeoutRef.current = null;
@@ -337,7 +342,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     };
 
     const handleCallRejected = () => {
-      console.log('[CALL] call_rejected event');
+      console.log('[CALL] ❌ call_rejected event');
       if (callTimeoutRef.current) {
         clearTimeout(callTimeoutRef.current);
         callTimeoutRef.current = null;
@@ -349,14 +354,14 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     };
 
     const handleCallEnded = () => {
-      console.log('[CALL] call_ended event');
+      console.log('[CALL] 🔚 call_ended event');
       setCallState(CALL_STATE.IDLE);
       setIncomingCallData(null);
       cleanup();
     };
 
     const handleCallUnavailable = (data) => {
-      console.log('[CALL] call_unavailable:', data.reason);
+      console.log('[CALL] ⚠️ call_unavailable:', data.reason);
       if (callTimeoutRef.current) {
         clearTimeout(callTimeoutRef.current);
         callTimeoutRef.current = null;
@@ -368,7 +373,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     };
 
     const handleIceCandidate = (data) => {
-      console.log('[CALL] ice_candidate received from', data.from_id);
+      console.log('[CALL] 🧊 ice_candidate received from', data.from_id);
       if (peerRef.current) {
         try {
           peerRef.current.signal(data.candidate);
@@ -381,20 +386,21 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       }
     };
 
-    socketService.onIncomingCall(handleIncomingCall);
-    socketService.onCallAccepted(handleCallAccepted);
-    socketService.onCallRejected(handleCallRejected);
-    socketService.onCallEnded(handleCallEnded);
-    socketService.onCallUnavailable(handleCallUnavailable);
-    socketService.onIceCandidate(handleIceCandidate);
+    // Register directly on the socket instance
+    socket.on('incoming_call', handleIncomingCall);
+    socket.on('call_accepted', handleCallAccepted);
+    socket.on('call_rejected', handleCallRejected);
+    socket.on('call_ended', handleCallEnded);
+    socket.on('call_unavailable', handleCallUnavailable);
+    socket.on('ice_candidate', handleIceCandidate);
 
     return () => {
-      socketService.off('incoming_call', handleIncomingCall);
-      socketService.off('call_accepted', handleCallAccepted);
-      socketService.off('call_rejected', handleCallRejected);
-      socketService.off('call_ended', handleCallEnded);
-      socketService.off('call_unavailable', handleCallUnavailable);
-      socketService.off('ice_candidate', handleIceCandidate);
+      socket.off('incoming_call', handleIncomingCall);
+      socket.off('call_accepted', handleCallAccepted);
+      socket.off('call_rejected', handleCallRejected);
+      socket.off('call_ended', handleCallEnded);
+      socket.off('call_unavailable', handleCallUnavailable);
+      socket.off('ice_candidate', handleIceCandidate);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
