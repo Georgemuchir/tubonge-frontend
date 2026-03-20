@@ -25,6 +25,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const localStreamRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
   const callTimerRef = useRef(null);
   const callTimeoutRef = useRef(null);
   const ringtoneRef = useRef(null);
@@ -97,6 +98,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     }
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
     targetIdRef.current = null;
     iceCandidateBuffer.current = [];
     setCallDuration(0);
@@ -133,14 +135,22 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
   // ── Robust remote stream attach ──
   const attachRemoteStream = useCallback((remoteStream) => {
-    if (!remoteVideoRef.current) return;
-    remoteVideoRef.current.srcObject = remoteStream;
-    remoteVideoRef.current.volume = 1.0;
-    remoteVideoRef.current.play().catch(() => {
-      // Autoplay blocked — mute and retry
-      remoteVideoRef.current.muted = true;
-      remoteVideoRef.current.play().catch(e => console.error('[CALL] Remote play failed:', e));
-    });
+    console.log('[CALL] attachRemoteStream, callType:', callTypeRef.current, 'tracks:', remoteStream.getTracks().map(t => t.kind));
+    // Attach to video element (for video calls)
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.volume = 1.0;
+      remoteVideoRef.current.play().catch(() => {
+        remoteVideoRef.current.muted = true;
+        remoteVideoRef.current.play().catch(e => console.error('[CALL] Remote video play failed:', e));
+      });
+    }
+    // Attach to audio element (for audio-only calls)
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = remoteStream;
+      remoteAudioRef.current.volume = 1.0;
+      remoteAudioRef.current.play().catch(e => console.error('[CALL] Remote audio play failed:', e));
+    }
   }, []);
 
   // ── Monitor ICE connection quality ──
@@ -599,7 +609,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
   // ── CALLING / CONNECTED UI ──
   if (callState === CALL_STATE.CALLING || callState === CALL_STATE.CONNECTED) {
-    const remoteName = selectedUserRef.current?.name || incomingCallData?.caller_name || 'Unknown';
+    const remoteName = incomingCallData?.caller_name || selectedUserRef.current?.name || 'Unknown';
     return (
       <div className="fixed inset-0 z-[100] bg-black flex flex-col">
         <div className="flex-1 relative bg-gray-900">
@@ -615,6 +625,8 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
               </div>
             </div>
           )}
+          {/* Hidden audio element — plays remote audio for audio-only calls */}
+          <audio ref={remoteAudioRef} autoPlay playsInline />
           <div className="absolute top-6 left-0 right-0 text-center">
             <p className="text-white text-lg font-medium">
               {callState === CALL_STATE.CALLING ? 'Calling...' : remoteName}

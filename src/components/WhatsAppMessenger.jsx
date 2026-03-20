@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
 import CallManager from './call/CallManager';
+import CallLogs from './call/CallLogs';
 
 const normalizeApiBaseUrl = (url) => {
   const trimmed = (url || '').trim().replace(/\/+$/, '');
@@ -476,6 +477,7 @@ const WhatsAppMessenger = () => {
   const [onlineUsers, setOnlineUsers] = useState({});
   const [typingUsers, setTypingUsers] = useState({});
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [showCallLogs, setShowCallLogs] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
@@ -889,6 +891,17 @@ const WhatsAppMessenger = () => {
           </button>
           
           <button
+            onClick={() => { setShowCallLogs(true); setSelectedUser(null); setShowMobileSidebar(false); }}
+            className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showCallLogs ? 'bg-gray-700/50 text-teal-400' : 'text-gray-400 hover:text-teal-400'}`}
+            title="Calls"
+          >
+            <Phone className="w-6 h-6" />
+            <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Calls
+            </span>
+          </button>
+          
+          <button
             className="p-4 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-blue-400 transition-all touch-target group relative"
             title="Settings"
           >
@@ -914,7 +927,27 @@ const WhatsAppMessenger = () => {
       
       {/* Chat Area */}
       <div className={`flex-1 flex flex-col min-h-0 ${isMobile && selectedUser ? 'mobile-chat' : ''}`}>
-        {!selectedUser ? (
+        {showCallLogs && !selectedUser ? (
+          <CallLogs
+            onBack={() => setShowCallLogs(false)}
+            onCallback={(call) => {
+              // Find or create user object to start a call back
+              const callbackUser = {
+                id: call.other_user_id,
+                _id: call.other_user_id,
+                name: call.other_user_name,
+                avatar: call.other_user_avatar,
+              };
+              setSelectedUser(callbackUser);
+              setShowCallLogs(false);
+              // Small delay to let the chat view mount, then initiate callback
+              setTimeout(() => {
+                callManagerRef.current?.startCall(call.call_type || 'audio');
+              }, 500);
+            }}
+            getAvatarColor={getAvatarColor}
+          />
+        ) : !selectedUser ? (
           <ConversationsView 
             conversations={filteredConversations}
             onSelectUser={handleUserSelect}
