@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -35,20 +35,24 @@ const authReducer = (state, action) => {
 
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  // Prevents onAuthStateChanged from conflicting with active login/register calls
+  const authFlowInProgress = useRef(false);
 
-  // Listen to Firebase auth state — source of truth
+  // Listen to Firebase auth state — handles session restore on page load
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // If login/register is actively running, let it manage state itself
+      if (authFlowInProgress.current) return;
+
       if (firebaseUser) {
         try {
-          // Fetch profile from our backend using the Firebase ID token
           const response = await authAPI.getProfile();
           const user = response.data.user;
           localStorage.setItem('user', JSON.stringify(user));
           dispatch({ type: 'LOGIN', payload: { user } });
           socketService.connect(await firebaseUser.getIdToken());
         } catch {
-          // Firebase session exists but no backend profile — sign out
+          // Backend profile fetch failed — sign out Firebase session too
           await signOut(auth);
           dispatch({ type: 'LOGOUT' });
         }
@@ -73,6 +77,7 @@ export const AuthProvider = ({ children }) => {
   }, [state.isAuthenticated]);
 
   const register = async (userData) => {
+    authFlowInProgress.current = true;
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const { name, username, email, password } = userData;
@@ -93,10 +98,13 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       return { success: false, error: firebaseErrorMessage(error) };
+    } finally {
+      authFlowInProgress.current = false;
     }
   };
 
   const login = async (credentials) => {
+    authFlowInProgress.current = true;
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const { email, password } = credentials;
@@ -116,6 +124,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       return { success: false, error: firebaseErrorMessage(error) };
+    } finally {
+      authFlowInProgress.current = false;
     }
   };
 
@@ -150,14 +160,28 @@ export const useAuth = () => {
 };
 
 function firebaseErrorMessage(error) {
-  switch (error.code) {
-    case 'auth/email-already-in-use': return 'An account with this email already exists.';
-    case 'auth/invalid-email': return 'Invalid email address.';
-    case 'auth/weak-password': return 'Password must be at least 6 characters.';
-    case 'auth/user-not-found':
-    case 'auth/wrong-password':
-    case 'auth/invalid-credential': return 'Incorrect email or password. Please try again or reset your password.';
-    case 'auth/too-many-requests': return 'Too many attempts. Please try again later.';
-    default: return error.message || 'Authentication failed.';
+  // Firebase SDK errors have an error.code
+  if (error.code) {
+    switch (error.code) {
+      case 'auth/email-already-in-use': return 'An account with this email already exists.';
+      case 'auth/invalid-email': return 'Invalid email address.';
+      case 'auth/weak-password': return 'Password must be at least 6 characters.';
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential': return 'Incorrect email or password. Please try again or reset your password.';
+      case 'auth/too-many-requests': return 'Too many attempts. Please try again later.';
+      default: return error.message || 'Authentication failed.';
+    }
   }
+  // HTTP errors from our backend
+  const status = error.response?.status;
+  const backendMessage = error.response?.data?.error;
+  if (status === 404 && backendMessage?.includes('not found')) {
+    return 'Account not set up yet. Please register first.';
+  }
+  if (status === 401) {
+    return 'Authentication failed. Please try again or reset your password.';
+  }
+  if (backendMessage) return backendMessage;
+  return error.message || 'Login failed. Please try again.';
 }
