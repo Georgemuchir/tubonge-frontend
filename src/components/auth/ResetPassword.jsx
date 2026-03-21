@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Check, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { API_BASE_URL } from '../../services/api';
+import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
+import { auth } from '../../firebase';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const oobCode = searchParams.get('oobCode');
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,91 +19,42 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  const parseResponse = async (response) => {
-    const text = await response.text();
-    try {
-      return { json: JSON.parse(text), text };
-    } catch {
-      return { json: null, text };
-    }
-  };
-
-  // Verify token on mount
+  // Verify oobCode on mount
   useEffect(() => {
-    if (!token) {
+    if (!oobCode) {
       setError('Invalid reset link');
       setVerifying(false);
       return;
     }
 
-    const verifyToken = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/auth/verify-reset-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token }),
-        });
-
-        const { json, text } = await parseResponse(response);
-
-        if (response.ok && json?.valid) {
-          setTokenValid(true);
-        } else {
-          setError(json?.error || `Request failed (${response.status}). ${text || ''}`.trim());
-        }
-      } catch (err) {
-        setError(`Network error. ${err?.message || 'Please try again.'}`);
-      } finally {
-        setVerifying(false);
-      }
-    };
-
-    verifyToken();
-  }, [token]);
-
-  const validatePassword = (pass) => {
-    if (pass.length < 6) return 'Password must be at least 6 characters';
-    return null;
-  };
+    verifyPasswordResetCode(auth, oobCode)
+      .then(() => setTokenValid(true))
+      .catch(() => setError('This password reset link is invalid or has expired.'))
+      .finally(() => setVerifying(false));
+  }, [oobCode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-      setError(passwordError);
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
     setLoading(true);
-
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token, password }),
-      });
-
-      const { json, text } = await parseResponse(response);
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => navigate('/login'), 3000);
-      } else {
-        setError(json?.error || `Request failed (${response.status}). ${text || ''}`.trim());
-      }
+      await confirmPasswordReset(auth, oobCode, password);
+      setSuccess(true);
+      setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
-      setError(`Network error. ${err?.message || 'Please try again.'}`);
+      setError(err.code === 'auth/expired-action-code'
+        ? 'This reset link has expired. Please request a new one.'
+        : 'Failed to reset password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -127,9 +79,7 @@ const ResetPassword = () => {
             <X className="w-10 h-10 text-red-400" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-4">Invalid Reset Link</h2>
-          <p className="text-gray-300 mb-6">
-            {error || 'This password reset link is invalid or has expired.'}
-          </p>
+          <p className="text-gray-300 mb-6">{error || 'This password reset link is invalid or has expired.'}</p>
           <button
             onClick={() => navigate('/forgot-password')}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:opacity-90 transition-opacity"
@@ -149,9 +99,7 @@ const ResetPassword = () => {
             <Check className="w-10 h-10 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-4">Password Reset Successful!</h2>
-          <p className="text-gray-300 mb-6">
-            Your password has been updated. Redirecting to login...
-          </p>
+          <p className="text-gray-300 mb-6">Your password has been updated. Redirecting to login...</p>
         </div>
       </div>
     );
@@ -216,7 +164,7 @@ const ResetPassword = () => {
             </button>
           </div>
 
-          <div className="text-xs text-gray-400 space-y-1">
+          <div className="text-xs text-gray-400">
             <p className={password.length >= 6 ? 'text-green-400' : ''}>
               Password must be at least 6 characters
             </p>

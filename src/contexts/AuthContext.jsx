@@ -1,205 +1,163 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+} from 'firebase/auth';
+import { auth } from '../firebase';
 import socketService from '../services/socket';
 import { authAPI } from '../services/api';
 
-// Auth Context
 const AuthContext = createContext();
 
-// Initial state
 const initialState = {
   user: null,
-  token: null,
   isAuthenticated: false,
   loading: true,
 };
 
-// Auth reducer
 const authReducer = (state, action) => {
   switch (action.type) {
     case 'LOGIN':
-      return {
-        ...state,
-        user: action.payload.user,
-        token: action.payload.token,
-        isAuthenticated: true,
-        loading: false,
-      };
+      return { ...state, user: action.payload.user, isAuthenticated: true, loading: false };
     case 'LOGOUT':
-      return {
-        ...state,
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        loading: false,
-      };
+      return { ...state, user: null, isAuthenticated: false, loading: false };
     case 'SET_LOADING':
-      return {
-        ...state,
-        loading: action.payload,
-      };
+      return { ...state, loading: action.payload };
     case 'UPDATE_USER':
-      return {
-        ...state,
-        user: { ...state.user, ...action.payload },
-      };
+      return { ...state, user: { ...state.user, ...action.payload } };
     default:
       return state;
   }
 };
 
-// Auth Provider Component
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Check for existing auth on mount
+  // Listen to Firebase auth state — source of truth
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
-    if (token && user) {
-      try {
-        const parsedUser = JSON.parse(user);
-        dispatch({
-          type: 'LOGIN',
-          payload: { user: parsedUser, token }
-        });
-        
-        // Connect to socket
-        socketService.connect(token);
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
-    }
-    
-    dispatch({ type: 'SET_LOADING', payload: false });
-  }, []);
-
-  // Subscribe to force logout events
-  useEffect(() => {
-    if (state.isAuthenticated && socketService.socket) {
-      const handler = (payload) => {
-        console.warn('Received force_logout event:', payload);
-        // Perform local logout without calling API (token invalidated globally)
-        localStorage.removeItem('token');
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Fetch profile from our backend using the Firebase ID token
+          const response = await authAPI.getProfile();
+          const user = response.data.user;
+          localStorage.setItem('user', JSON.stringify(user));
+          dispatch({ type: 'LOGIN', payload: { user } });
+          socketService.connect(await firebaseUser.getIdToken());
+        } catch {
+          // Firebase session exists but no backend profile — sign out
+          await signOut(auth);
+          dispatch({ type: 'LOGOUT' });
+        }
+      } else {
         localStorage.removeItem('user');
         socketService.disconnect();
         dispatch({ type: 'LOGOUT' });
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  // Subscribe to force logout socket events
+  useEffect(() => {
+    if (state.isAuthenticated && socketService.socket) {
+      const handler = () => {
+        signOut(auth);
       };
       socketService.onForceLogout(handler);
       return () => socketService.off('force_logout', handler);
     }
   }, [state.isAuthenticated]);
 
-  // Login function
-  const login = async (credentials) => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      
-      const response = await authAPI.login(credentials);
-      const { user, token } = response.data;
-      
-      // Store in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Update state
-      dispatch({
-        type: 'LOGIN',
-        payload: { user, token }
-      });
-      
-      // Connect to socket
-      socketService.connect(token);
-      
-      return { success: true };
-    } catch (error) {
-      dispatch({ type: 'SET_LOADING', payload: false });
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Login failed'
-      };
-    }
-  };
-
-  // Register function
   const register = async (userData) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      
-      const response = await authAPI.register(userData);
-      const { user, token } = response.data;
-      
-      // Store in localStorage
-      localStorage.setItem('token', token);
+      const { name, username, email, password } = userData;
+
+      // 1. Create Firebase Auth user
+      const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(firebaseUser, { displayName: name });
+
+      // 2. Create backend profile (token sent automatically by api.js interceptor)
+      const response = await authAPI.register({ name, username, email });
+      const user = response.data.user;
+
       localStorage.setItem('user', JSON.stringify(user));
-      
-      // Update state
-      dispatch({
-        type: 'LOGIN',
-        payload: { user, token }
-      });
-      
-      // Connect to socket
-      socketService.connect(token);
-      
+      dispatch({ type: 'LOGIN', payload: { user } });
+      socketService.connect(await firebaseUser.getIdToken());
+
       return { success: true };
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Registration failed'
-      };
+      return { success: false, error: firebaseErrorMessage(error) };
     }
   };
 
-  // Logout function
+  const login = async (credentials) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const { email, password } = credentials;
+
+      // 1. Sign in with Firebase
+      const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
+
+      // 2. Fetch backend profile (token sent automatically by api.js interceptor)
+      const response = await authAPI.login({});
+      const user = response.data.user;
+
+      localStorage.setItem('user', JSON.stringify(user));
+      dispatch({ type: 'LOGIN', payload: { user } });
+      socketService.connect(await firebaseUser.getIdToken());
+
+      return { success: true };
+    } catch (error) {
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return { success: false, error: firebaseErrorMessage(error) };
+    }
+  };
+
   const logout = async () => {
     try {
       await authAPI.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
+      // ignore
     } finally {
-      // Clear localStorage
-      localStorage.removeItem('token');
+      await signOut(auth);
       localStorage.removeItem('user');
-      
-      // Disconnect socket
       socketService.disconnect();
-      
-      // Update state
       dispatch({ type: 'LOGOUT' });
     }
   };
 
-  // Update user function
   const updateUser = (userData) => {
     const updatedUser = { ...state.user, ...userData };
     localStorage.setItem('user', JSON.stringify(updatedUser));
     dispatch({ type: 'UPDATE_USER', payload: userData });
   };
 
-  const value = {
-    ...state,
-    login,
-    register,
-    logout,
-    updateUser,
-  };
+  const value = { ...state, login, register, logout, updateUser };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
+
+function firebaseErrorMessage(error) {
+  switch (error.code) {
+    case 'auth/email-already-in-use': return 'An account with this email already exists.';
+    case 'auth/invalid-email': return 'Invalid email address.';
+    case 'auth/weak-password': return 'Password must be at least 6 characters.';
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential': return 'Incorrect email or password. Please try again or reset your password.';
+    case 'auth/too-many-requests': return 'Too many attempts. Please try again later.';
+    default: return error.message || 'Authentication failed.';
+  }
+}

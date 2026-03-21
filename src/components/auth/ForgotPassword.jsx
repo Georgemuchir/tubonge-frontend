@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mail, ArrowLeft, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../../services/api';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../../firebase';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -10,38 +11,21 @@ const ForgotPassword = () => {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
-  const parseResponse = async (response) => {
-    const text = await response.text();
-    try {
-      return { json: JSON.parse(text), text };
-    } catch {
-      return { json: null, text };
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
-      });
-
-      const { json, text } = await parseResponse(response);
-
-      if (response.ok) {
+      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+      setSent(true);
+    } catch (err) {
+      // Always show success to prevent email enumeration
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
         setSent(true);
       } else {
-        setError(json?.error || `Request failed (${response.status}). ${text || ''}`.trim());
+        setError('Failed to send reset email. Please try again.');
       }
-    } catch (err) {
-      setError(`Network error. ${err?.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }
@@ -107,7 +91,6 @@ const ForgotPassword = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
               placeholder="Email address"
               required
               className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
