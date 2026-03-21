@@ -2,9 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { auth } from '../firebase';
 import socketService from '../services/socket';
 import CallManager from './call/CallManager';
 import CallLogs from './call/CallLogs';
+
+const getAuthToken = async () => {
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) return null;
+  return firebaseUser.getIdToken();
+};
 
 const normalizeApiBaseUrl = (url) => {
   const trimmed = (url || '').trim().replace(/\/+$/, '');
@@ -231,7 +238,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${await getAuthToken()}`,
         },
       });
       
@@ -503,7 +510,7 @@ const WhatsAppMessenger = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/messages/inbox`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${await getAuthToken()}`,
         },
       });
 
@@ -644,7 +651,7 @@ const WhatsAppMessenger = () => {
       await fetch(`${API_BASE_URL}/messages/mark-read/${userId}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${await getAuthToken()}`,
         },
       });
       fetchInbox();
@@ -654,7 +661,7 @@ const WhatsAppMessenger = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/messages/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${await getAuthToken()}`,
         },
       });
       if (response.ok) {
@@ -700,7 +707,7 @@ const WhatsAppMessenger = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${await getAuthToken()}`,
         },
         body: JSON.stringify({
           recipient_id: selectedUser.id || selectedUser._id,
@@ -730,7 +737,7 @@ const WhatsAppMessenger = () => {
     const response = await fetch(`${API_BASE_URL}/messages/upload-image`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${await getAuthToken()}`,
       },
       body: formData,
     });
@@ -756,7 +763,7 @@ const WhatsAppMessenger = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${await getAuthToken()}`,
         },
         body: JSON.stringify({
           recipient_id: selectedUser.id || selectedUser._id,
@@ -790,7 +797,7 @@ const WhatsAppMessenger = () => {
       const response = await fetch(`${API_BASE_URL}/users/avatar`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${await getAuthToken()}`,
         },
         body: formData,
       });
