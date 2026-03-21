@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, ArrowLeft, PhoneCall } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { auth } from '../../firebase';
 
 const normalizeApiBaseUrl = (url) => {
   const trimmed = (url || '').trim().replace(/\/+$/, '');
@@ -11,7 +11,6 @@ const normalizeApiBaseUrl = (url) => {
 const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
 
 const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
-  const { token } = useAuth();
   const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all'); // 'all' | 'missed'
@@ -19,6 +18,7 @@ const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
+      const token = await auth.currentUser?.getIdToken();
       const res = await fetch(`${API_BASE_URL}/calls/logs`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -31,7 +31,7 @@ const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchLogs();

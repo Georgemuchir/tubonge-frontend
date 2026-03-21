@@ -304,7 +304,7 @@ export const ChatProvider = ({ children }) => {
   };
 
   // Send message
-  const sendMessage = async (content, messageType = 'text') => {
+  const sendMessage = async (content, messageType = 'text', replyToId = null, replyToContent = null, replyToSenderName = null) => {
     console.log('sendMessage called with:', { content, activeConversation: state.activeConversation, user });
     
     if (!state.activeConversation) {
@@ -342,7 +342,7 @@ export const ChatProvider = ({ children }) => {
       const receiverUsername = state.activeConversation.participant?.username;
       const conversationId = state.activeConversation._id || state.activeConversation.id;
       
-      const response = await messagesAPI.sendMessage(receiverUsername, content.trim(), conversationId);
+      const response = await messagesAPI.sendMessage(receiverUsername, content.trim(), conversationId, replyToId, replyToContent, replyToSenderName);
       
       if (response.status === 403 && response.data?.code === 'REQUEST_NOT_ACCEPTED') {
         console.error('❌ Cannot send message: Friend request not accepted');
