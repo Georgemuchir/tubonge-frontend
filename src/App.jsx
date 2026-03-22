@@ -7,6 +7,18 @@ import ResetPassword from './components/auth/ResetPassword';
 import WhatsAppMessenger from './components/WhatsAppMessenger';
 import './App.css';
 
+const PasswordResetBanner = () => {
+  const { user } = useAuth();
+  if (!user?.password_reset_required) return null;
+  return (
+    <div className="w-full bg-amber-500 text-white text-sm text-center px-4 py-2 flex items-center justify-center gap-2">
+      <span>⚠️ Due to maintenance and security, please reset your password.</span>
+      <a href="/forgot-password" className="underline font-semibold hover:text-amber-100">Reset now</a>
+      <span className="text-amber-200">— Sorry for the inconvenience.</span>
+    </div>
+  );
+};
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -22,7 +34,13 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  return (
+    <>
+      <PasswordResetBanner />
+      {children}
+    </>
+  );
 };
 
 // Public Route Component (redirect to chat if authenticated)
