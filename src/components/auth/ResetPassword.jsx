@@ -3,6 +3,7 @@ import { Lock, Eye, EyeOff, Check, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
 import { auth } from '../../firebase';
+import { authAPI } from '../../services/api';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ const ResetPassword = () => {
     setLoading(true);
     try {
       await confirmPasswordReset(auth, oobCode, password);
+      try { await authAPI.acknowledgeReset(); } catch { /* best effort */ }
       setSuccess(true);
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {

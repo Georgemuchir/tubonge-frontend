@@ -1,17 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, ArrowLeft, PhoneCall } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-
-const normalizeApiBaseUrl = (url) => {
-  const trimmed = (url || '').trim().replace(/\/+$/, '');
-  if (!trimmed) return 'http://localhost:5000/api';
-  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
-};
-
-const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
+import api from '../../services/api';
 
 const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
-  const { token } = useAuth();
   const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all'); // 'all' | 'missed'
@@ -19,19 +10,14 @@ const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/calls/logs`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCalls(data.calls || []);
-      }
+      const res = await api.get('/calls/logs');
+      setCalls(res.data.calls || []);
     } catch (e) {
       console.error('Failed to fetch call logs:', e);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchLogs();

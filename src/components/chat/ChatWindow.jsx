@@ -2,18 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { messagesAPI } from '../../services/api';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic, Square, X, Reply } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import { AlertTriangle } from 'lucide-react';
 
 const ChatWindow = () => {
   const imageInputRef = useRef(null);
-  const { 
-    activeConversation, 
-    messages, 
-    messagesLoading, 
-    sendMessage, 
+  const {
+    activeConversation,
+    messages,
+    messagesLoading,
+    sendMessage,
     sendTyping,
     typingUsers,
     setActiveConversation,
@@ -28,6 +28,18 @@ const ChatWindow = () => {
   const [relationshipStatus, setRelationshipStatus] = useState('NONE');
   const [statusLoading, setStatusLoading] = useState(false);
 
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [uploadingVoice, setUploadingVoice] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+
+  // Reply state
+  const [replyToMessage, setReplyToMessage] = useState(null);
+  const inputRef = useRef(null);
+
   // Handle back navigation
   const handleBack = () => {
     setActiveConversation(null);
@@ -38,17 +50,22 @@ const ChatWindow = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Cleanup recording timer on unmount
+  useEffect(() => {
+    return () => {
+      clearInterval(recordingTimerRef.current);
+    };
+  }, []);
+
   // Handle typing indicator
   useEffect(() => {
     if (isTyping) {
       sendTyping(true);
-      
-      // Clear previous timeout
+
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      
-      // Set new timeout to stop typing
+
       typingTimeoutRef.current = setTimeout(() => {
         setIsTyping(false);
         sendTyping(false);
@@ -68,13 +85,19 @@ const ChatWindow = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (messageText.trim()) {
-      sendMessage(messageText);
+      sendMessage(
+        messageText,
+        'text',
+        replyToMessage?.id || null,
+        replyToMessage?.content || null,
+        replyToMessage?.senderName || null
+      );
       setMessageText('');
       setIsTyping(false);
+      setReplyToMessage(null);
     }
   };
 
@@ -86,8 +109,8 @@ const ChatWindow = () => {
     try {
       const res = await messagesAPI.uploadImage(file);
       if (res.data && res.data.url) {
-        // Send image message (sendMessage can be extended to support type)
-        sendMessage(res.data.url, 'image');
+        sendMessage(res.data.url, 'image', replyToMessage?.id || null, replyToMessage?.content || null, replyToMessage?.senderName || null);
+        setReplyToMessage(null);
       }
     } catch (err) {
       alert('Failed to upload image.');
@@ -97,9 +120,85 @@ const ChatWindow = () => {
     }
   };
 
+  // Voice recording
+  const startRecording = async () => {
+    if (relationshipStatus !== 'ACCEPTED') return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+        ? 'audio/ogg;codecs=opus'
+        : 'audio/webm';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        await uploadVoiceNote(blob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
+    } catch {
+      alert('Microphone access denied or not available.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(recordingTimerRef.current);
+      setRecordingSeconds(0);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      // Override onstop so it doesn't upload
+      mediaRecorderRef.current.onstop = () => {};
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(recordingTimerRef.current);
+      setRecordingSeconds(0);
+    }
+  };
+
+  const uploadVoiceNote = async (blob) => {
+    setUploadingVoice(true);
+    try {
+      const res = await messagesAPI.uploadVoice(blob);
+      if (res.data && res.data.url) {
+        sendMessage(res.data.url, 'voice', replyToMessage?.id || null, replyToMessage?.content || null, replyToMessage?.senderName || null);
+        setReplyToMessage(null);
+      }
+    } catch {
+      alert('Failed to send voice note.');
+    } finally {
+      setUploadingVoice(false);
+    }
+  };
+
+  const fmtRecording = (sec) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
   const handleInputChange = (e) => {
     setMessageText(e.target.value);
-    
+
     if (e.target.value.trim() && !isTyping) {
       setIsTyping(true);
     } else if (!e.target.value.trim() && isTyping) {
@@ -107,12 +206,19 @@ const ChatWindow = () => {
     }
   };
 
+  const handleReply = (message) => {
+    // Determine sender display name
+    const senderName = message.sender_id === (user?._id || user?.id)
+      ? 'You'
+      : getOtherParticipant()?.name || 'Unknown';
+    setReplyToMessage({ ...message, senderName });
+    inputRef.current?.focus();
+  };
+
   const getOtherParticipant = () => {
-    // Handle new persistent format with otherParticipant field
     if (activeConversation?.otherParticipant) {
       return activeConversation.otherParticipant;
     }
-    // Fallback to old format
     return activeConversation?.participants?.find(p => p.id !== user?.id) || {};
   };
 
@@ -142,8 +248,10 @@ const ChatWindow = () => {
     return null;
   }
 
+  const canChat = relationshipStatus === 'ACCEPTED';
+
   return (
-    <div 
+    <div
       className="nexus-chat-frame"
       style={{
         '--bg': '#0a0f1a',
@@ -165,12 +273,12 @@ const ChatWindow = () => {
         >
           <ArrowLeft className="size-5 text-white/90" />
         </button>
-        
+
         <div className="nexus-user-info-modern">
           <div className="nexus-avatar-modern">
             {otherParticipant.avatar ? (
-              <img 
-                src={otherParticipant.avatar} 
+              <img
+                src={otherParticipant.avatar}
                 alt={otherParticipant.name}
                 className="w-full h-full rounded-full object-cover"
               />
@@ -189,7 +297,7 @@ const ChatWindow = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="nexus-actions-modern">
           <button className="nexus-action-modern-btn" aria-label="Audio call">
             <Phone className="size-5"/>
@@ -226,14 +334,15 @@ const ChatWindow = () => {
                     message={message}
                     isOwnMessage={message.sender_id === user?.id}
                     showAvatar={
-                      index === 0 || 
+                      index === 0 ||
                       messages[index - 1].sender_id !== message.sender_id
                     }
                     otherParticipant={otherParticipant}
+                    onReply={canChat ? handleReply : null}
                   />
                 ))
               )}
-              
+
               {/* Typing Indicator */}
               {isOtherUserTyping && (
                 <TypingIndicator user={otherParticipant} />
@@ -244,76 +353,120 @@ const ChatWindow = () => {
         <div ref={messagesEndRef} />
       </main>
 
-      {/* Modern Input bar */}
-        {statusLoading ? (
-          <div className="flex items-center justify-center py-6 text-gray-400">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
-            Checking permission…
-          </div>
-        ) : (
-          <>
-            {relationshipStatus !== 'ACCEPTED' && (
-              <div className="flex flex-col items-center justify-center py-2 text-yellow-400">
-                <AlertTriangle className="mb-2" size={24} />
-                <div className="font-semibold text-sm">You can't send messages yet</div>
-                {relationshipStatus === 'OUTGOING_PENDING' && (
-                  <div className="text-xs mt-1">Friend request sent. Waiting for acceptance.</div>
-                )}
-                {relationshipStatus === 'INCOMING_PENDING' && (
-                  <div className="text-xs mt-1">You have a friend request from this user. <b>Accept it in your inbox to start chatting.</b></div>
-                )}
-                {relationshipStatus === 'NONE' && (
-                  <div className="text-xs mt-1">Send a friend request to start chatting.</div>
-                )}
-                {relationshipStatus === 'BLOCKED' && (
-                  <div className="text-xs mt-1">You have blocked this user.</div>
-                )}
-              </div>
-            )}
-            <form
-              className="nexus-input-modern"
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendMessage(e);
-              }}
-            >
-              <div className="nexus-input-container-modern">
-                <button
-                  type="button"
-                  className="nexus-attachment-btn cursor-pointer hover:bg-blue-700 focus:bg-blue-800 focus:outline-none"
-                  aria-label="Attach image"
-                  onClick={() => {
-                    console.log('Image upload button clicked', relationshipStatus);
-                    if (relationshipStatus !== 'ACCEPTED') return;
-                    if (imageInputRef.current) imageInputRef.current.click();
-                  }}
-                  disabled={uploadingImage || relationshipStatus !== 'ACCEPTED'}
-                  tabIndex={0}
-                  style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 8 }}
-                  title={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to send images' : 'Attach image'}
-                >
-                  <ImageIcon className="size-5 text-white/80" />
-                </button>
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={e => {
-                    console.log('File input onChange', e.target.files);
-                    handleImageChange(e);
-                  }}
-                  disabled={uploadingImage || relationshipStatus !== 'ACCEPTED'}
-                />
-                {uploadingImage && (
-                  <span className="text-xs text-gray-400 ml-2">Uploading...</span>
-                )}
+      {/* Input area */}
+      {statusLoading ? (
+        <div className="flex items-center justify-center py-6 text-gray-400">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
+          Checking permission…
+        </div>
+      ) : (
+        <>
+          {!canChat && (
+            <div className="flex flex-col items-center justify-center py-2 text-yellow-400">
+              <AlertTriangle className="mb-2" size={24} />
+              <div className="font-semibold text-sm">You can't send messages yet</div>
+              {relationshipStatus === 'OUTGOING_PENDING' && (
+                <div className="text-xs mt-1">Friend request sent. Waiting for acceptance.</div>
+              )}
+              {relationshipStatus === 'INCOMING_PENDING' && (
+                <div className="text-xs mt-1">You have a friend request from this user. <b>Accept it in your inbox to start chatting.</b></div>
+              )}
+              {relationshipStatus === 'NONE' && (
+                <div className="text-xs mt-1">Send a friend request to start chatting.</div>
+              )}
+              {relationshipStatus === 'BLOCKED' && (
+                <div className="text-xs mt-1">You have blocked this user.</div>
+              )}
+            </div>
+          )}
 
+          {/* Reply preview */}
+          {replyToMessage && canChat && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 16px',
+              background: 'rgba(16,185,129,0.08)',
+              borderLeft: '3px solid #10b981',
+              margin: '0 0 0 0',
+            }}>
+              <Reply className="size-4 text-emerald-400 flex-shrink-0" />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 2 }}>
+                  Replying to {replyToMessage.senderName}
+                </div>
+                <div style={{ fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {replyToMessage.message_type === 'voice' ? '🎤 Voice note' :
+                   replyToMessage.message_type === 'image' ? '🖼 Image' :
+                   replyToMessage.content}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyToMessage(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}
+                aria-label="Cancel reply"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          )}
+
+          <form
+            className="nexus-input-modern"
+            onSubmit={handleSendMessage}
+          >
+            <div className="nexus-input-container-modern">
+              {/* Image upload button */}
+              <button
+                type="button"
+                className="nexus-attachment-btn cursor-pointer hover:bg-blue-700 focus:bg-blue-800 focus:outline-none"
+                aria-label="Attach image"
+                onClick={() => {
+                  if (!canChat) return;
+                  if (imageInputRef.current) imageInputRef.current.click();
+                }}
+                disabled={uploadingImage || uploadingVoice || isRecording || !canChat}
+                tabIndex={0}
+                style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 8 }}
+                title={!canChat ? 'You must be friends to send images' : 'Attach image'}
+              >
+                <ImageIcon className="size-5 text-white/80" />
+              </button>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleImageChange}
+                disabled={uploadingImage || !canChat}
+              />
+              {(uploadingImage || uploadingVoice) && (
+                <span className="text-xs text-gray-400 ml-2">Uploading...</span>
+              )}
+
+              {/* Recording indicator or text input */}
+              {isRecording ? (
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  color: '#f87171',
+                  fontSize: 14,
+                  fontWeight: 500,
+                }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+                  Recording {fmtRecording(recordingSeconds)}
+                </div>
+              ) : (
                 <textarea
+                  ref={inputRef}
                   rows={1}
                   value={messageText}
                   onChange={handleInputChange}
-                  placeholder={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to chat' : 'Type a message…'}
+                  placeholder={!canChat ? 'You must be friends to chat' : replyToMessage ? 'Write a reply…' : 'Type a message…'}
                   className="nexus-textarea-modern"
                   onInput={(e) => {
                     const ta = e.currentTarget;
@@ -326,34 +479,64 @@ const ChatWindow = () => {
                       handleSendMessage(e);
                     }
                   }}
-                  disabled={relationshipStatus !== 'ACCEPTED'}
-                  style={relationshipStatus !== 'ACCEPTED' ? { background: '#222', color: '#aaa', cursor: 'not-allowed' } : {}}
-                  title={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to chat' : ''}
+                  disabled={!canChat}
+                  style={!canChat ? { background: '#222', color: '#aaa', cursor: 'not-allowed' } : {}}
+                  title={!canChat ? 'You must be friends to chat' : ''}
                 />
+              )}
 
-                <button 
-                  type="button" 
-                  className="nexus-voice-btn" 
-                  aria-label="Voice message"
-                  disabled={relationshipStatus !== 'ACCEPTED'}
-                  title={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to send voice messages' : ''}
+              {/* Voice button: cancel if recording, start/stop otherwise */}
+              {isRecording ? (
+                <>
+                  <button
+                    type="button"
+                    className="nexus-voice-btn"
+                    aria-label="Cancel recording"
+                    onClick={cancelRecording}
+                    title="Cancel recording"
+                    style={{ color: '#9ca3af' }}
+                  >
+                    <X className="size-5" />
+                  </button>
+                  <button
+                    type="button"
+                    className="nexus-voice-btn"
+                    aria-label="Stop and send voice note"
+                    onClick={stopRecording}
+                    title="Send voice note"
+                    style={{ color: '#10b981' }}
+                  >
+                    <Square className="size-5" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="nexus-voice-btn"
+                  aria-label="Record voice message"
+                  onClick={startRecording}
+                  disabled={!canChat || uploadingVoice || uploadingImage}
+                  title={!canChat ? 'You must be friends to send voice messages' : 'Hold to record voice note'}
                 >
                   <Mic className="size-5 text-white/80" />
                 </button>
+              )}
 
+              {!isRecording && (
                 <button
                   type="submit"
-                  disabled={!messageText.trim() || relationshipStatus !== 'ACCEPTED'}
+                  disabled={!messageText.trim() || !canChat}
                   className="nexus-send-modern-btn"
-                  title={relationshipStatus !== 'ACCEPTED' ? 'You must be friends to send messages' : ''}
+                  title={!canChat ? 'You must be friends to send messages' : ''}
                 >
                   <Send className="size-4" />
                   Send
                 </button>
-              </div>
-            </form>
-          </>
-        )}
+              )}
+            </div>
+          </form>
+        </>
+      )}
     </div>
   );
 };

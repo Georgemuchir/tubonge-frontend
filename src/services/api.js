@@ -46,6 +46,7 @@ export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   logout: () => api.post('/auth/logout'),
   getProfile: () => api.get('/auth/profile'),
+  acknowledgeReset: () => api.post('/auth/acknowledge-reset'),
 };
 
 // Users API
@@ -87,24 +88,39 @@ export const messagesAPI = {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     },
+
+    // Upload voice note for chat
+    uploadVoice: (blob) => {
+      const formData = new FormData();
+      formData.append('voice', blob, 'voice.webm');
+      return api.post('/messages/upload-voice', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+
   // Get all conversations (inbox)
   getConversations: () => api.get('/messages/inbox'),
-  
+
   // Get messages for a conversation
   getMessages: (conversationId, page = 1, limit = 50) =>
     api.get(`/messages/${conversationId}?page=${page}&limit=${limit}`),
-  
+
   // Send message (STRICT: requires friendship)
-  sendMessage: (receiverUsername, text, conversationId = null) => {
+  sendMessage: (receiverUsername, text, conversationId = null, replyToId = null, replyToContent = null, replyToSenderName = null) => {
     const payload = { text };
     if (conversationId) {
       payload.conversationId = conversationId;
     } else {
       payload.receiverUsername = receiverUsername;
     }
+    if (replyToId) {
+      payload.reply_to_id = replyToId;
+      payload.reply_to_content = replyToContent || '';
+      payload.reply_to_sender_name = replyToSenderName || '';
+    }
     return api.post('/messages/send', payload);
   },
-  
+
   // Mark messages as read
   markAsRead: (conversationId) =>
     api.post(`/messages/${conversationId}/mark-read`),
