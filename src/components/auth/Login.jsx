@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, Mail, Lock, ArrowRight, Sparkles, AlertTriangle } from 'lucide-react';
+import { MessageCircle, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Login = () => {
@@ -34,10 +34,7 @@ const Login = () => {
       // Map backend error to user-friendly message
       let message = result.error || 'Login failed. Please try again.';
       let hint = false;
-      if (message.toLowerCase().includes('invalid credentials')) {
-        message = 'Incorrect email or password.';
-        hint = true;
-      } else if (message.toLowerCase().includes('incorrect email or password')) {
+      if (message.toLowerCase().includes('invalid credentials') || message.toLowerCase().includes('incorrect email or password')) {
         message = 'Incorrect email or password.';
         hint = true;
       } else if (message.toLowerCase().includes('email and password are required')) {
@@ -94,21 +91,16 @@ const Login = () => {
           {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl backdrop-blur-sm">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-300 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-red-200">
-                  <p className="font-medium">{error}</p>
-                  {showResetHint && (
-                    <p className="mt-1">
-                      If you had an account before, please{' '}
-                      <Link to="/forgot-password" className="underline font-semibold text-white hover:text-amber-300 transition-colors">
-                        reset your password
-                      </Link>
-                      {' '}to log in.
-                    </p>
-                  )}
-                </div>
-              </div>
+              <p className="text-red-200 text-sm text-center font-medium">{error}</p>
+              {showResetHint && (
+                <p className="text-red-200 text-sm text-center mt-1">
+                  If you had an account before, please{' '}
+                  <Link to="/forgot-password" className="underline font-semibold text-white hover:text-amber-300 transition-colors">
+                    reset your password
+                  </Link>
+                  {' '}to log in.
+                </p>
+              )}
             </div>
           )}
 
