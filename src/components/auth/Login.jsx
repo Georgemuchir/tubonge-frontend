@@ -11,6 +11,7 @@ const Login = () => {
   });
   const [showUsername, setShowUsername] = useState(false);
   const [error, setError] = useState('');
+  const [showResetHint, setShowResetHint] = useState(false);
   const { login, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -20,6 +21,7 @@ const Login = () => {
       [e.target.name]: e.target.value
     });
     setError('');
+    setShowResetHint(false);
   };
 
   const handleSubmit = async (e) => {
@@ -31,8 +33,10 @@ const Login = () => {
     } else {
       // Map backend error to user-friendly message
       let message = result.error || 'Login failed. Please try again.';
-      if (message.toLowerCase().includes('invalid credentials')) {
-        message = 'Incorrect email or password. Please try again or reset your password.';
+      let hint = false;
+      if (message.toLowerCase().includes('invalid credentials') || message.toLowerCase().includes('incorrect email or password')) {
+        message = 'Incorrect email or password.';
+        hint = true;
       } else if (message.toLowerCase().includes('email and password are required')) {
         message = 'Please enter both your email and password.';
       } else if (message.toLowerCase().includes('user not found')) {
@@ -41,6 +45,7 @@ const Login = () => {
         message = 'Login with Google failed. Please try again.';
       }
       setError(message);
+      setShowResetHint(hint);
       if (result.error && result.error.toLowerCase().includes('username')) {
         setShowUsername(true);
         setFormData({ ...formData, username: '' });
@@ -87,6 +92,15 @@ const Login = () => {
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl backdrop-blur-sm">
               <p className="text-red-200 text-sm text-center font-medium">{error}</p>
+              {showResetHint && (
+                <p className="text-red-200 text-sm text-center mt-1">
+                  If you had an account before, please{' '}
+                  <Link to="/forgot-password" className="underline font-semibold text-white hover:text-amber-300 transition-colors">
+                    reset your password
+                  </Link>
+                  {' '}to log in.
+                </p>
+              )}
             </div>
           )}
 
