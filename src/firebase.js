@@ -3,14 +3,13 @@ import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAyMsi5GNr_xVWlp6OmK90_NrR_LSUdFOE",
-  authDomain: "pinglo-b9fa3.firebaseapp.com",
-  databaseURL: "https://pinglo-b9fa3-default-rtdb.firebaseio.com",
-  projectId: "pinglo-b9fa3",
-  storageBucket: "pinglo-b9fa3.firebasestorage.app",
-  messagingSenderId: "72066337696",
-  appId: "1:72066337696:web:90c63e4a69f54debe8f2c5",
-  measurementId: "G-E3LP9L50SX"
+  apiKey: "AIzaSyDNbCS6-aB9M80VDlOHSctni4QczCUIK-Y",
+  authDomain: "pinglo-staging.firebaseapp.com",
+  projectId: "pinglo-staging",
+  storageBucket: "pinglo-staging.firebasestorage.app",
+  messagingSenderId: "410654652593",
+  appId: "1:410654652593:web:3af8961cbaef4db5324a90",
+  measurementId: "G-FS4EE059V3"
 };
 
 const app = initializeApp(firebaseConfig);
