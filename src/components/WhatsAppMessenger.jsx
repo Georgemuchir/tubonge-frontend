@@ -166,9 +166,10 @@ const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
     const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500'];
     return colors[(name?.charCodeAt(0) || 0) % colors.length];
   };
-  const filtered = inbox.filter(c =>
-    !query || c.name?.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = inbox.filter(c => {
+    const name = c.sender_name || c.name || '';
+    return !query || name.toLowerCase().includes(query.toLowerCase());
+  });
   const preview = msg.message_type === 'image' ? '📷 Photo'
     : msg.message_type === 'voice' ? '🎤 Voice note'
     : msg.content;
@@ -191,15 +192,17 @@ const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
         <div className="space-y-1 max-h-80 overflow-y-auto scrollbar-thin">
           {filtered.length === 0 ? (
             <p className="text-center text-gray-400 py-6 text-sm">No contacts found</p>
-          ) : filtered.map(contact => (
+          ) : filtered.map(contact => {
+            const name = contact.sender_name || contact.name || 'Unknown';
+            return (
             <div key={contact.sender_id || contact.id} onClick={() => onForward(contact)}
               className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer">
-              <div className={`w-11 h-11 rounded-full ${getAvatarColor(contact.name)} flex items-center justify-center text-white font-semibold text-base overflow-hidden flex-shrink-0`}>
-                {contact.avatar ? <img src={resolveMediaUrl(contact.avatar)} alt={contact.name} className="w-full h-full object-cover" /> : contact.name?.charAt(0).toUpperCase()}
+              <div className={`w-11 h-11 rounded-full ${getAvatarColor(name)} flex items-center justify-center text-white font-semibold text-base overflow-hidden flex-shrink-0`}>
+                {contact.avatar ? <img src={resolveMediaUrl(contact.avatar)} alt={name} className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
               </div>
-              <p className="text-white font-medium">{contact.name}</p>
+              <p className="text-white font-medium">{name}</p>
             </div>
-          ))}
+          )})}
         </div>
       </div>
     </div>
