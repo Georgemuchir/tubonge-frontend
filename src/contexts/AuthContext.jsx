@@ -164,24 +164,34 @@ function firebaseErrorMessage(error) {
   if (error.code) {
     switch (error.code) {
       case 'auth/email-already-in-use': return 'An account with this email already exists.';
-      case 'auth/invalid-email': return 'Invalid email address.';
+      case 'auth/invalid-email': return 'Invalid email address format.';
       case 'auth/weak-password': return 'Password must be at least 6 characters.';
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
+      case 'auth/user-not-found': return 'No account found with that email. Please check your email or register.';
+      case 'auth/wrong-password': return 'Incorrect password. Please try again or reset your password.';
       case 'auth/invalid-credential': return 'Incorrect email or password. Please try again or reset your password.';
-      case 'auth/too-many-requests': return 'Too many attempts. Please try again later.';
-      default: return error.message || 'Authentication failed.';
+      case 'auth/too-many-requests': return 'Too many failed attempts. Please wait a few minutes before trying again.';
+      case 'auth/network-request-failed': return 'Network error — check your internet connection and try again.';
+      case 'auth/user-disabled': return 'This account has been disabled. Please contact support.';
+      default: return error.message || 'Firebase authentication failed.';
     }
   }
+
+  // Network error — backend unreachable (no response at all)
+  if (!error.response) {
+    return 'Cannot reach the server. Check your internet connection or try again later.';
+  }
+
   // HTTP errors from our backend
   const status = error.response?.status;
   const backendMessage = error.response?.data?.error;
-  if (status === 404 && backendMessage?.includes('not found')) {
-    return 'Account not set up yet. Please register first.';
+
+  switch (status) {
+    case 401: return 'Authentication failed — your session token was rejected by the server. Try signing in again.';
+    case 404: return 'No account found for this user. Please register first.';
+    case 503: return 'Server is temporarily unavailable (may still be starting up). Please try again in a moment.';
+    case 500: return 'A server error occurred. Please try again.';
+    default:
+      if (backendMessage) return backendMessage;
+      return `Login failed (HTTP ${status}). Please try again.`;
   }
-  if (status === 401) {
-    return 'Authentication failed. Please try again or reset your password.';
-  }
-  if (backendMessage) return backendMessage;
-  return error.message || 'Login failed. Please try again.';
 }
