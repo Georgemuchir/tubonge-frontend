@@ -159,6 +159,52 @@ const styles = `
   }
 `;
 
+const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
+  const [query, setQuery] = useState('');
+  const getAvatarColor = (name) => {
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500'];
+    return colors[(name?.charCodeAt(0) || 0) % colors.length];
+  };
+  const filtered = inbox.filter(c =>
+    !query || c.name?.toLowerCase().includes(query.toLowerCase())
+  );
+  const preview = msg.message_type === 'image' ? '📷 Photo'
+    : msg.message_type === 'voice' ? '🎤 Voice note'
+    : msg.content;
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="whatsapp-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={e => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-semibold text-white">Forward to...</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+        </div>
+        <div className="mb-3 px-3 py-2 rounded-lg bg-gray-700/50 border border-gray-600 text-gray-300 text-sm truncate">
+          <span className="text-gray-500 mr-1">Forwarding:</span>{preview}
+        </div>
+        <div className="relative mb-4">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input type="text" value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Search contacts..." autoFocus
+            className="w-full pl-12 pr-4 py-3 rounded-lg whatsapp-input text-white placeholder-gray-400 focus:outline-none border-none" />
+        </div>
+        <div className="space-y-1 max-h-80 overflow-y-auto scrollbar-thin">
+          {filtered.length === 0 ? (
+            <p className="text-center text-gray-400 py-6 text-sm">No contacts found</p>
+          ) : filtered.map(contact => (
+            <div key={contact.sender_id || contact.id} onClick={() => onForward(contact)}
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer">
+              <div className={`w-11 h-11 rounded-full ${getAvatarColor(contact.name)} flex items-center justify-center text-white font-semibold text-base overflow-hidden flex-shrink-0`}>
+                {contact.avatar ? <img src={resolveMediaUrl(contact.avatar)} alt={contact.name} className="w-full h-full object-cover" /> : contact.name?.charAt(0).toUpperCase()}
+              </div>
+              <p className="text-white font-medium">{contact.name}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -431,6 +477,8 @@ const WhatsAppMessenger = () => {
   const [isSending, setIsSending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
+  const [activeMsg, setActiveMsg] = useState(null);
+  const [forwardMsg, setForwardMsg] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [uploadingVoice, setUploadingVoice] = useState(false);
@@ -847,6 +895,31 @@ const WhatsAppMessenger = () => {
     }
   };
 
+  const handleForward = async (contact) => {
+    const msg = forwardMsg;
+    setForwardMsg(null);
+    if (!msg || !contact) return;
+    try {
+      await fetch(`${API_BASE_URL}/messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getAuthToken()}`,
+        },
+        body: JSON.stringify({
+          recipient_id: contact.sender_id || contact.id || contact._id,
+          content: msg.content,
+          message_type: msg.message_type || 'text',
+          ...(msg.image_url && { image_url: msg.image_url }),
+          ...(msg.voice_url && { voice_url: msg.voice_url }),
+        }),
+      });
+      fetchInbox();
+    } catch {
+      setSendError('Failed to forward message.');
+    }
+  };
+
   const handleAvatarUpload = async (file) => {
     if (!file) return;
     try {
@@ -1181,11 +1254,13 @@ const WhatsAppMessenger = () => {
                   );
                 }
 
+                const msgId = msg.id || msg._id;
+                const isActive = activeMsg === msgId;
                 return (
-                  <div key={msg.id || msg._id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
+                  <div key={msgId} className={`flex flex-col ${isSent ? 'items-end' : 'items-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
                     <div
                       className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md cursor-pointer`}
-                      onClick={() => setReplyTo(msg)}
+                      onClick={() => setActiveMsg(isActive ? null : msgId)}
                     >
                       {/* Reply quote */}
                       {msg.reply_to_content && (
@@ -1199,11 +1274,7 @@ const WhatsAppMessenger = () => {
                         </div>
                       )}
                       {msg.message_type === 'image' && msg.image_url ? (
-                        <img
-                          src={resolveMediaUrl(msg.image_url)}
-                          alt="Shared"
-                          className="rounded-md max-w-full h-auto"
-                        />
+                        <img src={resolveMediaUrl(msg.image_url)} alt="Shared" className="rounded-md max-w-full h-auto" />
                       ) : msg.message_type === 'voice' && msg.voice_url ? (
                         <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
                       ) : (
@@ -1211,11 +1282,26 @@ const WhatsAppMessenger = () => {
                       )}
                       <div className="flex items-center justify-end gap-1 mt-1">
                         <span className="text-xs text-gray-300">{formatTime(msg.timestamp || msg.created_at)}</span>
-                        {isSent && (
-                          <Check className="w-4 h-4 text-blue-300" />
-                        )}
+                        {isSent && <Check className="w-4 h-4 text-blue-300" />}
                       </div>
                     </div>
+                    {/* Action bar */}
+                    {isActive && (
+                      <div className={`flex gap-1 mt-1 ${isSent ? 'justify-end' : 'justify-start'}`}>
+                        <button
+                          onClick={e => { e.stopPropagation(); setReplyTo(msg); setActiveMsg(null); }}
+                          className="flex items-center gap-1 px-3 py-1 rounded-full bg-gray-700/80 hover:bg-gray-600 text-gray-300 text-xs transition-colors"
+                        >
+                          <CornerUpLeft className="w-3.5 h-3.5" /> Reply
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); setForwardMsg(msg); setActiveMsg(null); }}
+                          className="flex items-center gap-1 px-3 py-1 rounded-full bg-gray-700/80 hover:bg-gray-600 text-gray-300 text-xs transition-colors"
+                        >
+                          <Send className="w-3.5 h-3.5" /> Forward
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -1338,6 +1424,16 @@ const WhatsAppMessenger = () => {
         <UserSearch
           onClose={() => setShowUserSearch(false)}
           onSelectUser={handleUserSelect}
+          resolveMediaUrl={resolveMediaUrl}
+        />
+      )}
+
+      {forwardMsg && (
+        <ForwardModal
+          msg={forwardMsg}
+          inbox={inbox}
+          onClose={() => setForwardMsg(null)}
+          onForward={handleForward}
           resolveMediaUrl={resolveMediaUrl}
         />
       )}
