@@ -588,10 +588,11 @@ const WhatsAppMessenger = () => {
   };
 
   const handleUserSelect = async (user) => {
+    const userId = user.id || user._id;
+    if (!userId || userId === 'None' || userId === 'null') return;
     setSelectedUser(user);
     setLoading(true);
     setShowMobileSidebar(false);
-    const userId = user.id || user._id;
     try {
       await fetch(`${API_BASE_URL}/messages/mark-read/${userId}`, {
         method: 'POST',
@@ -761,6 +762,7 @@ const WhatsAppMessenger = () => {
   };
 
   const filteredConversations = inbox
+    .filter(conv => conv.sender_id && conv.sender_id !== 'None' && conv.sender_id !== 'null')
     .slice()
     .sort((a, b) => {
       const timeA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
