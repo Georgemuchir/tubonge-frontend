@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -700,26 +701,30 @@ const WhatsAppMessenger = () => {
     }
     setSendError('');
 
-    // Optimistic update — show message immediately
+    // Pre-fetch token so it doesn't delay rendering
+    const token = await getAuthToken();
+
+    // Optimistic update — force React to paint the message NOW before any network call
     const tempId = `temp_${Date.now()}`;
-    const optimisticMsg = {
-      id: tempId,
-      sender_id: user?.id || user?._id,
-      recipient_id: selectedUser.id || selectedUser._id,
-      content: message,
-      timestamp: new Date().toISOString(),
-      message_type: 'text',
-      _optimistic: true,
-      ...(replyTo && {
-        reply_to_content: replyTo.content,
-        reply_to_sender_name: replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
-      }),
-    };
-    setMessages(prev => [...prev, optimisticMsg]);
     const sentText = message;
     const sentReplyTo = replyTo;
-    setMessage('');
-    setReplyTo(null);
+    flushSync(() => {
+      setMessages(prev => [...prev, {
+        id: tempId,
+        sender_id: user?.id || user?._id,
+        recipient_id: selectedUser.id || selectedUser._id,
+        content: sentText,
+        timestamp: new Date().toISOString(),
+        message_type: 'text',
+        _optimistic: true,
+        ...(replyTo && {
+          reply_to_content: replyTo.content,
+          reply_to_sender_name: replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
+        }),
+      }]);
+      setMessage('');
+      setReplyTo(null);
+    });
 
     try {
       const socket = socketService.socket;
@@ -737,7 +742,7 @@ const WhatsAppMessenger = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await getAuthToken()}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           recipient_id: selectedUser.id || selectedUser._id,
