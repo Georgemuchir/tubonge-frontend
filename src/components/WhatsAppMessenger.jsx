@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -430,6 +430,7 @@ const WhatsAppMessenger = () => {
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [uploadingVoice, setUploadingVoice] = useState(false);
@@ -666,12 +667,18 @@ const WhatsAppMessenger = () => {
         body: JSON.stringify({
           recipient_id: selectedUser.id || selectedUser._id,
           content: message,
+          ...(replyTo && {
+            reply_to_id: replyTo.id || replyTo._id,
+            reply_to_content: replyTo.content,
+            reply_to_sender_name: replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
+          }),
         }),
       });
       if (response.ok) {
         const data = await response.json();
         setMessages([...messages, data.message]);
         setMessage('');
+        setReplyTo(null);
         fetchInbox();
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -818,11 +825,17 @@ const WhatsAppMessenger = () => {
           content: '🎤 Voice note',
           message_type: 'voice',
           voice_url: url,
+          ...(replyTo && {
+            reply_to_id: replyTo.id || replyTo._id,
+            reply_to_content: replyTo.content,
+            reply_to_sender_name: replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
+          }),
         }),
       });
       if (sendRes.ok) {
         const data = await sendRes.json();
         setMessages(prev => [...prev, data.message]);
+        setReplyTo(null);
         fetchInbox();
       } else {
         setSendError('Failed to send voice note.');
@@ -1170,7 +1183,21 @@ const WhatsAppMessenger = () => {
 
                 return (
                   <div key={msg.id || msg._id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
-                    <div className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md`}>
+                    <div
+                      className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md cursor-pointer`}
+                      onClick={() => setReplyTo(msg)}
+                    >
+                      {/* Reply quote */}
+                      {msg.reply_to_content && (
+                        <div className={`mb-2 pl-2 border-l-2 ${isSent ? 'border-blue-300' : 'border-gray-400'} rounded-sm`}>
+                          <p className={`text-xs font-semibold mb-0.5 ${isSent ? 'text-blue-200' : 'text-gray-300'}`}>
+                            {msg.reply_to_sender_name}
+                          </p>
+                          <p className={`text-xs truncate ${isSent ? 'text-blue-100/80' : 'text-gray-400'}`}>
+                            {msg.reply_to_content}
+                          </p>
+                        </div>
+                      )}
                       {msg.message_type === 'image' && msg.image_url ? (
                         <img
                           src={resolveMediaUrl(msg.image_url)}
@@ -1178,7 +1205,7 @@ const WhatsAppMessenger = () => {
                           className="rounded-md max-w-full h-auto"
                         />
                       ) : msg.message_type === 'voice' && msg.voice_url ? (
-                        <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} />
+                        <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
                       ) : (
                         <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
                       )}
@@ -1200,6 +1227,20 @@ const WhatsAppMessenger = () => {
             {sendError && (
               <div className="mb-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs px-3 py-2">
                 {sendError}
+              </div>
+            )}
+            {replyTo && (
+              <div className="mb-2 flex items-center gap-2 rounded-lg bg-gray-700/50 border-l-2 border-blue-400 px-3 py-2">
+                <CornerUpLeft className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-blue-300 mb-0.5">
+                    {replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them')}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">{replyTo.content}</p>
+                </div>
+                <button onClick={() => setReplyTo(null)} className="p-1 rounded-full hover:bg-gray-600 text-gray-400 flex-shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             )}
             {isRecording ? (
