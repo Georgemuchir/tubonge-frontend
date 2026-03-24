@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -580,16 +580,22 @@ const WhatsAppMessenger = () => {
       }
     };
 
+    const handleMessageDeleted = ({ message_id }) => {
+      setMessages(prev => prev.filter(m => (m.id || m._id) !== message_id));
+    };
+
     socket.on('new_message', handleNewMessage);
     socket.on('inbox_update', fetchInbox);
     socket.on('user_status', handleUserStatus);
     socket.on('user_typing', handleUserTyping);
+    socket.on('message_deleted', handleMessageDeleted);
 
     return () => {
       socket.off('new_message', handleNewMessage);
       socket.off('inbox_update', fetchInbox);
       socket.off('user_status', handleUserStatus);
       socket.off('user_typing', handleUserTyping);
+      socket.off('message_deleted', handleMessageDeleted);
     };
   }, [selectedUser]);
 
@@ -892,6 +898,25 @@ const WhatsAppMessenger = () => {
       setSendError('Failed to send voice note.');
     } finally {
       setUploadingVoice(false);
+    }
+  };
+
+  const handleDelete = async (msg) => {
+    const msgId = msg.id || msg._id;
+    setActiveMsg(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/messages/delete/${msgId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${await getAuthToken()}` },
+      });
+      if (res.ok) {
+        setMessages(prev => prev.filter(m => (m.id || m._id) !== msgId));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSendError(data.error || 'Failed to delete message.');
+      }
+    } catch {
+      setSendError('Failed to delete message.');
     }
   };
 
@@ -1300,6 +1325,14 @@ const WhatsAppMessenger = () => {
                         >
                           <Send className="w-3.5 h-3.5" /> Forward
                         </button>
+                        {isSent && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDelete(msg); }}
+                            className="flex items-center gap-1 px-3 py-1 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 text-xs transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
