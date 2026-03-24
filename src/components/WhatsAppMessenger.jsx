@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
@@ -177,10 +178,43 @@ const styles = `
   .conversation-active {
     background-color: #475569;
   }
-  
+
   .grey-bg {
     background-color: #64748b;
   }
+
+  /* ── Light theme overrides ── */
+  [data-theme="light"] .whatsapp-bg { background-color: #f0f2f5; }
+  [data-theme="light"] .whatsapp-header { background-color: #ffffff; border-color: #e2e8f0; }
+  [data-theme="light"] .whatsapp-sidebar { background-color: #ffffff; }
+  [data-theme="light"] .whatsapp-chat-bg {
+    background-color: #e5ddd5;
+    background-image: repeating-linear-gradient(
+      45deg, transparent, transparent 35px,
+      rgba(0,0,0,0.02) 35px, rgba(0,0,0,0.02) 70px
+    );
+  }
+  [data-theme="light"] .whatsapp-input { background-color: #f0f2f5; color: #1e293b; }
+  [data-theme="light"] .conversation-hover:hover { background-color: #f0f2f5; }
+  [data-theme="light"] .conversation-active { background-color: #e2e8f0; }
+  [data-theme="light"] .message-received { background: #ffffff; color: #1e293b; }
+  [data-theme="light"] .glass-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(241,245,249,0.8));
+    border-color: rgba(0,0,0,0.1);
+  }
+  [data-theme="light"] .scrollbar-thin::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+
+  /* Text colour flips for light mode */
+  [data-theme="light"] .text-white { color: #1e293b !important; }
+  [data-theme="light"] .text-gray-400 { color: #64748b !important; }
+  [data-theme="light"] .text-gray-300 { color: #475569 !important; }
+  [data-theme="light"] .text-gray-500 { color: #64748b !important; }
+  [data-theme="light"] .border-gray-800 { border-color: #e2e8f0 !important; }
+  [data-theme="light"] .border-gray-700 { border-color: #cbd5e1 !important; }
+  [data-theme="light"] .bg-gray-800 { background-color: #f1f5f9 !important; }
+  [data-theme="light"] .bg-gray-900 { background-color: #ffffff !important; }
+  [data-theme="light"] .hover\:bg-gray-700:hover { background-color: #e2e8f0 !important; }
+  [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: rgba(226,232,240,0.5) !important; }
   
   /* Mobile optimizations */
   @media (max-width: 768px) {
@@ -470,6 +504,7 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
 
 const WhatsAppMessenger = () => {
   const { logout, user, updateUser } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
   const [conversationId, setConversationId] = useState(null);
@@ -493,6 +528,17 @@ const WhatsAppMessenger = () => {
   const callManagerRef = useRef(null);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Close settings panel on outside click
+  useEffect(() => {
+    if (!showSettings) return;
+    const handler = (e) => {
+      if (!e.target.closest('[data-settings-panel]')) setShowSettings(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSettings]);
 
   // Fetch inbox on mount
   useEffect(() => {
@@ -908,15 +954,71 @@ const WhatsAppMessenger = () => {
             </span>
           </button>
           
-          <button
-            className="p-4 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-blue-400 transition-all touch-target group relative"
-            title="Settings"
-          >
-            <Settings className="w-6 h-6" />
-            <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Settings
-            </span>
-          </button>
+          <div className="relative" data-settings-panel>
+            <button
+              onClick={() => setShowSettings(v => !v)}
+              className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showSettings ? 'bg-gray-700/50 text-blue-400' : 'text-gray-400 hover:text-blue-400'}`}
+              title="Settings"
+            >
+              <Settings className="w-6 h-6" />
+              {!showSettings && (
+                <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  Settings
+                </span>
+              )}
+            </button>
+
+            {/* Settings Panel */}
+            {showSettings && (
+              <div
+                className="absolute left-full ml-3 bottom-0 w-56 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden z-50"
+                style={{ background: theme === 'light' ? '#ffffff' : '#1e293b' }}
+              >
+                <div className="px-4 py-3 border-b border-gray-700">
+                  <p className="text-sm font-semibold" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                    Settings
+                  </p>
+                </div>
+
+                <div className="px-4 py-3">
+                  <p className="text-xs font-medium mb-2" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                    THEME
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => setTheme('dark')}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
+                      style={{
+                        background: theme === 'dark' ? 'rgba(59,130,246,0.15)' : 'transparent',
+                        border: theme === 'dark' ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
+                      }}
+                    >
+                      <Moon className="w-4 h-4" style={{ color: theme === 'dark' ? '#60a5fa' : '#94a3b8' }} />
+                      <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#60a5fa' : (theme === 'light' ? '#64748b' : '#94a3b8') }}>
+                        Dark
+                      </span>
+                      {theme === 'dark' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+                    </button>
+
+                    <button
+                      onClick={() => setTheme('light')}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
+                      style={{
+                        background: theme === 'light' ? 'rgba(59,130,246,0.1)' : 'transparent',
+                        border: theme === 'light' ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
+                      }}
+                    >
+                      <Sun className="w-4 h-4" style={{ color: theme === 'light' ? '#f59e0b' : '#94a3b8' }} />
+                      <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#f59e0b' : '#94a3b8' }}>
+                        Light
+                      </span>
+                      {theme === 'light' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Logout at Bottom */}

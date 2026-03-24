@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import ForgotPassword from './components/auth/ForgotPassword';
@@ -61,13 +62,15 @@ const PublicRoute = ({ children }) => {
   return isAuthenticated ? <Navigate to="/" /> : children;
 };
 
-// Layout component that wraps all routes with AuthProvider
+// Layout component that wraps all routes with AuthProvider and ThemeProvider
 const AuthLayout = () => (
-  <AuthProvider>
-    <div className="App">
-      <Outlet />
-    </div>
-  </AuthProvider>
+  <ThemeProvider>
+    <AuthProvider>
+      <div className="App">
+        <Outlet />
+      </div>
+    </AuthProvider>
+  </ThemeProvider>
 );
 
 // Create router with shared AuthProvider via layout route
