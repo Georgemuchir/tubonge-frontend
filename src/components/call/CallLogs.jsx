@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, ArrowLeft, PhoneCall } from 'lucide-react';
 import api from '../../services/api';
+import socketService from '../../services/socket';
 
 const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
   const [calls, setCalls] = useState([]);
@@ -21,6 +22,13 @@ const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
 
   useEffect(() => {
     fetchLogs();
+  }, [fetchLogs]);
+
+  // Re-fetch when any call event completes so the list stays current
+  useEffect(() => {
+    const events = ['call_ended', 'missed_call', 'call_accepted', 'call_rejected', 'call_declined'];
+    events.forEach(ev => socketService.on(ev, fetchLogs));
+    return () => events.forEach(ev => socketService.off(ev, fetchLogs));
   }, [fetchLogs]);
 
   const filtered = tab === 'missed' ? calls.filter(c => c.status === 'missed') : calls;
