@@ -105,6 +105,8 @@ const styles = `
   [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: var(--wa-hover) !important; }
   [data-theme="light"] .bg-gray-700\/50 { background-color: var(--wa-active) !important; }
   [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: var(--wa-hover) !important; }
+  [data-theme="light"] .border-gray-700\/50 { border-color: var(--wa-border) !important; }
+  [data-theme="light"] .ring-gray-700\/50 { --tw-ring-color: var(--wa-border) !important; }
 
   .blue-accent  { color: #3b82f6; }
   .blue-bg      { background-color: #3b82f6; }
@@ -307,7 +309,7 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin" style={{background: 'linear-gradient(to bottom, #1e293b, #0f172a)'}}>
+      <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar">
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 slide-up">
             <div className="relative mb-8">
