@@ -79,7 +79,6 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     authFlowInProgress.current = true;
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
       const { name, username, email, password } = userData;
 
       // 1. Create Firebase Auth user
@@ -96,7 +95,6 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      dispatch({ type: 'SET_LOADING', payload: false });
       return { success: false, error: firebaseErrorMessage(error) };
     } finally {
       authFlowInProgress.current = false;
@@ -106,7 +104,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     authFlowInProgress.current = true;
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
       const { email, password } = credentials;
 
       // 1. Sign in with Firebase
@@ -122,7 +119,6 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      dispatch({ type: 'SET_LOADING', payload: false });
       return { success: false, error: firebaseErrorMessage(error) };
     } finally {
       authFlowInProgress.current = false;

@@ -12,7 +12,8 @@ const Login = () => {
   const [showUsername, setShowUsername] = useState(false);
   const [error, setError] = useState('');
   const [showResetHint, setShowResetHint] = useState(false);
-  const { login, loading } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -26,8 +27,9 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setSubmitting(true);
     const result = await login(formData);
+    setSubmitting(false);
     if (result.success) {
       navigate('/');
     } else {
@@ -157,10 +159,10 @@ const Login = () => {
             {/* Login Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 px-6 rounded-xl font-semibold shadow-lg hover:shadow-2xl hover:shadow-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group"
             >
-              {loading ? (
+              {submitting ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   <span>Signing in...</span>
