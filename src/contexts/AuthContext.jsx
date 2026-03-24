@@ -156,8 +156,9 @@ export const useAuth = () => {
 };
 
 function firebaseErrorMessage(error) {
-  // Firebase SDK errors have an error.code
-  if (error.code) {
+  // Firebase SDK errors have codes starting with "auth/"
+  // Axios errors also have error.code (e.g. "ERR_BAD_RESPONSE") — skip those
+  if (error.code && typeof error.code === 'string' && error.code.startsWith('auth/')) {
     switch (error.code) {
       case 'auth/email-already-in-use': return 'An account with this email already exists.';
       case 'auth/invalid-email': return 'Invalid email address format.';
@@ -183,7 +184,7 @@ function firebaseErrorMessage(error) {
 
   switch (status) {
     case 401: return 'Authentication failed — your session token was rejected by the server. Try signing in again.';
-    case 404: return 'No account found for this user. Please register first.';
+    case 404: return backendMessage || 'No account found. Please create an account first.';
     case 503: return 'Server is temporarily unavailable (may still be starting up). Please try again in a moment.';
     case 500: return 'A server error occurred. Please try again.';
     default:

@@ -699,18 +699,39 @@ const WhatsAppMessenger = () => {
       return;
     }
     setSendError('');
-    setIsSending(true);
+
+    // Optimistic update — show message immediately
+    const tempId = `temp_${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      sender_id: user?.id || user?._id,
+      recipient_id: selectedUser.id || selectedUser._id,
+      content: message,
+      timestamp: new Date().toISOString(),
+      message_type: 'text',
+      _optimistic: true,
+      ...(replyTo && {
+        reply_to_content: replyTo.content,
+        reply_to_sender_name: replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
+      }),
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    const sentText = message;
+    const sentReplyTo = replyTo;
+    setMessage('');
+    setReplyTo(null);
+
     try {
       const socket = socketService.socket;
       if (socket && selectedUser) {
-        const recipientId = selectedUser.id || selectedUser._id;
         socket.emit('typing_user', {
-          recipient_id: recipientId,
+          recipient_id: selectedUser.id || selectedUser._id,
           sender_id: user?.id || user?._id,
           is_typing: false
         });
       }
     } catch (err) {}
+
     try {
       const response = await fetch(`${API_BASE_URL}/messages/send`, {
         method: 'POST',
@@ -720,29 +741,32 @@ const WhatsAppMessenger = () => {
         },
         body: JSON.stringify({
           recipient_id: selectedUser.id || selectedUser._id,
-          content: message,
-          ...(replyTo && {
-            reply_to_id: replyTo.id || replyTo._id,
-            reply_to_content: replyTo.content,
-            reply_to_sender_name: replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
+          content: sentText,
+          ...(sentReplyTo && {
+            reply_to_id: sentReplyTo.id || sentReplyTo._id,
+            reply_to_content: sentReplyTo.content,
+            reply_to_sender_name: sentReplyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
           }),
         }),
       });
       if (response.ok) {
         const data = await response.json();
-        setMessages([...messages, data.message]);
-        setMessage('');
-        setReplyTo(null);
+        // Replace optimistic message with real one from server
+        setMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
         fetchInbox();
       } else {
+        // Remove optimistic message on failure
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        setMessage(sentText);
+        setReplyTo(sentReplyTo);
         const errorData = await response.json().catch(() => ({}));
         setSendError(errorData.error || 'Failed to send message.');
       }
     } catch (error) {
-      console.error('Send error:', error);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setMessage(sentText);
+      setReplyTo(sentReplyTo);
       setSendError('Network error sending message.');
-    } finally {
-      setIsSending(false);
     }
   };
 
