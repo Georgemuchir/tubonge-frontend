@@ -12,9 +12,10 @@ const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
     setLoading(true);
     try {
       const res = await api.get('/calls/logs');
+      console.log('[CALL LOGS] API response:', res.status, res.data);
       setCalls(res.data.calls || []);
     } catch (e) {
-      console.error('Failed to fetch call logs:', e);
+      console.error('[CALL LOGS] Failed to fetch call logs:', e.response?.status, e.response?.data || e.message);
     } finally {
       setLoading(false);
     }
