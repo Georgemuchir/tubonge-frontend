@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -430,6 +430,12 @@ const WhatsAppMessenger = () => {
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [uploadingVoice, setUploadingVoice] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
 
   // Close settings panel on outside click
   useEffect(() => {
@@ -734,6 +740,97 @@ const WhatsAppMessenger = () => {
     } finally {
       setIsSending(false);
       if (messageImageInputRef.current) messageImageInputRef.current.value = '';
+    }
+  };
+
+  const startRecording = async () => {
+    if (!selectedUser) { setSendError('Select a conversation first.'); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? { mimeType: 'audio/webm;codecs=opus' }
+        : {};
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await uploadVoiceNote(blob);
+      };
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(s => s + 1);
+      }, 1000);
+    } catch {
+      setSendError('Microphone access denied.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      clearInterval(recordingTimerRef.current);
+      setIsRecording(false);
+      setRecordingSeconds(0);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = null;
+      try { mediaRecorderRef.current.stop(); } catch {}
+      mediaRecorderRef.current = null;
+    }
+    clearInterval(recordingTimerRef.current);
+    audioChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
+
+  const uploadVoiceNote = async (blob) => {
+    if (!selectedUser) return;
+    setUploadingVoice(true);
+    try {
+      const formData = new FormData();
+      formData.append('voice', blob, 'voice.webm');
+      const uploadRes = await fetch(`${API_BASE_URL}/messages/upload-voice`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${await getAuthToken()}` },
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error('Voice upload failed');
+      const { url } = await uploadRes.json();
+      const sendRes = await fetch(`${API_BASE_URL}/messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getAuthToken()}`,
+        },
+        body: JSON.stringify({
+          recipient_id: selectedUser.id || selectedUser._id,
+          content: '🎤 Voice note',
+          message_type: 'voice',
+          voice_url: url,
+        }),
+      });
+      if (sendRes.ok) {
+        const data = await sendRes.json();
+        setMessages(prev => [...prev, data.message]);
+        fetchInbox();
+      } else {
+        setSendError('Failed to send voice note.');
+      }
+    } catch {
+      setSendError('Failed to send voice note.');
+    } finally {
+      setUploadingVoice(false);
     }
   };
 
@@ -1080,6 +1177,8 @@ const WhatsAppMessenger = () => {
                           alt="Shared"
                           className="rounded-md max-w-full h-auto"
                         />
+                      ) : msg.message_type === 'voice' && msg.voice_url ? (
+                        <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} />
                       ) : (
                         <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
                       )}
@@ -1103,6 +1202,23 @@ const WhatsAppMessenger = () => {
                 {sendError}
               </div>
             )}
+            {isRecording ? (
+              <div className="flex items-center gap-3">
+                <button onClick={cancelRecording} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors touch-target" title="Cancel">
+                  <X className="w-5 h-5" />
+                </button>
+                <div className="flex-1 flex items-center gap-2 whatsapp-input rounded-lg px-4 py-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-red-400 text-sm font-medium">
+                    {String(Math.floor(recordingSeconds / 60)).padStart(2,'0')}:{String(recordingSeconds % 60).padStart(2,'0')}
+                  </span>
+                  <span className="text-gray-400 text-sm">Recording...</span>
+                </div>
+                <button onClick={stopRecording} className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors touch-target" title="Send voice note">
+                  <Square className="w-5 h-5 fill-white" />
+                </button>
+              </div>
+            ) : (
             <div className="flex items-center gap-2">
             <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target">
               <Smile className="w-6 h-6" />
@@ -1152,14 +1268,26 @@ const WhatsAppMessenger = () => {
                 className="w-full bg-transparent text-white placeholder-gray-400 focus:outline-none border-none text-sm md:text-base"
               />
             </div>
-            <button
-              onClick={handleSend}
-              disabled={!message.trim() || isSending}
-              className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
-            >
-              <Send className="w-5 h-5" />
-            </button>
+            {message.trim() ? (
+              <button
+                onClick={handleSend}
+                disabled={isSending}
+                className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
+              >
+                {isSending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
+              </button>
+            ) : (
+              <button
+                onClick={startRecording}
+                disabled={uploadingVoice}
+                className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
+                title="Record voice note"
+              >
+                {uploadingVoice ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mic className="w-5 h-5" />}
+              </button>
+            )}
             </div>
+            )}
           </div>
           </>
         )}
