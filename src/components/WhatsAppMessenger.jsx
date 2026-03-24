@@ -29,193 +29,92 @@ const styles = `
     33% { transform: translate(30px, -50px) scale(1.1); }
     66% { transform: translate(-20px, 20px) scale(0.9); }
   }
-  
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-20px); }
   }
-  
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; } to { opacity: 1; }
   }
-  
   @keyframes scaleUp {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; }
   }
-  
   @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; }
   }
-  
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
   }
-  
   @keyframes shimmer {
-    0% { background-position: -1000px 0; }
-    100% { background-position: 1000px 0; }
+    0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; }
   }
 
-  .blob {
-    animation: blob 7s infinite;
-  }
-  
-  .float-animation {
-    animation: float 3s ease-in-out infinite;
-  }
-  
-  .slide-up {
-    animation: slideUp 0.4s ease-out;
-  }
-  
+  .blob            { animation: blob 7s infinite; }
+  .float-animation { animation: float 3s ease-in-out infinite; }
+  .slide-up        { animation: slideUp 0.4s ease-out; }
+
   .glass-card {
-    background: linear-gradient(135deg, rgba(51, 65, 85, 0.8), rgba(30, 41, 59, 0.6));
+    background: linear-gradient(135deg, var(--wa-header), var(--wa-bg));
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--wa-border);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   }
-  
   .glass-card:hover {
-    background: linear-gradient(135deg, rgba(51, 65, 85, 0.9), rgba(30, 41, 59, 0.7));
-    border-color: rgba(59, 130, 246, 0.3);
-    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+    border-color: rgba(59,130,246,0.3);
+    box-shadow: 0 12px 40px rgba(59,130,246,0.2);
   }
-  
-  .message-sent {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-  }
-  
-  .message-received {
-    background: #475569;
-  }
-  
-  .hover-lift {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
+
+  .message-sent     { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+  .message-received { background: var(--wa-msg-received-bg); color: var(--wa-msg-received-txt); }
+
+  .hover-lift { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
   .hover-lift:hover {
     transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 16px 48px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 16px 48px rgba(59,130,246,0.3);
   }
-  
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #3b82f6;
-    border-radius: 3px;
-  }
-  
-  .whatsapp-bg {
-    background-color: #1e293b;
-  }
-  
-  .whatsapp-header {
-    background-color: #334155;
-  }
-  
-  .whatsapp-sidebar {
-    background-color: #1e293b;
-  }
-  
+
+  .scrollbar-thin::-webkit-scrollbar       { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: var(--wa-scrollbar-track); }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 3px; }
+
+  /* ── Theme-aware messenger classes ── */
+  .whatsapp-bg      { background-color: var(--wa-bg); color: var(--wa-text); }
+  .whatsapp-header  { background-color: var(--wa-header); }
+  .whatsapp-sidebar { background-color: var(--wa-sidebar); }
   .whatsapp-chat-bg {
-    background-color: #0f172a;
-    background-image: 
-      repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 35px,
-        rgba(59, 130, 246, 0.03) 35px,
-        rgba(59, 130, 246, 0.03) 70px
-      );
-  }
-  
-  .whatsapp-input {
-    background-color: #475569;
-  }
-  
-  .blue-accent {
-    color: #3b82f6;
-  }
-  
-  .blue-bg {
-    background-color: #3b82f6;
-  }
-  
-  .blue-bg-hover:hover {
-    background-color: #2563eb;
-  }
-  
-  .green-accent {
-    color: #10b981;
-  }
-  
-  .green-bg {
-    background-color: #10b981;
-  }
-  
-  .orange-accent {
-    color: #f97316;
-  }
-  
-  .orange-bg {
-    background-color: #f97316;
-  }
-  
-  .conversation-hover:hover {
-    background-color: #334155;
-  }
-  
-  .conversation-active {
-    background-color: #475569;
-  }
-
-  .grey-bg {
-    background-color: #64748b;
-  }
-
-  /* ── Light theme overrides ── */
-  [data-theme="light"] .whatsapp-bg { background-color: #f0f2f5; }
-  [data-theme="light"] .whatsapp-header { background-color: #ffffff; border-color: #e2e8f0; }
-  [data-theme="light"] .whatsapp-sidebar { background-color: #ffffff; }
-  [data-theme="light"] .whatsapp-chat-bg {
-    background-color: #e5ddd5;
+    background-color: var(--wa-chat-bg);
     background-image: repeating-linear-gradient(
       45deg, transparent, transparent 35px,
-      rgba(0,0,0,0.02) 35px, rgba(0,0,0,0.02) 70px
+      rgba(59,130,246,0.03) 35px, rgba(59,130,246,0.03) 70px
     );
   }
-  [data-theme="light"] .whatsapp-input { background-color: #f0f2f5; color: #1e293b; }
-  [data-theme="light"] .conversation-hover:hover { background-color: #f0f2f5; }
-  [data-theme="light"] .conversation-active { background-color: #e2e8f0; }
-  [data-theme="light"] .message-received { background: #ffffff; color: #1e293b; }
-  [data-theme="light"] .glass-card {
-    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(241,245,249,0.8));
-    border-color: rgba(0,0,0,0.1);
-  }
-  [data-theme="light"] .scrollbar-thin::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+  .whatsapp-input         { background-color: var(--wa-input-bg); color: var(--wa-text); }
+  .conversation-hover:hover { background-color: var(--wa-hover); }
+  .conversation-active    { background-color: var(--wa-active); }
 
-  /* Text colour flips for light mode */
-  [data-theme="light"] .text-white { color: #1e293b !important; }
-  [data-theme="light"] .text-gray-400 { color: #64748b !important; }
-  [data-theme="light"] .text-gray-300 { color: #475569 !important; }
-  [data-theme="light"] .text-gray-500 { color: #64748b !important; }
-  [data-theme="light"] .border-gray-800 { border-color: #e2e8f0 !important; }
-  [data-theme="light"] .border-gray-700 { border-color: #cbd5e1 !important; }
-  [data-theme="light"] .bg-gray-800 { background-color: #f1f5f9 !important; }
-  [data-theme="light"] .bg-gray-900 { background-color: #ffffff !important; }
-  [data-theme="light"] .hover\:bg-gray-700:hover { background-color: #e2e8f0 !important; }
-  [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: rgba(226,232,240,0.5) !important; }
-  
+  /* Tailwind utility overrides for light mode */
+  [data-theme="light"] .text-white   { color: var(--wa-text) !important; }
+  [data-theme="light"] .text-gray-400 { color: var(--wa-text-muted) !important; }
+  [data-theme="light"] .text-gray-300 { color: var(--wa-text-muted) !important; }
+  [data-theme="light"] .text-gray-500 { color: var(--wa-text-muted) !important; }
+  [data-theme="light"] .border-gray-800 { border-color: var(--wa-border) !important; }
+  [data-theme="light"] .border-gray-700 { border-color: var(--wa-border) !important; }
+  [data-theme="light"] .bg-gray-800  { background-color: var(--wa-header) !important; }
+  [data-theme="light"] .bg-gray-900  { background-color: var(--wa-bg) !important; }
+  [data-theme="light"] .hover\:bg-gray-700:hover    { background-color: var(--wa-hover) !important; }
+  [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: var(--wa-hover) !important; }
+  [data-theme="light"] .bg-gray-700\/50 { background-color: var(--wa-active) !important; }
+  [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: var(--wa-hover) !important; }
+
+  .blue-accent  { color: #3b82f6; }
+  .blue-bg      { background-color: #3b82f6; }
+  .blue-bg-hover:hover { background-color: #2563eb; }
+  .green-accent { color: #10b981; }
+  .green-bg     { background-color: #10b981; }
+  .orange-accent{ color: #f97316; }
+  .orange-bg    { background-color: #f97316; }
+  .grey-bg      { background-color: #64748b; }
+
   /* Mobile optimizations */
   @media (max-width: 768px) {
     .mobile-sidebar {

@@ -2,41 +2,167 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────
+   Theme CSS variables
+   Default = dark. Light overrides below.
+───────────────────────────────────────── */
+:root {
+  /* Messenger */
+  --wa-bg:              #1e293b;
+  --wa-header:          #334155;
+  --wa-sidebar:         #1e293b;
+  --wa-chat-bg:         #0f172a;
+  --wa-input-bg:        #475569;
+  --wa-border:          rgba(255,255,255,0.08);
+  --wa-text:            #f1f5f9;
+  --wa-text-muted:      #94a3b8;
+  --wa-hover:           #334155;
+  --wa-active:          #475569;
+  --wa-msg-received-bg: #475569;
+  --wa-msg-received-txt:#f1f5f9;
+  --wa-scrollbar-track: rgba(255,255,255,0.05);
+
+  /* Auth pages */
+  --auth-bg-from:        #111827;
+  --auth-bg-via:         #581c87;
+  --auth-bg-to:          #4c1d95;
+  --auth-blob-opacity:   0.2;
+  --auth-card-bg:        rgba(255,255,255,0.1);
+  --auth-card-border:    rgba(255,255,255,0.2);
+  --auth-card-shadow:    0 25px 50px rgba(0,0,0,0.5);
+  --auth-title:          #ffffff;
+  --auth-subtitle:       #e9d5ff;
+  --auth-label:          #e9d5ff;
+  --auth-footer:         rgba(216,180,254,0.5);
+  --auth-input-bg:       rgba(255,255,255,0.1);
+  --auth-input-border:   rgba(255,255,255,0.2);
+  --auth-input-text:     #ffffff;
+  --auth-input-ph:       #d8b4fe;
+  --auth-icon:           #d8b4fe;
+  --auth-divider:        rgba(255,255,255,0.2);
+  --auth-divider-text:   #e9d5ff;
+  --auth-link:           #ffffff;
+  --auth-link-hover:     #d8b4fe;
+  --auth-error-bg:       rgba(239,68,68,0.2);
+  --auth-error-border:   rgba(239,68,68,0.5);
+  --auth-error-text:     #fca5a5;
+  --auth-error-link:     #ffffff;
+}
+
+[data-theme="light"] {
+  /* Messenger */
+  --wa-bg:              #f0f2f5;
+  --wa-header:          #ffffff;
+  --wa-sidebar:         #ffffff;
+  --wa-chat-bg:         #e5ddd5;
+  --wa-input-bg:        #ffffff;
+  --wa-border:          rgba(0,0,0,0.08);
+  --wa-text:            #1e293b;
+  --wa-text-muted:      #64748b;
+  --wa-hover:           #f0f2f5;
+  --wa-active:          #e2e8f0;
+  --wa-msg-received-bg: #ffffff;
+  --wa-msg-received-txt:#1e293b;
+  --wa-scrollbar-track: rgba(0,0,0,0.05);
+
+  /* Auth pages */
+  --auth-bg-from:        #f8fafc;
+  --auth-bg-via:         #ede9fe;
+  --auth-bg-to:          #e0e7ff;
+  --auth-blob-opacity:   0.35;
+  --auth-card-bg:        rgba(255,255,255,0.92);
+  --auth-card-border:    rgba(0,0,0,0.1);
+  --auth-card-shadow:    0 25px 50px rgba(0,0,0,0.12);
+  --auth-title:          #1e293b;
+  --auth-subtitle:       #6b7280;
+  --auth-label:          #6b7280;
+  --auth-footer:         rgba(107,114,128,0.6);
+  --auth-input-bg:       #f8fafc;
+  --auth-input-border:   rgba(0,0,0,0.15);
+  --auth-input-text:     #1e293b;
+  --auth-input-ph:       #94a3b8;
+  --auth-icon:           #94a3b8;
+  --auth-divider:        rgba(0,0,0,0.12);
+  --auth-divider-text:   #9ca3af;
+  --auth-link:           #4f46e5;
+  --auth-link-hover:     #7c3aed;
+  --auth-error-bg:       rgba(239,68,68,0.1);
+  --auth-error-border:   rgba(239,68,68,0.35);
+  --auth-error-text:     #b91c1c;
+  --auth-error-link:     #7c3aed;
+}
+
+/* ─────────────────────────────────────────
+   Global base
+───────────────────────────────────────── */
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
   body {
     margin: 0;
     font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
-    background-color: #f9fafb;
-    color: #111827;
   }
 }
 
+/* ─────────────────────────────────────────
+   Auth page helpers (used in Login/Register)
+───────────────────────────────────────── */
+.auth-screen {
+  background: linear-gradient(135deg, var(--auth-bg-from), var(--auth-bg-via), var(--auth-bg-to));
+}
+.auth-blob {
+  opacity: var(--auth-blob-opacity);
+}
+.auth-card {
+  background: var(--auth-card-bg);
+  border: 1px solid var(--auth-card-border);
+  box-shadow: var(--auth-card-shadow);
+}
+.auth-title    { color: var(--auth-title); }
+.auth-subtitle { color: var(--auth-subtitle); }
+.auth-label    { color: var(--auth-label); }
+.auth-footer   { color: var(--auth-footer); }
+.auth-input {
+  background: var(--auth-input-bg);
+  border: 1px solid var(--auth-input-border);
+  color: var(--auth-input-text);
+}
+.auth-input::placeholder { color: var(--auth-input-ph); }
+.auth-input:focus {
+  outline: none;
+  border-color: #a855f7;
+  box-shadow: 0 0 0 2px rgba(168,85,247,0.3);
+}
+.auth-icon     { color: var(--auth-icon); }
+.auth-divider  { border-color: var(--auth-divider); }
+.auth-divider-text { color: var(--auth-divider-text); }
+.auth-link     { color: var(--auth-link); }
+.auth-link:hover { color: var(--auth-link-hover); }
+.auth-error-box {
+  background: var(--auth-error-bg);
+  border: 1px solid var(--auth-error-border);
+}
+.auth-error-text { color: var(--auth-error-text); }
+.auth-error-link { color: var(--auth-error-link); }
+.auth-forgot   { color: var(--auth-label); }
+.auth-forgot:hover { color: var(--auth-link); }
+
+/* ─────────────────────────────────────────
+   Scrollbar (chat window)
+───────────────────────────────────────── */
 @layer components {
   .chat-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #d1d5db #f3f4f6;
+    scrollbar-color: #3b82f6 var(--wa-scrollbar-track);
   }
-  
-  .chat-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-  
+  .chat-scrollbar::-webkit-scrollbar { width: 6px; }
   .chat-scrollbar::-webkit-scrollbar-track {
-    background: #f3f4f6;
+    background: var(--wa-scrollbar-track);
     border-radius: 3px;
   }
-  
   .chat-scrollbar::-webkit-scrollbar-thumb {
-    background: #d1d5db;
+    background: #3b82f6;
     border-radius: 3px;
-  }
-  
-  .chat-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
   }
 }
 
@@ -47,27 +173,9 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
 }
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
+button:focus, button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
 }
