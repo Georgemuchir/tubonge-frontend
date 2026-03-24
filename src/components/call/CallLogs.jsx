@@ -26,9 +26,11 @@ const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
 
   // Re-fetch when any call event completes so the list stays current
   useEffect(() => {
+    const sock = socketService.socket;
+    if (!sock) return;
     const events = ['call_ended', 'missed_call', 'call_accepted', 'call_rejected', 'call_declined'];
-    events.forEach(ev => socketService.on(ev, fetchLogs));
-    return () => events.forEach(ev => socketService.off(ev, fetchLogs));
+    events.forEach(ev => sock.on(ev, fetchLogs));
+    return () => events.forEach(ev => sock.off(ev, fetchLogs));
   }, [fetchLogs]);
 
   const filtered = tab === 'missed' ? calls.filter(c => c.status === 'missed') : calls;
