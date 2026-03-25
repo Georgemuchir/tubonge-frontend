@@ -585,7 +585,9 @@ const WhatsAppMessenger = () => {
     };
 
     const handleMessageDeleted = ({ message_id }) => {
-      setMessages(prev => prev.filter(m => (m.id || m._id) !== message_id));
+      setMessages(prev => prev.map(m =>
+        (m.id || m._id) === message_id ? { ...m, _deleted: true } : m
+      ));
     };
 
     socket.on('new_message', handleNewMessage);
@@ -942,7 +944,9 @@ const WhatsAppMessenger = () => {
         headers: { 'Authorization': `Bearer ${await getAuthToken()}` },
       });
       if (res.ok) {
-        setMessages(prev => prev.filter(m => (m.id || m._id) !== msgId));
+        setMessages(prev => prev.map(m =>
+          (m.id || m._id) === msgId ? { ...m, _deleted: true } : m
+        ));
       } else {
         const data = await res.json().catch(() => ({}));
         setSendError(data.error || 'Failed to delete message.');
@@ -1307,25 +1311,33 @@ const WhatsAppMessenger = () => {
                   <div key={msgId} className={`flex flex-col ${isSent ? 'items-end' : 'items-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
                     <div
                       className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md cursor-pointer`}
-                      onClick={() => setActiveMsg(isActive ? null : msgId)}
+                      onClick={() => !msg._deleted && setActiveMsg(isActive ? null : msgId)}
                     >
-                      {/* Reply quote */}
-                      {msg.reply_to_content && (
-                        <div className={`mb-2 pl-2 border-l-2 ${isSent ? 'border-blue-300' : 'border-gray-400'} rounded-sm`}>
-                          <p className={`text-xs font-semibold mb-0.5 ${isSent ? 'text-blue-200' : 'text-gray-300'}`}>
-                            {msg.reply_to_sender_name}
-                          </p>
-                          <p className={`text-xs truncate ${isSent ? 'text-blue-100/80' : 'text-gray-400'}`}>
-                            {msg.reply_to_content}
-                          </p>
-                        </div>
-                      )}
-                      {msg.message_type === 'image' && msg.image_url ? (
-                        <img src={resolveMediaUrl(msg.image_url)} alt="Shared" className="rounded-md max-w-full h-auto" />
-                      ) : msg.message_type === 'voice' && msg.voice_url ? (
-                        <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
+                      {msg._deleted ? (
+                        <p className="text-sm italic text-gray-400">
+                          {isSent ? 'Message deleted' : 'UPS! Deleted 😭'}
+                        </p>
                       ) : (
-                        <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
+                        <>
+                          {/* Reply quote */}
+                          {msg.reply_to_content && (
+                            <div className={`mb-2 pl-2 border-l-2 ${isSent ? 'border-blue-300' : 'border-gray-400'} rounded-sm`}>
+                              <p className={`text-xs font-semibold mb-0.5 ${isSent ? 'text-blue-200' : 'text-gray-300'}`}>
+                                {msg.reply_to_sender_name}
+                              </p>
+                              <p className={`text-xs truncate ${isSent ? 'text-blue-100/80' : 'text-gray-400'}`}>
+                                {msg.reply_to_content}
+                              </p>
+                            </div>
+                          )}
+                          {msg.message_type === 'image' && msg.image_url ? (
+                            <img src={resolveMediaUrl(msg.image_url)} alt="Shared" className="rounded-md max-w-full h-auto" />
+                          ) : msg.message_type === 'voice' && msg.voice_url ? (
+                            <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
+                          ) : (
+                            <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
+                          )}
+                        </>
                       )}
                       <div className="flex items-center justify-end gap-1 mt-1">
                         <span className="text-xs text-gray-300">{formatTime(msg.timestamp || msg.created_at)}</span>
@@ -1333,7 +1345,7 @@ const WhatsAppMessenger = () => {
                       </div>
                     </div>
                     {/* Action bar */}
-                    {isActive && (
+                    {isActive && !msg._deleted && (
                       <div className={`flex gap-1 mt-1 ${isSent ? 'justify-end' : 'justify-start'}`}>
                         <button
                           onClick={e => { e.stopPropagation(); setReplyTo(msg); setActiveMsg(null); }}
