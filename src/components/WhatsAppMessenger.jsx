@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -505,12 +505,19 @@ const WhatsAppMessenger = () => {
     fetchInbox();
   }, []);
 
-  // Scroll to bottom on open or new messages
+  // Keep-alive ping every 10 min to prevent Render free tier cold starts
   useEffect(() => {
-    if (!selectedUser) return;
-    if (loading) return;
+    const id = setInterval(() => {
+      fetch(`${API_BASE_URL}/health`).catch(() => {});
+    }, 10 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Scroll to bottom when conversation opens or message count changes
+  useEffect(() => {
+    if (!selectedUser || loading) return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedUser, loading, messages]);
+  }, [selectedUser, loading, messages.length]);
 
   const fetchInbox = async () => {
     try {
@@ -550,7 +557,6 @@ const WhatsAppMessenger = () => {
       if (selectedUser && (senderId === selectedId || receiverId === selectedId)) {
         setMessages(prevMessages => [...prevMessages, newMessage]);
       }
-      fetchInbox();
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('New message from Pinglo', {
           body: newMessage.content.substring(0, 50),
@@ -1007,32 +1013,36 @@ const WhatsAppMessenger = () => {
     }
   };
 
-  const filteredConversations = inbox
-    .filter(conv => conv.sender_id && conv.sender_id !== 'None' && conv.sender_id !== 'null')
-    .slice()
-    .sort((a, b) => {
-      const timeA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
-      const timeB = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
-      return timeB - timeA;
-    })
-    .filter(conv => 
-      conv.sender_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.sender_username?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .map(conv => ({
-      id: conv.sender_id,
-      _id: conv.sender_id,
-      name: conv.sender_name,
-      username: conv.sender_username,
-      avatar: conv.sender_avatar || '',
-      lastMessage: conv.last_message || '',
-      lastMessageType: conv.last_message_type || 'text',
-      lastMessageImageUrl: conv.last_message_image_url || '',
-      time: formatTime(conv.last_message_time),
-      unread: conv.unread_count,
-      online: onlineUsers[conv.sender_id] || false,
-      color: getAvatarColor(conv.sender_name)
-    }));
+  const filteredConversations = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return inbox
+      .filter(conv => conv.sender_id && conv.sender_id !== 'None' && conv.sender_id !== 'null')
+      .slice()
+      .sort((a, b) => {
+        const timeA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
+        const timeB = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
+        return timeB - timeA;
+      })
+      .filter(conv =>
+        !q ||
+        conv.sender_name?.toLowerCase().includes(q) ||
+        conv.sender_username?.toLowerCase().includes(q)
+      )
+      .map(conv => ({
+        id: conv.sender_id,
+        _id: conv.sender_id,
+        name: conv.sender_name,
+        username: conv.sender_username,
+        avatar: conv.sender_avatar || '',
+        lastMessage: conv.last_message || '',
+        lastMessageType: conv.last_message_type || 'text',
+        lastMessageImageUrl: conv.last_message_image_url || '',
+        time: formatTime(conv.last_message_time),
+        unread: conv.unread_count,
+        online: onlineUsers[conv.sender_id] || false,
+        color: getAvatarColor(conv.sender_name)
+      }));
+  }, [inbox, searchQuery, onlineUsers]);
 
   return (
     <div className="h-screen whatsapp-bg flex overflow-hidden min-h-0">
