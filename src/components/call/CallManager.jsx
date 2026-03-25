@@ -123,6 +123,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const [error, setError] = useState('');
   const [connectionQuality, setConnectionQuality] = useState('good');
   const [facingMode, setFacingMode] = useState('user');
+  const [isOutgoing, setIsOutgoing] = useState(true); // false when we accepted an incoming call
 
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -317,6 +318,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     try {
       setCallType(type);
       setCallState(CALL_STATE.CALLING);
+      setIsOutgoing(true);
       setError('');
       answerAppliedRef.current = false;
 
@@ -378,6 +380,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       setCallType(type);
       callTypeRef.current = type;
       targetIdRef.current = incomingCallData.caller_id;
+      setIsOutgoing(false);
       setCallState(CALL_STATE.CALLING);
 
       const stream = await getMedia(type);
@@ -641,7 +644,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
                   <p className="text-yellow-300 text-sm font-mono mt-0.5 drop-shadow">{fmt(callDuration)}</p>
                 ) : (
                   <p className="text-purple-300 text-sm mt-0.5 drop-shadow flex items-center gap-1">
-                    Ringing
+                    {isOutgoing ? 'Ringing' : 'Connecting'}
                     <span className="cm-dot1 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
                     <span className="cm-dot2 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
                     <span className="cm-dot3 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
@@ -740,7 +743,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
               <p className="text-yellow-300 text-xl font-mono tracking-widest">{fmt(callDuration)}</p>
             ) : (
               <p className="text-purple-300 text-base flex items-center gap-1.5">
-                Ringing
+                {isOutgoing ? 'Ringing' : 'Connecting'}
                 <span className="cm-dot1 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
                 <span className="cm-dot2 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
                 <span className="cm-dot3 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
