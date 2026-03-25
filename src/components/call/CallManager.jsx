@@ -242,7 +242,9 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       remoteAudioRef.current.volume = 1.0;
       remoteAudioRef.current.play().catch(() => {});
     }
-  }, []);
+    // Remote stream arriving = connection is live on both sides → start timer
+    startTimer();
+  }, [startTimer]);
 
   // ── Start timer (guarded — only starts once) ──
   const startTimer = useCallback(() => {
@@ -644,7 +646,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
                   <p className="text-yellow-300 text-sm font-mono mt-0.5 drop-shadow">{fmt(callDuration)}</p>
                 ) : (
                   <p className="text-purple-300 text-sm mt-0.5 drop-shadow flex items-center gap-1">
-                    {isOutgoing ? 'Ringing' : 'Connecting'}
+                    {isOutgoing ? 'Ringing' : 'Talking'}
                     <span className="cm-dot1 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
                     <span className="cm-dot2 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
                     <span className="cm-dot3 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
