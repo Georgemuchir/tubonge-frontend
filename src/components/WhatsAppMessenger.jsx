@@ -1332,7 +1332,7 @@ const WhatsAppMessenger = () => {
                   <div key={msgId} className={`flex flex-col ${isSent ? 'items-end' : 'items-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
                     <div
                       className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md cursor-pointer`}
-                      onClick={() => !msg._deleted || msg.deleted && setActiveMsg(isActive ? null : msgId)}
+                      onClick={() => !(msg._deleted || msg.deleted) && setActiveMsg(isActive ? null : msgId)}
                     >
                       {msg._deleted || msg.deleted ? (
                         <p className="text-sm italic text-gray-400">
