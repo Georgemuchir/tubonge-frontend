@@ -1321,11 +1321,13 @@ const WhatsAppMessenger = () => {
                   <div key={msgId} className={`flex flex-col ${isSent ? 'items-end' : 'items-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
                     <div
                       className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md cursor-pointer`}
-                      onClick={() => !msg._deleted && setActiveMsg(isActive ? null : msgId)}
+                      onClick={() => !msg._deleted || msg.deleted && setActiveMsg(isActive ? null : msgId)}
                     >
-                      {msg._deleted ? (
+                      {msg._deleted || msg.deleted ? (
                         <p className="text-sm italic text-gray-400">
-                          {isSent ? 'Message deleted' : 'UPS! Deleted 😭'}
+                          {(msg.deleted_by || msg.sender_id) === (user?.id || user?._id)
+                            ? 'Message deleted'
+                            : 'UPS! Deleted 😭'}
                         </p>
                       ) : (
                         <>
@@ -1355,7 +1357,7 @@ const WhatsAppMessenger = () => {
                       </div>
                     </div>
                     {/* Action bar */}
-                    {isActive && !msg._deleted && (
+                    {isActive && !msg._deleted || msg.deleted && (
                       <div className={`flex gap-1 mt-1 ${isSent ? 'justify-end' : 'justify-start'}`}>
                         <button
                           onClick={e => { e.stopPropagation(); setReplyTo(msg); setActiveMsg(null); }}
