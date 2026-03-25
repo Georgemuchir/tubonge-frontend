@@ -944,20 +944,31 @@ const WhatsAppMessenger = () => {
   const handleDelete = async (msg) => {
     const msgId = msg.id || msg._id;
     setActiveMsg(null);
+    // Optimistic update — show placeholder immediately before network call
+    setMessages(prev => prev.map(m =>
+      (m.id || m._id) === msgId ? { ...m, _deleted: true } : m
+    ));
     try {
+      const token = await getAuthToken();
       const res = await fetch(`${API_BASE_URL}/messages/delete/${msgId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${await getAuthToken()}` },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
-        setMessages(prev => prev.map(m =>
-          (m.id || m._id) === msgId ? { ...m, _deleted: true } : m
-        ));
+        // Already updated optimistically — nothing more to do
       } else {
         const data = await res.json().catch(() => ({}));
+        // Revert optimistic update
+        setMessages(prev => prev.map(m =>
+          (m.id || m._id) === msgId ? { ...m, _deleted: false } : m
+        ));
         setSendError(data.error || 'Failed to delete message.');
       }
     } catch {
+      // Revert optimistic update
+      setMessages(prev => prev.map(m =>
+        (m.id || m._id) === msgId ? { ...m, _deleted: false } : m
+      ));
       setSendError('Failed to delete message.');
     }
   };
