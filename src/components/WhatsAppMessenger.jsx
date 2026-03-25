@@ -1086,16 +1086,6 @@ const WhatsAppMessenger = () => {
             </span>
           </button>
           
-          <button
-            onClick={() => { setShowCallLogs(true); setSelectedUser(null); setShowMobileSidebar(false); }}
-            className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showCallLogs ? 'bg-gray-700/50 text-teal-400' : 'text-gray-400 hover:text-teal-400'}`}
-            title="Calls"
-          >
-            <Phone className="w-6 h-6" />
-            <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Calls
-            </span>
-          </button>
           
           <div className="relative" data-settings-panel>
             <button
