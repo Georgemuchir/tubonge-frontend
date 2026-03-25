@@ -224,6 +224,13 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     return stream;
   }, [facingMode]);
 
+  // ── Start timer (guarded — only starts once) ──
+  const startTimer = useCallback(() => {
+    if (callTimerRef.current) return;
+    setCallState(CALL_STATE.CONNECTED);
+    callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+  }, []);
+
   // ── Attach remote stream ──
   const attachRemoteStream = useCallback((remoteStream) => {
     remoteStreamRef.current = remoteStream;
@@ -245,13 +252,6 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     // Remote stream arriving = connection is live on both sides → start timer
     startTimer();
   }, [startTimer]);
-
-  // ── Start timer (guarded — only starts once) ──
-  const startTimer = useCallback(() => {
-    if (callTimerRef.current) return;
-    setCallState(CALL_STATE.CONNECTED);
-    callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
-  }, []);
 
   // ── ICE quality monitor ──
   const monitorConnection = useCallback((peer) => {
