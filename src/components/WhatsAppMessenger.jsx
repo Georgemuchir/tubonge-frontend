@@ -1368,7 +1368,7 @@ const WhatsAppMessenger = () => {
                       </div>
                     </div>
                     {/* Action bar */}
-                    {isActive && !msg._deleted || msg.deleted && (
+                    {isActive && !(msg._deleted || msg.deleted) && (
                       <div className={`flex gap-1 mt-1 ${isSent ? 'justify-end' : 'justify-start'}`}>
                         <button
                           onClick={e => { e.stopPropagation(); setReplyTo(msg); setActiveMsg(null); }}
