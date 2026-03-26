@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { PhoneOff, Video, VideoOff, Mic, MicOff, PhoneIncoming, RefreshCw } from 'lucide-react';
 import Peer from 'simple-peer/simplepeer.min.js';
 import socketService from '../../services/socket';
@@ -10,102 +10,45 @@ const CALL_STATE = {
   CONNECTED: 'connected',
 };
 
-// Deterministic star positions so they don't re-randomise on re-render
-const STARS = Array.from({ length: 60 }, (_, i) => ({
-  id: i,
-  x: ((i * 37 + 13) % 97) + 1.5,
-  y: ((i * 61 + 7)  % 95) + 2.5,
-  size: (i % 3) + 1,
-  delay: (i * 0.17) % 3,
-  dur: 1.4 + (i % 5) * 0.3,
-}));
-
-const StarField = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {STARS.map(s => (
-      <div
-        key={s.id}
-        className="absolute rounded-full bg-white"
-        style={{
-          left: `${s.x}%`, top: `${s.y}%`,
-          width: s.size, height: s.size,
-          animation: `cm-twinkle ${s.dur}s ease-in-out ${s.delay}s infinite`,
-        }}
-      />
-    ))}
-  </div>
-);
-
-const DISNEY_CSS = `
-  @keyframes cm-twinkle {
-    0%,100% { opacity:0.1; transform:scale(0.4); }
-    50%      { opacity:1;   transform:scale(1); }
-  }
-  @keyframes cm-float {
-    0%,100% { transform:translateY(0); }
-    50%      { transform:translateY(-10px); }
-  }
+const CALL_CSS = `
   @keyframes cm-ring {
-    0%   { transform:scale(1);   opacity:0.65; }
-    100% { transform:scale(2.4); opacity:0; }
-  }
-  @keyframes cm-gold-pulse {
-    0%,100% { box-shadow:0 0 18px 4px rgba(240,192,64,.55),0 0 36px 8px rgba(160,100,230,.3); }
-    50%      { box-shadow:0 0 32px 8px rgba(240,192,64,.9), 0 0 64px 16px rgba(160,100,230,.5); }
+    0%   { transform:scale(1);   opacity:0.5; }
+    100% { transform:scale(1.9); opacity:0; }
   }
   @keyframes cm-dot {
-    0%,80%,100% { opacity:0.15; transform:scale(0.7); }
-    40%          { opacity:1;    transform:scale(1); }
+    0%,80%,100% { opacity:0.25; }
+    40%          { opacity:1; }
   }
-  @keyframes cm-btn-glow {
-    0%,100% { box-shadow:0 0 8px rgba(240,192,64,.3); }
-    50%      { box-shadow:0 0 18px rgba(240,192,64,.7); }
-  }
-  .cm-glow-avatar { animation:cm-gold-pulse 2.2s ease-in-out infinite; }
-  .cm-float       { animation:cm-float 3.2s ease-in-out infinite; }
-  .cm-ring1       { animation:cm-ring 2s ease-out infinite; }
-  .cm-ring2       { animation:cm-ring 2s ease-out .7s infinite; }
-  .cm-ring3       { animation:cm-ring 2s ease-out 1.4s infinite; }
-  .cm-dot1        { animation:cm-dot 1.4s ease-in-out 0s infinite; }
-  .cm-dot2        { animation:cm-dot 1.4s ease-in-out .25s infinite; }
-  .cm-dot3        { animation:cm-dot 1.4s ease-in-out .5s infinite; }
+  .cm-ring1 { animation:cm-ring 2s ease-out infinite; }
+  .cm-ring2 { animation:cm-ring 2s ease-out .65s infinite; }
+  .cm-dot1  { animation:cm-dot 1.4s ease-in-out 0s infinite; }
+  .cm-dot2  { animation:cm-dot 1.4s ease-in-out .25s infinite; }
+  .cm-dot3  { animation:cm-dot 1.4s ease-in-out .5s infinite; }
 `;
 
-const DisneyBg = () => (
-  <div
-    className="absolute inset-0"
-    style={{ background: 'radial-gradient(ellipse at 40% 30%, #1e0b4e 0%, #0d0d30 45%, #050518 100%)' }}
-  />
-);
-
-const Avatar = ({ name, size = 'lg', glow = false, float = false }) => {
+const CallAvatar = ({ name, size = 'lg', pulse = false }) => {
   const letter = name?.charAt(0)?.toUpperCase() || '?';
-  const px = size === 'lg' ? 'w-28 h-28 text-4xl' : 'w-20 h-20 text-2xl';
+  const dim = size === 'lg' ? 'w-24 h-24 text-4xl' : 'w-16 h-16 text-2xl';
   return (
-    <div className={`relative inline-flex items-center justify-center ${float ? 'cm-float' : ''}`}>
-      {glow && (
+    <div className="relative inline-flex items-center justify-center">
+      {pulse && (
         <>
-          <div className="cm-ring1 absolute inset-0 rounded-full border-2 border-yellow-300/60" />
-          <div className="cm-ring2 absolute inset-0 rounded-full border-2 border-purple-400/50" />
-          <div className="cm-ring3 absolute inset-0 rounded-full border-2 border-blue-300/40" />
+          <div className="cm-ring1 absolute inset-0 rounded-full bg-teal-500/30" />
+          <div className="cm-ring2 absolute inset-0 rounded-full bg-teal-500/20" />
         </>
       )}
-      <div
-        className={`${px} rounded-full flex items-center justify-center text-white font-bold relative z-10 ${glow ? 'cm-glow-avatar' : ''}`}
-        style={{ background: 'linear-gradient(135deg,#7c3aed,#2563eb,#0891b2)' }}
-      >
+      <div className={`${dim} rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold relative z-10`}>
         {letter}
       </div>
     </div>
   );
 };
 
-const GlassBtn = ({ onClick, children, className = '', title = '' }) => (
+const Btn = ({ onClick, children, className = '', title = '' }) => (
   <button
     onClick={onClick}
     title={title}
-    className={`rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${className}`}
-    style={{ backdropFilter: 'blur(12px)' }}
+    className={`rounded-full flex items-center justify-center transition-all duration-150 active:scale-95 ${className}`}
   >
     {children}
   </button>
@@ -553,65 +496,33 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   if (callState === CALL_STATE.INCOMING && incomingCallData) {
     const isVideo = incomingCallData.call_type !== 'audio';
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center">
-        <style>{DISNEY_CSS}</style>
-        <DisneyBg />
-        <StarField />
+      <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center">
+        <style>{CALL_CSS}</style>
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 w-72 text-center shadow-2xl">
+          <CallAvatar name={incomingCallData.caller_name} size="lg" pulse />
 
-        {/* Card */}
-        <div
-          className="relative z-10 w-80 rounded-3xl p-8 text-center"
-          style={{
-            background: 'rgba(18,8,50,0.75)',
-            backdropFilter: 'blur(24px)',
-            border: '1px solid rgba(240,192,64,0.25)',
-            boxShadow: '0 0 60px rgba(120,60,200,0.4), 0 0 0 1px rgba(240,192,64,0.1)',
-          }}
-        >
-          {/* Sparkle line */}
-          <p className="text-yellow-300/60 text-xs tracking-[0.35em] uppercase mb-6">
-            ✦ {isVideo ? 'Video' : 'Voice'} Call ✦
-          </p>
-
-          <Avatar name={incomingCallData.caller_name} size="lg" glow float />
-
-          <h3 className="mt-6 text-2xl font-bold text-white">{incomingCallData.caller_name}</h3>
-          <p className="mt-1 text-purple-300/80 text-sm">
+          <h3 className="mt-5 text-xl font-semibold text-white">{incomingCallData.caller_name}</h3>
+          <p className="mt-1 text-gray-400 text-sm flex items-center justify-center gap-1">
             Incoming {isVideo ? 'video' : 'voice'} call
-            <span className="cm-dot1 inline-block ml-0.5 w-1 h-1 rounded-full bg-purple-300 align-middle" />
-            <span className="cm-dot2 inline-block ml-0.5 w-1 h-1 rounded-full bg-purple-300 align-middle" />
-            <span className="cm-dot3 inline-block ml-0.5 w-1 h-1 rounded-full bg-purple-300 align-middle" />
+            <span className="cm-dot1 inline-block w-1 h-1 rounded-full bg-gray-400 ml-1" />
+            <span className="cm-dot2 inline-block w-1 h-1 rounded-full bg-gray-400" />
+            <span className="cm-dot3 inline-block w-1 h-1 rounded-full bg-gray-400" />
           </p>
 
-          {/* Buttons */}
-          <div className="flex justify-center gap-10 mt-10">
-            {/* Decline */}
-            <div className="flex flex-col items-center gap-2">
-              <GlassBtn
-                onClick={rejectCall}
-                className="w-16 h-16"
-                style={{ background: 'rgba(220,38,38,0.85)', boxShadow: '0 0 20px rgba(220,38,38,0.5)' }}
-                title="Decline"
-              >
-                <PhoneOff className="w-7 h-7 text-white" />
-              </GlassBtn>
-              <span className="text-xs text-red-400">Decline</span>
+          <div className="flex justify-center gap-8 mt-8">
+            <div className="flex flex-col items-center gap-1.5">
+              <Btn onClick={rejectCall} title="Decline"
+                className="w-14 h-14 bg-red-600 hover:bg-red-700 text-white">
+                <PhoneOff className="w-6 h-6" />
+              </Btn>
+              <span className="text-xs text-gray-500">Decline</span>
             </div>
-            {/* Accept */}
-            <div className="flex flex-col items-center gap-2">
-              <GlassBtn
-                onClick={acceptCall}
-                className="w-16 h-16"
-                style={{
-                  background: 'linear-gradient(135deg,#16a34a,#15803d)',
-                  boxShadow: '0 0 20px rgba(22,163,74,0.6), 0 0 40px rgba(240,192,64,0.2)',
-                  animation: 'cm-btn-glow 1.8s ease-in-out infinite',
-                }}
-                title="Accept"
-              >
-                <PhoneIncoming className="w-7 h-7 text-white" />
-              </GlassBtn>
-              <span className="text-xs text-green-400">Accept</span>
+            <div className="flex flex-col items-center gap-1.5">
+              <Btn onClick={acceptCall} title="Accept"
+                className="w-14 h-14 bg-teal-600 hover:bg-teal-500 text-white">
+                <PhoneIncoming className="w-6 h-6" />
+              </Btn>
+              <span className="text-xs text-gray-500">Accept</span>
             </div>
           </div>
         </div>
@@ -623,96 +534,70 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   if (callState === CALL_STATE.CALLING || callState === CALL_STATE.CONNECTED) {
     const isConnected = callState === CALL_STATE.CONNECTED;
 
+    const StatusLine = () => isConnected ? (
+      <p className="text-teal-400 text-sm font-mono mt-1">{fmt(callDuration)}</p>
+    ) : (
+      <p className="text-gray-400 text-sm mt-1 flex items-center gap-1">
+        {isOutgoing ? 'Ringing' : 'Connecting'}
+        <span className="cm-dot1 inline-block w-1 h-1 rounded-full bg-gray-400" />
+        <span className="cm-dot2 inline-block w-1 h-1 rounded-full bg-gray-400" />
+        <span className="cm-dot3 inline-block w-1 h-1 rounded-full bg-gray-400" />
+      </p>
+    );
+
     // ── VIDEO CALL ──
     if (callType === 'video') {
       return (
         <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-          <style>{DISNEY_CSS}</style>
+          <style>{CALL_CSS}</style>
 
-          {/* Remote video fills screen */}
           <div className="flex-1 relative overflow-hidden">
             <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
             <audio ref={remoteAudioRef} autoPlay playsInline />
 
-            {/* Top gradient overlay */}
-            <div className="absolute inset-x-0 top-0 h-36 pointer-events-none"
-              style={{ background: 'linear-gradient(to bottom, rgba(5,5,24,0.85) 0%, transparent 100%)' }} />
-
-            {/* Status bar */}
-            <div className="absolute top-0 inset-x-0 px-5 pt-5 flex items-start justify-between">
+            {/* Top overlay */}
+            <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
+            <div className="absolute top-0 inset-x-0 px-4 pt-4 flex items-start justify-between">
               <div>
-                <p className="text-white font-bold text-xl leading-tight drop-shadow">{remoteName}</p>
-                {isConnected ? (
-                  <p className="text-yellow-300 text-sm font-mono mt-0.5 drop-shadow">{fmt(callDuration)}</p>
-                ) : (
-                  <p className="text-purple-300 text-sm mt-0.5 drop-shadow flex items-center gap-1">
-                    {isOutgoing ? 'Ringing' : 'Talking'}
-                    <span className="cm-dot1 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
-                    <span className="cm-dot2 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
-                    <span className="cm-dot3 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
-                  </p>
-                )}
+                <p className="text-white font-semibold text-lg drop-shadow">{remoteName}</p>
+                <StatusLine />
               </div>
-              {connectionQuality !== 'good' && isConnected && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  connectionQuality === 'reconnecting' ? 'bg-yellow-500/80 text-black' : 'bg-red-500/80 text-white'
+              {isConnected && connectionQuality !== 'good' && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  connectionQuality === 'reconnecting' ? 'bg-yellow-500 text-black' : 'bg-red-600 text-white'
                 }`}>
                   {connectionQuality === 'reconnecting' ? 'Reconnecting…' : 'Poor signal'}
                 </span>
               )}
             </div>
 
-            {/* Local video PiP */}
-            <div
-              className="absolute top-20 right-4 w-28 h-40 rounded-2xl overflow-hidden shadow-2xl"
-              style={{ border: '1.5px solid rgba(240,192,64,0.4)', boxShadow: '0 0 16px rgba(120,60,200,0.5)' }}
-            >
+            {/* Local PiP */}
+            <div className="absolute top-16 right-3 w-24 h-36 rounded-xl overflow-hidden border border-gray-600 shadow-lg">
               <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
             </div>
 
-            {/* Bottom gradient overlay */}
-            <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
-              style={{ background: 'linear-gradient(to top, rgba(5,5,24,0.9) 0%, transparent 100%)' }} />
+            {/* Bottom fade */}
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
           </div>
 
-          {/* Controls */}
-          <div
-            className="px-6 py-5 flex justify-center items-center gap-5"
-            style={{ background: 'rgba(5,5,20,0.9)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(240,192,64,0.12)' }}
-          >
-            <GlassBtn onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'}
-              className="w-13 h-13 w-[52px] h-[52px]"
-              style={{
-                background: isMuted ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-              }}>
-              {isMuted ? <MicOff className="w-5 h-5 text-gray-900" /> : <Mic className="w-5 h-5 text-white" />}
-            </GlassBtn>
-
-            <GlassBtn onClick={toggleVideo} title={isVideoOff ? 'Camera on' : 'Camera off'}
-              className="w-[52px] h-[52px]"
-              style={{
-                background: isVideoOff ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-              }}>
-              {isVideoOff ? <VideoOff className="w-5 h-5 text-gray-900" /> : <Video className="w-5 h-5 text-white" />}
-            </GlassBtn>
-
-            <GlassBtn onClick={flipCamera} title="Flip camera"
-              className="w-[52px] h-[52px]"
-              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}>
-              <RefreshCw className="w-5 h-5 text-white" />
-            </GlassBtn>
-
-            {/* End call — centre-stage */}
-            <GlassBtn onClick={endCall} title="End call"
-              className="w-[64px] h-[64px]"
-              style={{
-                background: 'linear-gradient(135deg,#dc2626,#991b1b)',
-                boxShadow: '0 0 24px rgba(220,38,38,0.6), 0 0 0 1px rgba(220,38,38,0.3)',
-              }}>
-              <PhoneOff className="w-7 h-7 text-white" />
-            </GlassBtn>
+          {/* Controls bar */}
+          <div className="bg-gray-900 border-t border-gray-700 px-6 py-4 flex justify-center items-center gap-4">
+            <Btn onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'}
+              className={`w-12 h-12 ${isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
+              {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </Btn>
+            <Btn onClick={toggleVideo} title={isVideoOff ? 'Camera on' : 'Camera off'}
+              className={`w-12 h-12 ${isVideoOff ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
+              {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+            </Btn>
+            <Btn onClick={flipCamera} title="Flip camera"
+              className="w-12 h-12 bg-gray-700 hover:bg-gray-600 text-white">
+              <RefreshCw className="w-5 h-5" />
+            </Btn>
+            <Btn onClick={endCall} title="End call"
+              className="w-14 h-14 bg-red-600 hover:bg-red-700 text-white">
+              <PhoneOff className="w-6 h-6" />
+            </Btn>
           </div>
         </div>
       );
@@ -720,43 +605,18 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
     // ── AUDIO CALL ──
     return (
-      <div className="fixed inset-0 z-[100] flex flex-col">
-        <style>{DISNEY_CSS}</style>
-        <DisneyBg />
-        <StarField />
+      <div className="fixed inset-0 z-[100] bg-gray-900 flex flex-col">
+        <style>{CALL_CSS}</style>
         <audio ref={remoteAudioRef} autoPlay playsInline />
 
         {/* Main area */}
-        <div className="flex-1 flex flex-col items-center justify-center relative z-10 px-6">
-          {/* Sparkle label */}
-          <p className="text-yellow-300/50 text-xs tracking-[0.3em] uppercase mb-10">
-            ✦ Voice Call ✦
-          </p>
-
-          {/* Avatar */}
-          <Avatar name={remoteName} size="lg" glow float />
-
-          {/* Name */}
-          <h2 className="mt-8 text-3xl font-bold text-white tracking-wide">{remoteName}</h2>
-
-          {/* Status / Timer */}
-          <div className="mt-3 h-8 flex items-center justify-center">
-            {isConnected ? (
-              <p className="text-yellow-300 text-xl font-mono tracking-widest">{fmt(callDuration)}</p>
-            ) : (
-              <p className="text-purple-300 text-base flex items-center gap-1.5">
-                {isOutgoing ? 'Ringing' : 'Connecting'}
-                <span className="cm-dot1 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
-                <span className="cm-dot2 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
-                <span className="cm-dot3 inline-block w-1.5 h-1.5 rounded-full bg-purple-300" />
-              </p>
-            )}
-          </div>
-
-          {/* Connection quality */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <CallAvatar name={remoteName} size="lg" pulse={!isConnected} />
+          <h2 className="mt-6 text-2xl font-semibold text-white">{remoteName}</h2>
+          <StatusLine />
           {isConnected && connectionQuality !== 'good' && (
             <span className={`mt-3 text-xs px-3 py-1 rounded-full ${
-              connectionQuality === 'reconnecting' ? 'bg-yellow-500/80 text-black' : 'bg-red-500/80 text-white'
+              connectionQuality === 'reconnecting' ? 'bg-yellow-500 text-black' : 'bg-red-600 text-white'
             }`}>
               {connectionQuality === 'reconnecting' ? 'Reconnecting…' : 'Poor signal'}
             </span>
@@ -764,34 +624,20 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
         </div>
 
         {/* Controls */}
-        <div
-          className="relative z-10 px-8 py-8 flex justify-center items-center gap-6"
-          style={{ background: 'rgba(5,5,20,0.7)', backdropFilter: 'blur(24px)', borderTop: '1px solid rgba(240,192,64,0.1)' }}
-        >
-          {/* Mute */}
-          <div className="flex flex-col items-center gap-2">
-            <GlassBtn onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'}
-              className="w-[56px] h-[56px]"
-              style={{
-                background: isMuted ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-              }}>
-              {isMuted ? <MicOff className="w-6 h-6 text-gray-900" /> : <Mic className="w-6 h-6 text-white" />}
-            </GlassBtn>
-            <span className="text-xs text-white/50">{isMuted ? 'Unmute' : 'Mute'}</span>
+        <div className="bg-gray-800 border-t border-gray-700 px-8 py-8 flex justify-center items-center gap-8">
+          <div className="flex flex-col items-center gap-1.5">
+            <Btn onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'}
+              className={`w-14 h-14 ${isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
+              {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            </Btn>
+            <span className="text-xs text-gray-500">{isMuted ? 'Unmute' : 'Mute'}</span>
           </div>
-
-          {/* End call */}
-          <div className="flex flex-col items-center gap-2">
-            <GlassBtn onClick={endCall} title="End call"
-              className="w-[72px] h-[72px]"
-              style={{
-                background: 'linear-gradient(135deg,#dc2626,#991b1b)',
-                boxShadow: '0 0 28px rgba(220,38,38,0.65), 0 0 0 1px rgba(220,38,38,0.35)',
-              }}>
-              <PhoneOff className="w-8 h-8 text-white" />
-            </GlassBtn>
-            <span className="text-xs text-red-400">End</span>
+          <div className="flex flex-col items-center gap-1.5">
+            <Btn onClick={endCall} title="End call"
+              className="w-16 h-16 bg-red-600 hover:bg-red-700 text-white">
+              <PhoneOff className="w-7 h-7" />
+            </Btn>
+            <span className="text-xs text-gray-500">End</span>
           </div>
         </div>
       </div>
@@ -801,8 +647,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   // ── IDLE — error toast only ──
   if (error) {
     return (
-      <div className="fixed top-4 right-4 z-50 px-4 py-2 rounded-xl text-sm text-white"
-        style={{ background: 'rgba(220,38,38,0.9)', backdropFilter: 'blur(8px)', boxShadow: '0 0 16px rgba(220,38,38,0.5)' }}>
+      <div className="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded-lg text-sm shadow-lg">
         {error}
       </div>
     );
