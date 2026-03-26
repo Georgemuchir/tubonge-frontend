@@ -79,7 +79,6 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     authFlowInProgress.current = true;
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
       const { name, username, email, password } = userData;
 
       // 1. Create Firebase Auth user
@@ -96,7 +95,6 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      dispatch({ type: 'SET_LOADING', payload: false });
       return { success: false, error: firebaseErrorMessage(error) };
     } finally {
       authFlowInProgress.current = false;
@@ -106,7 +104,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     authFlowInProgress.current = true;
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
       const { email, password } = credentials;
 
       // 1. Sign in with Firebase
@@ -122,7 +119,6 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      dispatch({ type: 'SET_LOADING', payload: false });
       return { success: false, error: firebaseErrorMessage(error) };
     } finally {
       authFlowInProgress.current = false;
@@ -160,28 +156,39 @@ export const useAuth = () => {
 };
 
 function firebaseErrorMessage(error) {
-  // Firebase SDK errors have an error.code
-  if (error.code) {
+  // Firebase SDK errors have codes starting with "auth/"
+  // Axios errors also have error.code (e.g. "ERR_BAD_RESPONSE") — skip those
+  if (error.code && typeof error.code === 'string' && error.code.startsWith('auth/')) {
     switch (error.code) {
       case 'auth/email-already-in-use': return 'An account with this email already exists.';
-      case 'auth/invalid-email': return 'Invalid email address.';
+      case 'auth/invalid-email': return 'Invalid email address format.';
       case 'auth/weak-password': return 'Password must be at least 6 characters.';
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
+      case 'auth/user-not-found': return 'No account found with that email. Please check your email or register.';
+      case 'auth/wrong-password': return 'Incorrect password. Please try again or reset your password.';
       case 'auth/invalid-credential': return 'Incorrect email or password. Please try again or reset your password.';
-      case 'auth/too-many-requests': return 'Too many attempts. Please try again later.';
-      default: return error.message || 'Authentication failed.';
+      case 'auth/too-many-requests': return 'Too many failed attempts. Please wait a few minutes before trying again.';
+      case 'auth/network-request-failed': return 'Network error — check your internet connection and try again.';
+      case 'auth/user-disabled': return 'This account has been disabled. Please contact support.';
+      default: return error.message || 'Firebase authentication failed.';
     }
   }
+
+  // Network error — backend unreachable (no response at all)
+  if (!error.response) {
+    return 'Cannot reach the server. Check your internet connection or try again later.';
+  }
+
   // HTTP errors from our backend
   const status = error.response?.status;
   const backendMessage = error.response?.data?.error;
-  if (status === 404 && backendMessage?.includes('not found')) {
-    return 'Account not set up yet. Please register first.';
+
+  switch (status) {
+    case 401: return 'Authentication failed — your session token was rejected by the server. Try signing in again.';
+    case 404: return backendMessage || 'No account found. Please create an account first.';
+    case 503: return 'Server is temporarily unavailable (may still be starting up). Please try again in a moment.';
+    case 500: return 'A server error occurred. Please try again.';
+    default:
+      if (backendMessage) return backendMessage;
+      return `Login failed (HTTP ${status}). Please try again.`;
   }
-  if (status === 401) {
-    return 'Authentication failed. Please try again or reset your password.';
-  }
-  if (backendMessage) return backendMessage;
-  return error.message || 'Login failed. Please try again.';
 }

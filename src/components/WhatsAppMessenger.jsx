@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { flushSync } from 'react-dom';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
@@ -28,160 +30,94 @@ const styles = `
     33% { transform: translate(30px, -50px) scale(1.1); }
     66% { transform: translate(-20px, 20px) scale(0.9); }
   }
-  
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-20px); }
   }
-  
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; } to { opacity: 1; }
   }
-  
   @keyframes scaleUp {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; }
   }
-  
   @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; }
   }
-  
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
   }
-  
   @keyframes shimmer {
-    0% { background-position: -1000px 0; }
-    100% { background-position: 1000px 0; }
+    0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; }
   }
 
-  .blob {
-    animation: blob 7s infinite;
-  }
-  
-  .float-animation {
-    animation: float 3s ease-in-out infinite;
-  }
-  
-  .slide-up {
-    animation: slideUp 0.4s ease-out;
-  }
-  
+  .blob            { animation: blob 7s infinite; }
+  .float-animation { animation: float 3s ease-in-out infinite; }
+  .slide-up        { animation: slideUp 0.4s ease-out; }
+
   .glass-card {
-    background: linear-gradient(135deg, rgba(51, 65, 85, 0.8), rgba(30, 41, 59, 0.6));
+    background: linear-gradient(135deg, var(--wa-header), var(--wa-bg));
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--wa-border);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   }
-  
   .glass-card:hover {
-    background: linear-gradient(135deg, rgba(51, 65, 85, 0.9), rgba(30, 41, 59, 0.7));
-    border-color: rgba(59, 130, 246, 0.3);
-    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+    border-color: rgba(59,130,246,0.3);
+    box-shadow: 0 12px 40px rgba(59,130,246,0.2);
   }
-  
-  .message-sent {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-  }
-  
-  .message-received {
-    background: #475569;
-  }
-  
-  .hover-lift {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
+
+  .message-sent     { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+  .message-received { background: var(--wa-msg-received-bg); color: var(--wa-msg-received-txt); }
+
+  .hover-lift { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
   .hover-lift:hover {
     transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 16px 48px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 16px 48px rgba(59,130,246,0.3);
   }
-  
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #3b82f6;
-    border-radius: 3px;
-  }
-  
-  .whatsapp-bg {
-    background-color: #1e293b;
-  }
-  
-  .whatsapp-header {
-    background-color: #334155;
-  }
-  
-  .whatsapp-sidebar {
-    background-color: #1e293b;
-  }
-  
+
+  .scrollbar-thin::-webkit-scrollbar       { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: var(--wa-scrollbar-track); }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 3px; }
+
+  /* ── Theme-aware messenger classes ── */
+  .whatsapp-bg      { background-color: var(--wa-bg); color: var(--wa-text); }
+  .whatsapp-header  { background-color: var(--wa-header); }
+  .whatsapp-sidebar { background-color: var(--wa-sidebar); }
   .whatsapp-chat-bg {
-    background-color: #0f172a;
-    background-image: 
-      repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 35px,
-        rgba(59, 130, 246, 0.03) 35px,
-        rgba(59, 130, 246, 0.03) 70px
-      );
+    background-color: var(--wa-chat-bg);
+    background-image: repeating-linear-gradient(
+      45deg, transparent, transparent 35px,
+      rgba(59,130,246,0.03) 35px, rgba(59,130,246,0.03) 70px
+    );
   }
-  
-  .whatsapp-input {
-    background-color: #475569;
-  }
-  
-  .blue-accent {
-    color: #3b82f6;
-  }
-  
-  .blue-bg {
-    background-color: #3b82f6;
-  }
-  
-  .blue-bg-hover:hover {
-    background-color: #2563eb;
-  }
-  
-  .green-accent {
-    color: #10b981;
-  }
-  
-  .green-bg {
-    background-color: #10b981;
-  }
-  
-  .orange-accent {
-    color: #f97316;
-  }
-  
-  .orange-bg {
-    background-color: #f97316;
-  }
-  
-  .conversation-hover:hover {
-    background-color: #334155;
-  }
-  
-  .conversation-active {
-    background-color: #475569;
-  }
-  
-  .grey-bg {
-    background-color: #64748b;
-  }
-  
+  .whatsapp-input         { background-color: var(--wa-input-bg); color: var(--wa-text); }
+  .conversation-hover:hover { background-color: var(--wa-hover); }
+  .conversation-active    { background-color: var(--wa-active); }
+
+  /* Tailwind utility overrides for light mode */
+  [data-theme="light"] .text-white   { color: var(--wa-text) !important; }
+  [data-theme="light"] .text-gray-400 { color: var(--wa-text-muted) !important; }
+  [data-theme="light"] .text-gray-300 { color: var(--wa-text-muted) !important; }
+  [data-theme="light"] .text-gray-500 { color: var(--wa-text-muted) !important; }
+  [data-theme="light"] .border-gray-800 { border-color: var(--wa-border) !important; }
+  [data-theme="light"] .border-gray-700 { border-color: var(--wa-border) !important; }
+  [data-theme="light"] .bg-gray-800  { background-color: var(--wa-header) !important; }
+  [data-theme="light"] .bg-gray-900  { background-color: var(--wa-bg) !important; }
+  [data-theme="light"] .hover\:bg-gray-700:hover    { background-color: var(--wa-hover) !important; }
+  [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: var(--wa-hover) !important; }
+  [data-theme="light"] .bg-gray-700\/50 { background-color: var(--wa-active) !important; }
+  [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: var(--wa-hover) !important; }
+  [data-theme="light"] .border-gray-700\/50 { border-color: var(--wa-border) !important; }
+  [data-theme="light"] .ring-gray-700\/50 { --tw-ring-color: var(--wa-border) !important; }
+
+  .blue-accent  { color: #3b82f6; }
+  .blue-bg      { background-color: #3b82f6; }
+  .blue-bg-hover:hover { background-color: #2563eb; }
+  .green-accent { color: #10b981; }
+  .green-bg     { background-color: #10b981; }
+  .orange-accent{ color: #f97316; }
+  .orange-bg    { background-color: #f97316; }
+  .grey-bg      { background-color: #64748b; }
+
   /* Mobile optimizations */
   @media (max-width: 768px) {
     .mobile-sidebar {
@@ -223,6 +159,55 @@ const styles = `
     }
   }
 `;
+
+const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
+  const [query, setQuery] = useState('');
+  const getAvatarColor = (name) => {
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500'];
+    return colors[(name?.charCodeAt(0) || 0) % colors.length];
+  };
+  const filtered = inbox.filter(c => {
+    const name = c.sender_name || c.name || '';
+    return !query || name.toLowerCase().includes(query.toLowerCase());
+  });
+  const preview = msg.message_type === 'image' ? '📷 Photo'
+    : msg.message_type === 'voice' ? '🎤 Voice note'
+    : msg.content;
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="whatsapp-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={e => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-semibold text-white">Forward to...</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+        </div>
+        <div className="mb-3 px-3 py-2 rounded-lg bg-gray-700/50 border border-gray-600 text-gray-300 text-sm truncate">
+          <span className="text-gray-500 mr-1">Forwarding:</span>{preview}
+        </div>
+        <div className="relative mb-4">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input type="text" value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Search contacts..." autoFocus
+            className="w-full pl-12 pr-4 py-3 rounded-lg whatsapp-input text-white placeholder-gray-400 focus:outline-none border-none" />
+        </div>
+        <div className="space-y-1 max-h-80 overflow-y-auto scrollbar-thin">
+          {filtered.length === 0 ? (
+            <p className="text-center text-gray-400 py-6 text-sm">No contacts found</p>
+          ) : filtered.map(contact => {
+            const name = contact.sender_name || contact.name || 'Unknown';
+            return (
+            <div key={contact.sender_id || contact.id} onClick={() => onForward(contact)}
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer">
+              <div className={`w-11 h-11 rounded-full ${getAvatarColor(name)} flex items-center justify-center text-white font-semibold text-base overflow-hidden flex-shrink-0`}>
+                {contact.avatar ? <img src={resolveMediaUrl(contact.avatar)} alt={name} className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
+              </div>
+              <p className="text-white font-medium">{name}</p>
+            </div>
+          )})}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -374,7 +359,7 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin" style={{background: 'linear-gradient(to bottom, #1e293b, #0f172a)'}}>
+      <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar">
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 slide-up">
             <div className="relative mb-8">
@@ -470,6 +455,7 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
 
 const WhatsAppMessenger = () => {
   const { logout, user, updateUser } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
   const [conversationId, setConversationId] = useState(null);
@@ -493,18 +479,45 @@ const WhatsAppMessenger = () => {
   const callManagerRef = useRef(null);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
+  const [activeMsg, setActiveMsg] = useState(null);
+  const [forwardMsg, setForwardMsg] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [uploadingVoice, setUploadingVoice] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+
+  // Close settings panel on outside click
+  useEffect(() => {
+    if (!showSettings) return;
+    const handler = (e) => {
+      if (!e.target.closest('[data-settings-panel]')) setShowSettings(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSettings]);
 
   // Fetch inbox on mount
   useEffect(() => {
     fetchInbox();
   }, []);
 
-  // Scroll to bottom on open or new messages
+  // Keep-alive ping every 10 min to prevent Render free tier cold starts
   useEffect(() => {
-    if (!selectedUser) return;
-    if (loading) return;
+    const id = setInterval(() => {
+      fetch(`${API_BASE_URL}/health`).catch(() => {});
+    }, 10 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Scroll to bottom when conversation opens or message count changes
+  useEffect(() => {
+    if (!selectedUser || loading) return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedUser, loading, messages]);
+  }, [selectedUser, loading, messages.length]);
 
   const fetchInbox = async () => {
     try {
@@ -544,7 +557,6 @@ const WhatsAppMessenger = () => {
       if (selectedUser && (senderId === selectedId || receiverId === selectedId)) {
         setMessages(prevMessages => [...prevMessages, newMessage]);
       }
-      fetchInbox();
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('New message from Pinglo', {
           body: newMessage.content.substring(0, 50),
@@ -578,16 +590,24 @@ const WhatsAppMessenger = () => {
       }
     };
 
+    const handleMessageDeleted = ({ message_id }) => {
+      setMessages(prev => prev.map(m =>
+        (m.id || m._id) === message_id ? { ...m, _deleted: true } : m
+      ));
+    };
+
     socket.on('new_message', handleNewMessage);
     socket.on('inbox_update', fetchInbox);
     socket.on('user_status', handleUserStatus);
     socket.on('user_typing', handleUserTyping);
+    socket.on('message_deleted', handleMessageDeleted);
 
     return () => {
       socket.off('new_message', handleNewMessage);
       socket.off('inbox_update', fetchInbox);
       socket.off('user_status', handleUserStatus);
       socket.off('user_typing', handleUserTyping);
+      socket.off('message_deleted', handleMessageDeleted);
     };
   }, [selectedUser]);
 
@@ -643,10 +663,11 @@ const WhatsAppMessenger = () => {
   };
 
   const handleUserSelect = async (user) => {
+    const userId = user.id || user._id;
+    if (!userId || userId === 'None' || userId === 'null') return;
     setSelectedUser(user);
     setLoading(true);
     setShowMobileSidebar(false);
-    const userId = user.id || user._id;
     try {
       await fetch(`${API_BASE_URL}/messages/mark-read/${userId}`, {
         method: 'POST',
@@ -690,44 +711,78 @@ const WhatsAppMessenger = () => {
       return;
     }
     setSendError('');
-    setIsSending(true);
+
+    // Pre-fetch token so it doesn't delay rendering
+    const token = await getAuthToken();
+
+    // Optimistic update — force React to paint the message NOW before any network call
+    const tempId = `temp_${Date.now()}`;
+    const sentText = message;
+    const sentReplyTo = replyTo;
+    flushSync(() => {
+      setMessages(prev => [...prev, {
+        id: tempId,
+        sender_id: user?.id || user?._id,
+        recipient_id: selectedUser.id || selectedUser._id,
+        content: sentText,
+        timestamp: new Date().toISOString(),
+        message_type: 'text',
+        _optimistic: true,
+        ...(replyTo && {
+          reply_to_content: replyTo.content,
+          reply_to_sender_name: replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
+        }),
+      }]);
+      setMessage('');
+      setReplyTo(null);
+    });
+
     try {
       const socket = socketService.socket;
       if (socket && selectedUser) {
-        const recipientId = selectedUser.id || selectedUser._id;
         socket.emit('typing_user', {
-          recipient_id: recipientId,
+          recipient_id: selectedUser.id || selectedUser._id,
           sender_id: user?.id || user?._id,
           is_typing: false
         });
       }
     } catch (err) {}
+
     try {
       const response = await fetch(`${API_BASE_URL}/messages/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await getAuthToken()}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           recipient_id: selectedUser.id || selectedUser._id,
-          content: message,
+          content: sentText,
+          ...(sentReplyTo && {
+            reply_to_id: sentReplyTo.id || sentReplyTo._id,
+            reply_to_content: sentReplyTo.content,
+            reply_to_sender_name: sentReplyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
+          }),
         }),
       });
       if (response.ok) {
         const data = await response.json();
-        setMessages([...messages, data.message]);
-        setMessage('');
+        // Replace optimistic message with real one from server
+        setMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
         fetchInbox();
       } else {
+        // Remove optimistic message on failure
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        setMessage(sentText);
+        setReplyTo(sentReplyTo);
         const errorData = await response.json().catch(() => ({}));
         setSendError(errorData.error || 'Failed to send message.');
       }
     } catch (error) {
-      console.error('Send error:', error);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setMessage(sentText);
+      setReplyTo(sentReplyTo);
       setSendError('Network error sending message.');
-    } finally {
-      setIsSending(false);
     }
   };
 
@@ -789,6 +844,160 @@ const WhatsAppMessenger = () => {
     }
   };
 
+  const startRecording = async () => {
+    if (!selectedUser) { setSendError('Select a conversation first.'); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? { mimeType: 'audio/webm;codecs=opus' }
+        : {};
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await uploadVoiceNote(blob);
+      };
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(s => s + 1);
+      }, 1000);
+    } catch {
+      setSendError('Microphone access denied.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      clearInterval(recordingTimerRef.current);
+      setIsRecording(false);
+      setRecordingSeconds(0);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = null;
+      try { mediaRecorderRef.current.stop(); } catch {}
+      mediaRecorderRef.current = null;
+    }
+    clearInterval(recordingTimerRef.current);
+    audioChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
+
+  const uploadVoiceNote = async (blob) => {
+    if (!selectedUser) return;
+    setUploadingVoice(true);
+    try {
+      const formData = new FormData();
+      formData.append('voice', blob, 'voice.webm');
+      const uploadRes = await fetch(`${API_BASE_URL}/messages/upload-voice`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${await getAuthToken()}` },
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error('Voice upload failed');
+      const { url } = await uploadRes.json();
+      const sendRes = await fetch(`${API_BASE_URL}/messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getAuthToken()}`,
+        },
+        body: JSON.stringify({
+          recipient_id: selectedUser.id || selectedUser._id,
+          content: '🎤 Voice note',
+          message_type: 'voice',
+          voice_url: url,
+          ...(replyTo && {
+            reply_to_id: replyTo.id || replyTo._id,
+            reply_to_content: replyTo.content,
+            reply_to_sender_name: replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
+          }),
+        }),
+      });
+      if (sendRes.ok) {
+        const data = await sendRes.json();
+        setMessages(prev => [...prev, data.message]);
+        setReplyTo(null);
+        fetchInbox();
+      } else {
+        setSendError('Failed to send voice note.');
+      }
+    } catch {
+      setSendError('Failed to send voice note.');
+    } finally {
+      setUploadingVoice(false);
+    }
+  };
+
+  const handleDelete = async (msg) => {
+    const msgId = msg.id || msg._id;
+    setActiveMsg(null);
+    // Optimistic update — show placeholder immediately before network call
+    setMessages(prev => prev.map(m =>
+      (m.id || m._id) === msgId ? { ...m, _deleted: true } : m
+    ));
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`${API_BASE_URL}/messages/delete/${msgId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        // Already updated optimistically — nothing more to do
+      } else {
+        const data = await res.json().catch(() => ({}));
+        // Revert optimistic update
+        setMessages(prev => prev.map(m =>
+          (m.id || m._id) === msgId ? { ...m, _deleted: false } : m
+        ));
+        setSendError(data.error || 'Failed to delete message.');
+      }
+    } catch {
+      // Revert optimistic update
+      setMessages(prev => prev.map(m =>
+        (m.id || m._id) === msgId ? { ...m, _deleted: false } : m
+      ));
+      setSendError('Failed to delete message.');
+    }
+  };
+
+  const handleForward = async (contact) => {
+    const msg = forwardMsg;
+    setForwardMsg(null);
+    if (!msg || !contact) return;
+    try {
+      await fetch(`${API_BASE_URL}/messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getAuthToken()}`,
+        },
+        body: JSON.stringify({
+          recipient_id: contact.sender_id || contact.id || contact._id,
+          content: msg.content,
+          message_type: msg.message_type || 'text',
+          ...(msg.image_url && { image_url: msg.image_url }),
+          ...(msg.voice_url && { voice_url: msg.voice_url }),
+        }),
+      });
+      fetchInbox();
+    } catch {
+      setSendError('Failed to forward message.');
+    }
+  };
+
   const handleAvatarUpload = async (file) => {
     if (!file) return;
     try {
@@ -815,31 +1024,36 @@ const WhatsAppMessenger = () => {
     }
   };
 
-  const filteredConversations = inbox
-    .slice()
-    .sort((a, b) => {
-      const timeA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
-      const timeB = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
-      return timeB - timeA;
-    })
-    .filter(conv => 
-      conv.sender_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.sender_username?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .map(conv => ({
-      id: conv.sender_id,
-      _id: conv.sender_id,
-      name: conv.sender_name,
-      username: conv.sender_username,
-      avatar: conv.sender_avatar || '',
-      lastMessage: conv.last_message || '',
-      lastMessageType: conv.last_message_type || 'text',
-      lastMessageImageUrl: conv.last_message_image_url || '',
-      time: formatTime(conv.last_message_time),
-      unread: conv.unread_count,
-      online: onlineUsers[conv.sender_id] || false,
-      color: getAvatarColor(conv.sender_name)
-    }));
+  const filteredConversations = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return inbox
+      .filter(conv => conv.sender_id && conv.sender_id !== 'None' && conv.sender_id !== 'null')
+      .slice()
+      .sort((a, b) => {
+        const timeA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
+        const timeB = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
+        return timeB - timeA;
+      })
+      .filter(conv =>
+        !q ||
+        conv.sender_name?.toLowerCase().includes(q) ||
+        conv.sender_username?.toLowerCase().includes(q)
+      )
+      .map(conv => ({
+        id: conv.sender_id,
+        _id: conv.sender_id,
+        name: conv.sender_name,
+        username: conv.sender_username,
+        avatar: conv.sender_avatar || '',
+        lastMessage: conv.last_message || '',
+        lastMessageType: conv.last_message_type || 'text',
+        lastMessageImageUrl: conv.last_message_image_url || '',
+        time: formatTime(conv.last_message_time),
+        unread: conv.unread_count,
+        online: onlineUsers[conv.sender_id] || false,
+        color: getAvatarColor(conv.sender_name)
+      }));
+  }, [inbox, searchQuery, onlineUsers]);
 
   return (
     <div className="h-screen whatsapp-bg flex overflow-hidden min-h-0">
@@ -897,26 +1111,72 @@ const WhatsAppMessenger = () => {
             </span>
           </button>
           
-          <button
-            onClick={() => { setShowCallLogs(true); setSelectedUser(null); setShowMobileSidebar(false); }}
-            className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showCallLogs ? 'bg-gray-700/50 text-teal-400' : 'text-gray-400 hover:text-teal-400'}`}
-            title="Calls"
-          >
-            <Phone className="w-6 h-6" />
-            <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Calls
-            </span>
-          </button>
           
-          <button
-            className="p-4 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-blue-400 transition-all touch-target group relative"
-            title="Settings"
-          >
-            <Settings className="w-6 h-6" />
-            <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Settings
-            </span>
-          </button>
+          <div className="relative" data-settings-panel>
+            <button
+              onClick={() => setShowSettings(v => !v)}
+              className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showSettings ? 'bg-gray-700/50 text-blue-400' : 'text-gray-400 hover:text-blue-400'}`}
+              title="Settings"
+            >
+              <Settings className="w-6 h-6" />
+              {!showSettings && (
+                <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  Settings
+                </span>
+              )}
+            </button>
+
+            {/* Settings Panel */}
+            {showSettings && (
+              <div
+                className="absolute left-full ml-3 bottom-0 w-56 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden z-50"
+                style={{ background: theme === 'light' ? '#ffffff' : '#1e293b' }}
+              >
+                <div className="px-4 py-3 border-b border-gray-700">
+                  <p className="text-sm font-semibold" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                    Settings
+                  </p>
+                </div>
+
+                <div className="px-4 py-3">
+                  <p className="text-xs font-medium mb-2" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                    THEME
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => setTheme('dark')}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
+                      style={{
+                        background: theme === 'dark' ? 'rgba(59,130,246,0.15)' : 'transparent',
+                        border: theme === 'dark' ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
+                      }}
+                    >
+                      <Moon className="w-4 h-4" style={{ color: theme === 'dark' ? '#60a5fa' : '#94a3b8' }} />
+                      <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#60a5fa' : (theme === 'light' ? '#64748b' : '#94a3b8') }}>
+                        Dark
+                      </span>
+                      {theme === 'dark' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+                    </button>
+
+                    <button
+                      onClick={() => setTheme('light')}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
+                      style={{
+                        background: theme === 'light' ? 'rgba(59,130,246,0.1)' : 'transparent',
+                        border: theme === 'light' ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
+                      }}
+                    >
+                      <Sun className="w-4 h-4" style={{ color: theme === 'light' ? '#f59e0b' : '#94a3b8' }} />
+                      <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#f59e0b' : '#94a3b8' }}>
+                        Light
+                      </span>
+                      {theme === 'light' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Logout at Bottom */}
@@ -1066,25 +1326,73 @@ const WhatsAppMessenger = () => {
                   );
                 }
 
+                const msgId = msg.id || msg._id;
+                const isActive = activeMsg === msgId;
+                const isDeleted = msg._deleted || msg.deleted;
                 return (
-                  <div key={msg.id || msg._id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
-                    <div className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md`}>
-                      {msg.message_type === 'image' && msg.image_url ? (
-                        <img
-                          src={resolveMediaUrl(msg.image_url)}
-                          alt="Shared"
-                          className="rounded-md max-w-full h-auto"
-                        />
+                  <div key={msgId} className={`flex flex-col ${isSent ? 'items-end' : 'items-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
+                    <div
+                      className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md cursor-pointer`}
+                      onClick={() => setActiveMsg(isActive ? null : msgId)}
+                    >
+                      {isDeleted ? (
+                        <p className="text-sm italic text-gray-400">
+                          {(msg.deleted_by || msg.sender_id) === (user?.id || user?._id)
+                            ? 'Message deleted'
+                            : 'UPS! Deleted 😭'}
+                        </p>
                       ) : (
-                        <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
+                        <>
+                          {/* Reply quote */}
+                          {msg.reply_to_content && (
+                            <div className={`mb-2 pl-2 border-l-2 ${isSent ? 'border-blue-300' : 'border-gray-400'} rounded-sm`}>
+                              <p className={`text-xs font-semibold mb-0.5 ${isSent ? 'text-blue-200' : 'text-gray-300'}`}>
+                                {msg.reply_to_sender_name}
+                              </p>
+                              <p className={`text-xs truncate ${isSent ? 'text-blue-100/80' : 'text-gray-400'}`}>
+                                {msg.reply_to_content}
+                              </p>
+                            </div>
+                          )}
+                          {msg.message_type === 'image' && msg.image_url ? (
+                            <img src={resolveMediaUrl(msg.image_url)} alt="Shared" className="rounded-md max-w-full h-auto" />
+                          ) : msg.message_type === 'voice' && msg.voice_url ? (
+                            <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
+                          ) : (
+                            <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
+                          )}
+                        </>
                       )}
                       <div className="flex items-center justify-end gap-1 mt-1">
                         <span className="text-xs text-gray-300">{formatTime(msg.timestamp || msg.created_at)}</span>
-                        {isSent && (
-                          <Check className="w-4 h-4 text-blue-300" />
-                        )}
+                        {isSent && <Check className="w-4 h-4 text-blue-300" />}
                       </div>
                     </div>
+                    {/* Action bar — hidden for deleted messages */}
+                    {isActive && !isDeleted && (
+                      <div className={`flex gap-1 mt-1 ${isSent ? 'justify-end' : 'justify-start'}`}>
+                        <button
+                          onClick={e => { e.stopPropagation(); setReplyTo(msg); setActiveMsg(null); }}
+                          className="flex items-center gap-1 px-3 py-1 rounded-full bg-gray-700/80 hover:bg-gray-600 text-gray-300 text-xs transition-colors"
+                        >
+                          <CornerUpLeft className="w-3.5 h-3.5" /> Reply
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); setForwardMsg(msg); setActiveMsg(null); }}
+                          className="flex items-center gap-1 px-3 py-1 rounded-full bg-gray-700/80 hover:bg-gray-600 text-gray-300 text-xs transition-colors"
+                        >
+                          <Send className="w-3.5 h-3.5" /> Forward
+                        </button>
+                        {isSent && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDelete(msg); }}
+                            className="flex items-center gap-1 px-3 py-1 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 text-xs transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -1098,6 +1406,37 @@ const WhatsAppMessenger = () => {
                 {sendError}
               </div>
             )}
+            {replyTo && (
+              <div className="mb-2 flex items-center gap-2 rounded-lg bg-gray-700/50 border-l-2 border-blue-400 px-3 py-2">
+                <CornerUpLeft className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-blue-300 mb-0.5">
+                    {replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them')}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">{replyTo.content}</p>
+                </div>
+                <button onClick={() => setReplyTo(null)} className="p-1 rounded-full hover:bg-gray-600 text-gray-400 flex-shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            {isRecording ? (
+              <div className="flex items-center gap-3">
+                <button onClick={cancelRecording} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors touch-target" title="Cancel">
+                  <X className="w-5 h-5" />
+                </button>
+                <div className="flex-1 flex items-center gap-2 whatsapp-input rounded-lg px-4 py-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-red-400 text-sm font-medium">
+                    {String(Math.floor(recordingSeconds / 60)).padStart(2,'0')}:{String(recordingSeconds % 60).padStart(2,'0')}
+                  </span>
+                  <span className="text-gray-400 text-sm">Recording...</span>
+                </div>
+                <button onClick={stopRecording} className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors touch-target" title="Send voice note">
+                  <Square className="w-5 h-5 fill-white" />
+                </button>
+              </div>
+            ) : (
             <div className="flex items-center gap-2">
             <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target">
               <Smile className="w-6 h-6" />
@@ -1147,14 +1486,26 @@ const WhatsAppMessenger = () => {
                 className="w-full bg-transparent text-white placeholder-gray-400 focus:outline-none border-none text-sm md:text-base"
               />
             </div>
-            <button
-              onClick={handleSend}
-              disabled={!message.trim() || isSending}
-              className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
-            >
-              <Send className="w-5 h-5" />
-            </button>
+            {message.trim() ? (
+              <button
+                onClick={handleSend}
+                disabled={isSending}
+                className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
+              >
+                {isSending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
+              </button>
+            ) : (
+              <button
+                onClick={startRecording}
+                disabled={uploadingVoice}
+                className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
+                title="Record voice note"
+              >
+                {uploadingVoice ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mic className="w-5 h-5" />}
+              </button>
+            )}
             </div>
+            )}
           </div>
           </>
         )}
@@ -1164,6 +1515,16 @@ const WhatsAppMessenger = () => {
         <UserSearch
           onClose={() => setShowUserSearch(false)}
           onSelectUser={handleUserSelect}
+          resolveMediaUrl={resolveMediaUrl}
+        />
+      )}
+
+      {forwardMsg && (
+        <ForwardModal
+          msg={forwardMsg}
+          inbox={inbox}
+          onClose={() => setForwardMsg(null)}
+          onForward={handleForward}
           resolveMediaUrl={resolveMediaUrl}
         />
       )}
