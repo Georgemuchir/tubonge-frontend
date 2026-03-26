@@ -3,13 +3,14 @@ import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDNbCS6-aB9M80VDlOHSctni4QczCUIK-Y",
-  authDomain: "pinglo-staging.firebaseapp.com",
-  projectId: "pinglo-staging",
-  storageBucket: "pinglo-staging.firebasestorage.app",
-  messagingSenderId: "410654652593",
-  appId: "1:410654652593:web:3af8961cbaef4db5324a90",
-  measurementId: "G-FS4EE059V3",
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL:       import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
