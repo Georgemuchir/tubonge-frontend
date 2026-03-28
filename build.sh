@@ -7,13 +7,9 @@ echo "🚀 Starting Pinglo Frontend deployment on Render..."
 echo "📦 Installing Node.js dependencies..."
 npm install
 
-# Build the React application (use staging mode if NODE_ENV=staging)
+# Build the React application for staging
 echo "🏗️ Building React application..."
-if [ "${NODE_ENV}" = "staging" ]; then
-  npm run build:staging
-else
-  npm run build
-fi
+npm run build:staging
 
 echo "✅ Frontend build completed successfully!"
 
