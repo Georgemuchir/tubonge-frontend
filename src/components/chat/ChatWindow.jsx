@@ -17,7 +17,9 @@ const ChatWindow = () => {
     sendTyping,
     typingUsers,
     setActiveConversation,
-    getRelationshipStatus
+    getRelationshipStatus,
+    acceptMessageRequest,
+    declineMessageRequest,
   } = useChat();
   const { user } = useAuth();
   const [messageText, setMessageText] = useState('');
@@ -27,6 +29,7 @@ const ChatWindow = () => {
   const typingTimeoutRef = useRef(null);
   const [relationshipStatus, setRelationshipStatus] = useState('NONE');
   const [statusLoading, setStatusLoading] = useState(false);
+  const [requestId, setRequestId] = useState(null);
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -98,6 +101,9 @@ const ChatWindow = () => {
       setMessageText('');
       setIsTyping(false);
       setReplyToMessage(null);
+      if (relationshipStatus === 'NONE') {
+        setRelationshipStatus('OUTGOING_PENDING');
+      }
     }
   };
 
@@ -122,7 +128,7 @@ const ChatWindow = () => {
 
   // Voice recording
   const startRecording = async () => {
-    if (relationshipStatus !== 'ACCEPTED') return;
+    if (relationshipStatus !== 'ACCEPTED' && relationshipStatus !== 'NONE') return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -227,28 +233,42 @@ const ChatWindow = () => {
     // Check relationship status on conversation change
     useEffect(() => {
       const checkStatus = async () => {
-        if (otherParticipant?.username) {
+        if (otherParticipant?.id) {
           setStatusLoading(true);
-          const status = await getRelationshipStatus(otherParticipant.username);
-          setRelationshipStatus(status);
+          const data = await getRelationshipStatus(otherParticipant.id);
+          setRelationshipStatus(data.status || 'NONE');
+          setRequestId(data.request_id || null);
           setStatusLoading(false);
         } else {
           setRelationshipStatus('NONE');
+          setRequestId(null);
         }
       };
       checkStatus();
-    }, [activeConversation?.id, otherParticipant?.username]);
+    }, [activeConversation?.id, otherParticipant?.id]);
 
   // Get typing users for this conversation (excluding current user)
   const conversationTypingUsers = typingUsers[activeConversation?.id] || {};
   const isOtherUserTyping = Object.entries(conversationTypingUsers)
     .some(([userId, typing]) => userId !== user?.id && typing);
 
+  const handleAcceptRequest = async () => {
+    if (!requestId) return;
+    await acceptMessageRequest(requestId);
+    setRelationshipStatus('ACCEPTED');
+  };
+
+  const handleDeclineRequest = async () => {
+    if (!requestId) return;
+    await declineMessageRequest(requestId);
+    setActiveConversation(null);
+  };
+
   if (!activeConversation) {
     return null;
   }
 
-  const canChat = relationshipStatus === 'ACCEPTED';
+  const canChat = relationshipStatus === 'ACCEPTED' || relationshipStatus === 'NONE';
 
   return (
     <div
@@ -362,20 +382,38 @@ const ChatWindow = () => {
       ) : (
         <>
           {!canChat && (
-            <div className="flex flex-col items-center justify-center py-2 text-yellow-400">
+            <div className="flex flex-col items-center justify-center py-3 text-yellow-400">
               <AlertTriangle className="mb-2" size={24} />
-              <div className="font-semibold text-sm">You can't send messages yet</div>
               {relationshipStatus === 'OUTGOING_PENDING' && (
-                <div className="text-xs mt-1">Friend request sent. Waiting for acceptance.</div>
+                <>
+                  <div className="font-semibold text-sm">Message request sent</div>
+                  <div className="text-xs mt-1 text-gray-400">Waiting for {otherParticipant?.name} to accept before you can send more.</div>
+                </>
               )}
               {relationshipStatus === 'INCOMING_PENDING' && (
-                <div className="text-xs mt-1">You have a friend request from this user. <b>Accept it in your inbox to start chatting.</b></div>
+                <>
+                  <div className="font-semibold text-sm mb-2">Message request from {otherParticipant?.name}</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleAcceptRequest()}
+                      className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-full font-semibold"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleDeclineRequest()}
+                      className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded-full font-semibold"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </>
               )}
               {relationshipStatus === 'NONE' && (
-                <div className="text-xs mt-1">Send a friend request to start chatting.</div>
-              )}
-              {relationshipStatus === 'BLOCKED' && (
-                <div className="text-xs mt-1">You have blocked this user.</div>
+                <>
+                  <div className="font-semibold text-sm">Send a message to connect</div>
+                  <div className="text-xs mt-1 text-gray-400">Your first message will be sent as a request.</div>
+                </>
               )}
             </div>
           )}

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, User, Mail, Lock, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { MessageCircle, User, Mail, Lock, ArrowRight, Sparkles, CheckCircle2, Phone } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    name: '', email: '', username: '', password: '', confirmPassword: ''
+    name: '', email: '', username: '', password: '', confirmPassword: '', phone_number: ''
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -23,8 +23,11 @@ const Register = () => {
     if (formData.password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setSubmitting(true);
     const result = await register({
-      name: formData.name, email: formData.email,
-      username: formData.username, password: formData.password,
+      name: formData.name || formData.username,
+      email: formData.email,
+      username: formData.username,
+      password: formData.password,
+      phone_number: formData.phone_number,
     });
     setSubmitting(false);
     if (result.success) { navigate('/'); } else { setError(result.error); }
@@ -88,8 +91,9 @@ const Register = () => {
                 <User className="auth-icon w-5 h-5" />
               </div>
               <input type="text" name="name" value={formData.name} onChange={handleChange}
-                className="auth-input w-full pl-12 pr-4 py-3.5 rounded-xl transition-all"
-                placeholder="Full name" required />
+                className="auth-input w-full pl-12 pr-28 py-3.5 rounded-xl transition-all"
+                placeholder="Full name" />
+              <span className="absolute inset-y-0 right-4 flex items-center text-xs auth-subtitle pointer-events-none">optional</span>
             </div>
 
             <div className="relative">
@@ -108,6 +112,15 @@ const Register = () => {
               <input type="email" name="email" value={formData.email} onChange={handleChange}
                 className="auth-input w-full pl-12 pr-4 py-3.5 rounded-xl transition-all"
                 placeholder="Email address" required />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Phone className="auth-icon w-5 h-5" />
+              </div>
+              <input type="tel" name="phone_number" value={formData.phone_number} onChange={handleChange}
+                className="auth-input w-full pl-12 pr-4 py-3.5 rounded-xl transition-all"
+                placeholder="Phone number" required />
             </div>
 
             <div className="space-y-2">

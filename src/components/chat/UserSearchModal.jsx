@@ -86,7 +86,7 @@ const UserSearchModal = ({ onClose, onSelectUser }) => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, username, or email..."
+              placeholder="Search by name, username, email, or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-3 bg-gray-50 border-0 rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-1 focus:ring-gray-300 transition-all"
@@ -154,6 +154,9 @@ const UserSearchModal = ({ onClose, onSelectUser }) => {
                     <h3 className="font-medium text-gray-900">{user.name}</h3>
                     <p className="text-sm text-blue-600">@{user.username}</p>
                     <p className="text-xs text-gray-500">{user.email}</p>
+                    {user.phone_number && (
+                      <p className="text-xs text-gray-400">{user.phone_number}</p>
+                    )}
                   </div>
 
                   {/* Status */}

@@ -480,6 +480,10 @@ const WhatsAppMessenger = () => {
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', phone_number: '' });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   const [activeMsg, setActiveMsg] = useState(null);
   const [forwardMsg, setForwardMsg] = useState(null);
@@ -1024,6 +1028,56 @@ const WhatsAppMessenger = () => {
     }
   };
 
+  // Auto-prompt when phone number is missing
+  useEffect(() => {
+    if (user && !user.phone_number) {
+      setProfileForm({ name: user.name || '', phone_number: '' });
+      setProfileError('');
+      setShowProfileModal(true);
+    }
+  }, [user?.phone_number]);
+
+  const openProfileModal = () => {
+    setProfileForm({ name: user?.name || '', phone_number: user?.phone_number || '' });
+    setProfileError('');
+    setShowProfileModal(true);
+    setShowSettings(false);
+  };
+
+  const handleProfileSave = async () => {
+    if (!profileForm.phone_number.trim()) {
+      setProfileError('Phone number is required.');
+      return;
+    }
+    setProfileSaving(true);
+    setProfileError('');
+    try {
+      const payload = {};
+      if (profileForm.name.trim()) payload.name = profileForm.name.trim();
+      payload.phone_number = profileForm.phone_number.trim();
+
+      const response = await fetch(`${API_BASE_URL}/users/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getAuthToken()}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setProfileError(data.error || 'Failed to save profile.');
+        return;
+      }
+      updateUser({ name: payload.name || user?.name, phone_number: payload.phone_number });
+      setShowProfileModal(false);
+    } catch {
+      setProfileError('Network error. Please try again.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   const filteredConversations = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return inbox
@@ -1136,6 +1190,18 @@ const WhatsAppMessenger = () => {
                   <p className="text-sm font-semibold" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
                     Settings
                   </p>
+                </div>
+
+                <div className="px-4 py-3 border-b border-gray-700">
+                  <button
+                    onClick={openProfileModal}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-gray-700/50"
+                  >
+                    <User className="w-4 h-4" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }} />
+                    <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                      Edit Profile
+                    </span>
+                  </button>
                 </div>
 
                 <div className="px-4 py-3">
@@ -1543,6 +1609,102 @@ const WhatsAppMessenger = () => {
         className="hidden"
         onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
       />
+
+      {/* Profile Edit Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div
+            className="w-full max-w-md mx-4 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden"
+            style={{ background: theme === 'light' ? '#ffffff' : '#1e293b' }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+              <div>
+                <h2 className="text-lg font-semibold" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                  {!user?.phone_number ? 'Complete Your Profile' : 'Edit Profile'}
+                </h2>
+                {!user?.phone_number && (
+                  <p className="text-xs mt-0.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                    A phone number is required to use Pinglo.
+                  </p>
+                )}
+              </div>
+              {user?.phone_number && (
+                <button
+                  onClick={() => setShowProfileModal(false)}
+                  className="p-1 rounded-lg hover:bg-gray-700/50 transition-colors"
+                >
+                  <X className="w-5 h-5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }} />
+                </button>
+              )}
+            </div>
+
+            {/* Form */}
+            <div className="px-6 py-5 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Your name"
+                  className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                  style={{
+                    background: theme === 'light' ? '#f8fafc' : '#0f172a',
+                    border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
+                    color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                  Phone Number <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={profileForm.phone_number}
+                  onChange={(e) => setProfileForm(f => ({ ...f, phone_number: e.target.value }))}
+                  placeholder="+1 234 567 8900"
+                  autoFocus={!user?.phone_number}
+                  className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                  style={{
+                    background: theme === 'light' ? '#f8fafc' : '#0f172a',
+                    border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
+                    color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+                  }}
+                />
+              </div>
+
+              {profileError && (
+                <p className="text-sm text-red-400">{profileError}</p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-700">
+              {user?.phone_number && (
+                <button
+                  onClick={() => setShowProfileModal(false)}
+                  className="px-4 py-2 text-sm rounded-xl transition-all hover:bg-gray-700/50"
+                  style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={handleProfileSave}
+                disabled={profileSaving || !profileForm.phone_number.trim()}
+                className="px-5 py-2 text-sm font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50"
+              >
+                {profileSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Global CallManager — always mounted so calls survive navigation */}
       <CallManager
