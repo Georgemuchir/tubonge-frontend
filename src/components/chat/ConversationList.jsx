@@ -79,7 +79,7 @@ const ConversationList = () => {
     <>
       {/* Sidebar Header */}
       <div className="nexus-sidebar-header">
-        <h1 className="nexus-app-title">Nexus Chat</h1>
+        <h1 className="nexus-app-title">{user?.username ? `@${user.username}` : user?.name || 'Nexus Chat'}</h1>
         <div className="nexus-search-bar">
           <span className="nexus-search-icon">🔍</span>
           <input 
