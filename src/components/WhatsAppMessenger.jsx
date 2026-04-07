@@ -314,7 +314,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   );
 };
 
-const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery, resolveMediaUrl }) => {
+const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery, resolveMediaUrl, user }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
@@ -331,7 +331,7 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
               <MessageCircle className="w-6 h-6 text-teal-400" />
-              Conversations
+              {user?.username ? `@${user.username}` : user?.name || 'Conversations'}
             </h2>
             <p className="text-sm text-gray-400 mt-0.5">{conversations.length} active chats</p>
           </div>
@@ -1341,16 +1341,17 @@ const WhatsAppMessenger = () => {
             getAvatarColor={getAvatarColor}
           />
         ) : !selectedUser ? (
-          <ConversationsView 
+          <ConversationsView
             conversations={filteredConversations}
             onSelectUser={handleUserSelect}
-            onNewMessage={() => setShowUserSearch(true)} 
+            onNewMessage={() => setShowUserSearch(true)}
             onOpenSidebar={() => setShowMobileSidebar(true)}
             isMobile={isMobile}
             getAvatarColor={getAvatarColor}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             resolveMediaUrl={resolveMediaUrl}
+            user={user}
           />
         ) : (
           <>
