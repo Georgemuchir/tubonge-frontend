@@ -493,6 +493,24 @@ const WhatsAppMessenger = () => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
+  const [showLastSeen, setShowLastSeen] = useState(user?.show_last_seen !== false);
+
+  const formatLastSeen = (ts) => {
+    if (!ts) return 'Offline';
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return 'Offline';
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Last seen just now';
+    if (diffMins < 60) return `Last seen ${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `Last seen ${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Last seen yesterday';
+    if (diffDays < 7) return `Last seen ${diffDays} days ago`;
+    return `Last seen ${date.toLocaleDateString()}`;
+  };
 
   // Close settings panel on outside click
   useEffect(() => {
@@ -574,11 +592,12 @@ const WhatsAppMessenger = () => {
         ...prev,
         [statusData.user_id]: statusData.status === 'online'
       }));
-      
+
       if (selectedUser && (selectedUser.id === statusData.user_id || selectedUser._id === statusData.user_id)) {
         setSelectedUser(prev => ({
           ...prev,
-          online: statusData.status === 'online'
+          online: statusData.status === 'online',
+          last_seen: statusData.status === 'offline' ? (statusData.last_seen || prev.last_seen) : prev.last_seen,
         }));
       }
     };
@@ -1105,6 +1124,7 @@ const WhatsAppMessenger = () => {
         time: formatTime(conv.last_message_time),
         unread: conv.unread_count,
         online: onlineUsers[conv.sender_id] || false,
+        last_seen: conv.last_seen || null,
         color: getAvatarColor(conv.sender_name)
       }));
   }, [inbox, searchQuery, onlineUsers]);
@@ -1202,6 +1222,46 @@ const WhatsAppMessenger = () => {
                       Edit Profile
                     </span>
                   </button>
+                </div>
+
+                <div className="px-4 py-3 border-b border-gray-700">
+                  <p className="text-xs font-medium mb-2" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                    PRIVACY
+                  </p>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="text-sm" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                      Show last seen
+                    </span>
+                    <button
+                      onClick={async () => {
+                        const next = !showLastSeen;
+                        setShowLastSeen(next);
+                        try {
+                          const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+                          await fetch(`${API_BASE_URL}/users/profile`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ show_last_seen: next }),
+                          });
+                          updateUser({ show_last_seen: next });
+                        } catch {
+                          setShowLastSeen(!next);
+                        }
+                      }}
+                      style={{
+                        width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
+                        background: showLastSeen ? '#10b981' : '#4b5563',
+                        position: 'relative', transition: 'background 0.2s',
+                      }}
+                      aria-label="Toggle last seen"
+                    >
+                      <span style={{
+                        position: 'absolute', top: 3, left: showLastSeen ? 21 : 3,
+                        width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                        transition: 'left 0.2s',
+                      }} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="px-4 py-3">
@@ -1329,7 +1389,9 @@ const WhatsAppMessenger = () => {
                   ) : (
                     (onlineUsers[selectedUser?.id] || onlineUsers[selectedUser?._id] || selectedUser?.online) ? (
                       <span className="green-accent">online</span>
-                    ) : <span className="text-gray-400">offline</span>
+                    ) : (
+                      <span className="text-gray-400">{formatLastSeen(selectedUser?.last_seen)}</span>
+                    )
                   )}
                 </p>
               </div>
