@@ -494,6 +494,10 @@ const WhatsAppMessenger = () => {
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
   const [showLastSeen, setShowLastSeen] = useState(user?.show_last_seen !== false);
+  const [usernameEdit, setUsernameEdit] = useState('');
+  const [usernameEditMode, setUsernameEditMode] = useState(false);
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
 
   const formatLastSeen = (ts) => {
     if (!ts) return 'Offline';
@@ -1226,6 +1230,68 @@ const WhatsAppMessenger = () => {
 
                 <div className="px-4 py-3 border-b border-gray-700">
                   <p className="text-xs font-medium mb-2" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                    USERNAME
+                  </p>
+                  {usernameEditMode ? (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        autoFocus
+                        value={usernameEdit}
+                        onChange={e => { setUsernameEdit(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '')); setUsernameError(''); }}
+                        placeholder="new username"
+                        className="w-full px-3 py-1.5 rounded-lg text-sm"
+                        style={{ background: theme === 'light' ? '#f1f5f9' : '#0f172a', color: theme === 'light' ? '#1e293b' : '#f1f5f9', border: '1px solid #334155' }}
+                      />
+                      {usernameError && <p className="text-xs text-red-400">{usernameError}</p>}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            if (usernameEdit.length < 3) { setUsernameError('At least 3 characters'); return; }
+                            setUsernameSaving(true);
+                            try {
+                              const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+                              const res = await fetch(`${API_BASE_URL}/users/profile`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ username: usernameEdit }),
+                              });
+                              const data = await res.json();
+                              if (!res.ok) { setUsernameError(data.error || 'Failed to save'); return; }
+                              updateUser({ username: usernameEdit });
+                              setUsernameEditMode(false);
+                            } catch { setUsernameError('Network error'); }
+                            finally { setUsernameSaving(false); }
+                          }}
+                          disabled={usernameSaving}
+                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white"
+                          style={{ background: '#10b981' }}
+                        >
+                          {usernameSaving ? 'Saving…' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => { setUsernameEditMode(false); setUsernameError(''); }}
+                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                          style={{ background: '#334155', color: '#94a3b8' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setUsernameEdit(user?.username || ''); setUsernameEditMode(true); setUsernameError(''); }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-gray-700/50 transition-all"
+                    >
+                      <span className="text-sm" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                        {user?.username ? `@${user.username}` : 'Set username'}
+                      </span>
+                      <span className="text-xs" style={{ color: '#10b981' }}>Edit</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="px-4 py-3 border-b border-gray-700">
+                  <p className="text-xs font-medium mb-2" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
                     PRIVACY
                   </p>
                   <div className="flex items-center justify-between px-3 py-2">
@@ -1391,7 +1457,7 @@ const WhatsAppMessenger = () => {
                     (onlineUsers[selectedUser?.id] || onlineUsers[selectedUser?._id] || selectedUser?.online) ? (
                       <span className="green-accent">online</span>
                     ) : (
-                      <span className="text-gray-400">{formatLastSeen(selectedUser?.last_seen)}</span>
+                      <span className="text-gray-400">{showLastSeen ? formatLastSeen(selectedUser?.last_seen) : 'Offline'}</span>
                     )
                   )}
                 </p>

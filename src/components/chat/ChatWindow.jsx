@@ -329,7 +329,7 @@ const ChatWindow = () => {
               {otherParticipant.name || 'Unknown User'}
             </div>
             <div className="nexus-status-modern">
-              {otherParticipant.status === 'online' ? 'Active now' : formatLastSeen(otherParticipant.last_seen)}
+              {otherParticipant.status === 'online' ? 'Active now' : (user?.show_last_seen !== false ? formatLastSeen(otherParticipant.last_seen) : 'Offline')}
             </div>
           </div>
         </div>
