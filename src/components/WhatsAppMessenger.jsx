@@ -481,7 +481,9 @@ const WhatsAppMessenger = () => {
   const [isSending, setIsSending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [profileForm, setProfileForm] = useState({ name: '', phone_number: '' });
+  const [profileForm, setProfileForm] = useState({ name: '', username: '', phone_number: '' });
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [replyTo, setReplyTo] = useState(null);
@@ -1054,17 +1056,43 @@ const WhatsAppMessenger = () => {
   // Auto-prompt when phone number is missing
   useEffect(() => {
     if (user && !user.phone_number) {
-      setProfileForm({ name: user.name || '', phone_number: '' });
+      setProfileForm({ name: user.name || '', username: user.username || '', phone_number: '' });
       setProfileError('');
       setShowProfileModal(true);
     }
   }, [user?.phone_number]);
 
   const openProfileModal = () => {
-    setProfileForm({ name: user?.name || '', phone_number: user?.phone_number || '' });
+    setProfileForm({ name: user?.name || '', username: user?.username || '', phone_number: user?.phone_number || '' });
+    setUsernameAvailable(null);
     setProfileError('');
     setShowProfileModal(true);
     setShowSettings(false);
+  };
+
+  const handleUsernameChange = async (value) => {
+    const trimmed = value.trim().toLowerCase();
+    setProfileForm(f => ({ ...f, username: value }));
+    if (!trimmed || trimmed === (user?.username || '').toLowerCase()) {
+      setUsernameAvailable(null);
+      return;
+    }
+    if (trimmed.length < 3) {
+      setUsernameAvailable(false);
+      return;
+    }
+    setUsernameChecking(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/check-username?username=${encodeURIComponent(trimmed)}`, {
+        headers: { 'Authorization': `Bearer ${await getAuthToken()}` },
+      });
+      const data = await res.json();
+      setUsernameAvailable(data.available);
+    } catch {
+      setUsernameAvailable(null);
+    } finally {
+      setUsernameChecking(false);
+    }
   };
 
   const handleProfileSave = async () => {
@@ -1072,12 +1100,26 @@ const WhatsAppMessenger = () => {
       setProfileError('Phone number is required.');
       return;
     }
+    const newUsername = profileForm.username.trim().toLowerCase();
+    if (newUsername && newUsername !== (user?.username || '').toLowerCase()) {
+      if (newUsername.length < 3) {
+        setProfileError('Username must be at least 3 characters.');
+        return;
+      }
+      if (usernameAvailable === false) {
+        setProfileError('That username is already taken.');
+        return;
+      }
+    }
     setProfileSaving(true);
     setProfileError('');
     try {
       const payload = {};
       if (profileForm.name.trim()) payload.name = profileForm.name.trim();
       payload.phone_number = profileForm.phone_number.trim();
+      if (newUsername && newUsername !== (user?.username || '').toLowerCase()) {
+        payload.username = newUsername;
+      }
 
       const response = await fetch(`${API_BASE_URL}/users/profile`, {
         method: 'PUT',
@@ -1092,7 +1134,11 @@ const WhatsAppMessenger = () => {
         setProfileError(data.error || 'Failed to save profile.');
         return;
       }
-      updateUser({ name: payload.name || user?.name, phone_number: payload.phone_number });
+      updateUser({
+        name: payload.name || user?.name,
+        phone_number: payload.phone_number,
+        ...(payload.username ? { username: payload.username } : {}),
+      });
       setShowProfileModal(false);
     } catch {
       setProfileError('Network error. Please try again.');
@@ -1786,6 +1832,43 @@ const WhatsAppMessenger = () => {
                     color: theme === 'light' ? '#1e293b' : '#f1f5f9',
                   }}
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                  Username
+                </label>
+                <div className="relative">
+                  <span
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-sm select-none"
+                    style={{ color: theme === 'light' ? '#94a3b8' : '#64748b' }}
+                  >@</span>
+                  <input
+                    type="text"
+                    value={profileForm.username}
+                    onChange={(e) => handleUsernameChange(e.target.value)}
+                    placeholder="yourhandle"
+                    className="w-full pl-7 pr-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                    style={{
+                      background: theme === 'light' ? '#f8fafc' : '#0f172a',
+                      border: usernameAvailable === true
+                        ? '1px solid #10b981'
+                        : usernameAvailable === false
+                        ? '1px solid #ef4444'
+                        : theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
+                      color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+                    }}
+                  />
+                  {usernameChecking && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">checking…</span>
+                  )}
+                  {!usernameChecking && usernameAvailable === true && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-400">Available</span>
+                  )}
+                  {!usernameChecking && usernameAvailable === false && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-400">Taken</span>
+                  )}
+                </div>
               </div>
 
               <div>
