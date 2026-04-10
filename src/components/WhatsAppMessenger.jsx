@@ -475,6 +475,7 @@ const WhatsAppMessenger = () => {
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
   const avatarInputRef = useRef(null);
+  const settingsButtonRef = useRef(null);
   const messagesEndRef = useRef(null);
   const callManagerRef = useRef(null);
   const [sendError, setSendError] = useState('');
@@ -522,7 +523,10 @@ const WhatsAppMessenger = () => {
   useEffect(() => {
     if (!showSettings) return;
     const handler = (e) => {
-      if (!e.target.closest('[data-settings-panel]')) setShowSettings(false);
+      if (
+        !e.target.closest('[data-settings-panel]') &&
+        !e.target.closest('[data-settings-popup]')
+      ) setShowSettings(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -1236,8 +1240,9 @@ const WhatsAppMessenger = () => {
           </button>
           
           
-          <div className="relative" data-settings-panel>
+          <div data-settings-panel>
             <button
+              ref={settingsButtonRef}
               onClick={() => setShowSettings(v => !v)}
               className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showSettings ? 'bg-gray-700/50 text-blue-400' : 'text-gray-400 hover:text-blue-400'}`}
               title="Settings"
@@ -1249,172 +1254,8 @@ const WhatsAppMessenger = () => {
                 </span>
               )}
             </button>
-
-            {/* Settings Panel */}
-            {showSettings && (
-              <div
-                className="absolute left-full ml-3 bottom-0 w-56 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden z-50"
-                style={{ background: theme === 'light' ? '#ffffff' : '#1e293b' }}
-              >
-                <div className="px-4 py-3 border-b border-gray-700">
-                  <p className="text-sm font-semibold" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
-                    Settings
-                  </p>
-                </div>
-
-                <div className="px-4 py-3 border-b border-gray-700">
-                  <button
-                    onClick={openProfileModal}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-gray-700/50"
-                  >
-                    <User className="w-4 h-4" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }} />
-                    <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
-                      Edit Profile
-                    </span>
-                  </button>
-                </div>
-
-                <div className="px-4 py-3 border-b border-gray-700">
-                  <p className="text-xs font-medium mb-2" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
-                    USERNAME
-                  </p>
-                  {usernameEditMode ? (
-                    <div className="flex flex-col gap-2">
-                      <input
-                        autoFocus
-                        value={usernameEdit}
-                        onChange={e => { setUsernameEdit(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '')); setUsernameError(''); }}
-                        placeholder="new username"
-                        className="w-full px-3 py-1.5 rounded-lg text-sm"
-                        style={{ background: theme === 'light' ? '#f1f5f9' : '#0f172a', color: theme === 'light' ? '#1e293b' : '#f1f5f9', border: '1px solid #334155' }}
-                      />
-                      {usernameError && <p className="text-xs text-red-400">{usernameError}</p>}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={async () => {
-                            if (usernameEdit.length < 3) { setUsernameError('At least 3 characters'); return; }
-                            setUsernameSaving(true);
-                            try {
-                              const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
-                              const res = await fetch(`${API_BASE_URL}/users/profile`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                body: JSON.stringify({ username: usernameEdit }),
-                              });
-                              const data = await res.json();
-                              if (!res.ok) { setUsernameError(data.error || 'Failed to save'); return; }
-                              updateUser({ username: usernameEdit });
-                              setUsernameEditMode(false);
-                            } catch { setUsernameError('Network error'); }
-                            finally { setUsernameSaving(false); }
-                          }}
-                          disabled={usernameSaving}
-                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white"
-                          style={{ background: '#10b981' }}
-                        >
-                          {usernameSaving ? 'Saving…' : 'Save'}
-                        </button>
-                        <button
-                          onClick={() => { setUsernameEditMode(false); setUsernameError(''); }}
-                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
-                          style={{ background: '#334155', color: '#94a3b8' }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setUsernameEdit(user?.username || ''); setUsernameEditMode(true); setUsernameError(''); }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-gray-700/50 transition-all"
-                    >
-                      <span className="text-sm" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
-                        {user?.username ? `@${user.username}` : 'Set username'}
-                      </span>
-                      <span className="text-xs" style={{ color: '#10b981' }}>Edit</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="px-4 py-3 border-b border-gray-700">
-                  <p className="text-xs font-medium mb-2" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
-                    PRIVACY
-                  </p>
-                  <div className="flex items-center justify-between px-3 py-2">
-                    <span className="text-sm" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
-                      Show last seen
-                    </span>
-                    <button
-                      onClick={async () => {
-                        const next = !showLastSeen;
-                        setShowLastSeen(next);
-                        try {
-                          const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
-                          await fetch(`${API_BASE_URL}/users/profile`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                            body: JSON.stringify({ show_last_seen: next }),
-                          });
-                          updateUser({ show_last_seen: next });
-                        } catch {
-                          setShowLastSeen(!next);
-                        }
-                      }}
-                      style={{
-                        width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
-                        background: showLastSeen ? '#10b981' : '#4b5563',
-                        position: 'relative', transition: 'background 0.2s',
-                      }}
-                      aria-label="Toggle last seen"
-                    >
-                      <span style={{
-                        position: 'absolute', top: 3, left: showLastSeen ? 21 : 3,
-                        width: 16, height: 16, borderRadius: '50%', background: '#fff',
-                        transition: 'left 0.2s',
-                      }} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="px-4 py-3">
-                  <p className="text-xs font-medium mb-2" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
-                    THEME
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => setTheme('dark')}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
-                      style={{
-                        background: theme === 'dark' ? 'rgba(59,130,246,0.15)' : 'transparent',
-                        border: theme === 'dark' ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
-                      }}
-                    >
-                      <Moon className="w-4 h-4" style={{ color: theme === 'dark' ? '#60a5fa' : '#94a3b8' }} />
-                      <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#60a5fa' : (theme === 'light' ? '#64748b' : '#94a3b8') }}>
-                        Dark
-                      </span>
-                      {theme === 'dark' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
-                    </button>
-
-                    <button
-                      onClick={() => setTheme('light')}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
-                      style={{
-                        background: theme === 'light' ? 'rgba(59,130,246,0.1)' : 'transparent',
-                        border: theme === 'light' ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
-                      }}
-                    >
-                      <Sun className="w-4 h-4" style={{ color: theme === 'light' ? '#f59e0b' : '#94a3b8' }} />
-                      <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#f59e0b' : '#94a3b8' }}>
-                        Light
-                      </span>
-                      {theme === 'light' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
+
         </div>
         
         {/* Logout at Bottom */}
@@ -1912,6 +1753,172 @@ const WhatsAppMessenger = () => {
                 className="px-5 py-2 text-sm font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50"
               >
                 {profileSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Popup — fixed so it's never clipped by overflow-hidden */}
+      {showSettings && (
+        <div
+          data-settings-popup
+          className="fixed z-[100] w-64 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden"
+          style={{
+            background: theme === 'light' ? '#ffffff' : '#1e293b',
+            bottom: 16,
+            left: 88,
+          }}
+        >
+          <div className="px-4 py-3 border-b border-gray-700">
+            <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+              Settings
+            </p>
+          </div>
+
+          {/* Edit Profile */}
+          <div className="px-4 py-2 border-b border-gray-700">
+            <button
+              onClick={openProfileModal}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-gray-700/50"
+            >
+              <User className="w-4 h-4" style={{ color: '#10b981' }} />
+              <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                Edit Profile
+              </span>
+            </button>
+          </div>
+
+          {/* Username */}
+          <div className="px-4 py-3 border-b border-gray-700">
+            <p className="text-xs font-medium mb-2 uppercase tracking-widest" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+              Username
+            </p>
+            {usernameEditMode ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid #334155', background: theme === 'light' ? '#f1f5f9' : '#0f172a' }}>
+                  <span className="px-2 text-sm" style={{ color: '#94a3b8' }}>@</span>
+                  <input
+                    autoFocus
+                    value={usernameEdit}
+                    onChange={e => { setUsernameEdit(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '')); setUsernameError(''); }}
+                    placeholder="new username"
+                    className="flex-1 py-1.5 pr-2 text-sm bg-transparent outline-none"
+                    style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}
+                  />
+                </div>
+                {usernameError && <p className="text-xs text-red-400">{usernameError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (usernameEdit.length < 3) { setUsernameError('At least 3 characters'); return; }
+                      setUsernameSaving(true);
+                      try {
+                        const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+                        const res = await fetch(`${API_BASE_URL}/users/profile`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                          body: JSON.stringify({ username: usernameEdit }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) { setUsernameError(data.error || 'Failed to save'); return; }
+                        updateUser({ username: usernameEdit });
+                        setUsernameEditMode(false);
+                      } catch { setUsernameError('Network error'); }
+                      finally { setUsernameSaving(false); }
+                    }}
+                    disabled={usernameSaving}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white"
+                    style={{ background: '#10b981' }}
+                  >
+                    {usernameSaving ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => { setUsernameEditMode(false); setUsernameError(''); }}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                    style={{ background: '#334155', color: '#94a3b8' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setUsernameEdit(user?.username || ''); setUsernameEditMode(true); setUsernameError(''); }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-gray-700/50 transition-all"
+              >
+                <span className="text-sm" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                  {user?.username ? `@${user.username}` : 'Set username'}
+                </span>
+                <span className="text-xs font-medium" style={{ color: '#10b981' }}>Edit</span>
+              </button>
+            )}
+          </div>
+
+          {/* Privacy */}
+          <div className="px-4 py-3 border-b border-gray-700">
+            <p className="text-xs font-medium mb-2 uppercase tracking-widest" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+              Privacy
+            </p>
+            <div className="flex items-center justify-between px-3 py-2">
+              <span className="text-sm" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>Show last seen</span>
+              <button
+                onClick={async () => {
+                  const next = !showLastSeen;
+                  setShowLastSeen(next);
+                  try {
+                    const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+                    await fetch(`${API_BASE_URL}/users/profile`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify({ show_last_seen: next }),
+                    });
+                    updateUser({ show_last_seen: next });
+                  } catch { setShowLastSeen(!next); }
+                }}
+                style={{
+                  width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
+                  background: showLastSeen ? '#10b981' : '#4b5563',
+                  position: 'relative', transition: 'background 0.2s',
+                }}
+                aria-label="Toggle last seen"
+              >
+                <span style={{
+                  position: 'absolute', top: 3, left: showLastSeen ? 21 : 3,
+                  width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                  transition: 'left 0.2s',
+                }} />
+              </button>
+            </div>
+          </div>
+
+          {/* Theme */}
+          <div className="px-4 py-3">
+            <p className="text-xs font-medium mb-2 uppercase tracking-widest" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+              Theme
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTheme('dark')}
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  background: theme === 'dark' ? 'rgba(59,130,246,0.15)' : 'transparent',
+                  border: theme === 'dark' ? '1px solid rgba(59,130,246,0.4)' : '1px solid #334155',
+                  color: theme === 'dark' ? '#60a5fa' : '#94a3b8',
+                }}
+              >
+                <Moon className="w-4 h-4" /> Dark
+              </button>
+              <button
+                onClick={() => setTheme('light')}
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  background: theme === 'light' ? 'rgba(251,191,36,0.1)' : 'transparent',
+                  border: theme === 'light' ? '1px solid rgba(251,191,36,0.4)' : '1px solid #334155',
+                  color: theme === 'light' ? '#f59e0b' : '#94a3b8',
+                }}
+              >
+                <Sun className="w-4 h-4" /> Light
               </button>
             </div>
           </div>
