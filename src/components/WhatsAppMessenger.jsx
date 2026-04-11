@@ -5,7 +5,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
-import { verifyBeforeUpdateEmail } from 'firebase/auth';
 import { usersAPI } from '../services/api';
 import socketService from '../services/socket';
 import CallManager from './call/CallManager';
@@ -1097,20 +1096,12 @@ const WhatsAppMessenger = () => {
     setEmailChangeError('');
     setEmailChangeMsg('');
     try {
-      const firebaseUser = auth.currentUser;
-      if (!firebaseUser) throw new Error('Not authenticated');
-      await verifyBeforeUpdateEmail(firebaseUser, newEmail);
-      setEmailChangeMsg(`A verification link has been sent to ${newEmail}. Click it to confirm the change.`);
+      const response = await usersAPI.requestEmailChange(newEmail);
+      setEmailChangeMsg(response.data.message);
       setEmailChangeInput('');
     } catch (err) {
-      const code = err?.code || '';
-      if (code === 'auth/requires-recent-login') {
-        setEmailChangeError('For security, please sign out and sign back in before changing your email.');
-      } else if (code === 'auth/email-already-in-use') {
-        setEmailChangeError('That email is already in use by another account.');
-      } else {
-        setEmailChangeError(err?.message || 'Failed to send verification link.');
-      }
+      const msg = err.response?.data?.error || 'Failed to send verification link. Please try again.';
+      setEmailChangeError(msg);
     } finally {
       setEmailChangeSending(false);
     }

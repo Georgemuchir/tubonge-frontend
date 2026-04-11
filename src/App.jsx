@@ -5,6 +5,7 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import ForgotPassword from './components/auth/ForgotPassword';
 import ResetPassword from './components/auth/ResetPassword';
+import ConfirmEmailChange from './components/auth/ConfirmEmailChange';
 import WhatsAppMessenger from './components/WhatsAppMessenger';
 import './App.css';
 
@@ -102,6 +103,10 @@ const router = createBrowserRouter(
         {
           path: "/reset-password",
           element: <ResetPassword />,
+        },
+        {
+          path: "/confirm-email-change",
+          element: <ConfirmEmailChange />,
         },
         {
           path: "/",
