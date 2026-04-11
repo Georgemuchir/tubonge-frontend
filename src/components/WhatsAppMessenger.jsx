@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
+import { verifyBeforeUpdateEmail, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { usersAPI } from '../services/api';
 import socketService from '../services/socket';
 import CallManager from './call/CallManager';
@@ -506,6 +507,8 @@ const WhatsAppMessenger = () => {
   const [emailChangeSending, setEmailChangeSending] = useState(false);
   const [emailChangeMsg, setEmailChangeMsg] = useState('');
   const [emailChangeError, setEmailChangeError] = useState('');
+  const [emailChangeNeedsReauth, setEmailChangeNeedsReauth] = useState(false);
+  const [reauthPassword, setReauthPassword] = useState('');
 
   const formatLastSeen = (ts) => {
     if (!ts) return 'Offline';
@@ -1078,11 +1081,13 @@ const WhatsAppMessenger = () => {
     setEmailChangeInput('');
     setEmailChangeMsg('');
     setEmailChangeError('');
+    setEmailChangeNeedsReauth(false);
+    setReauthPassword('');
     setShowProfileModal(true);
     setShowSettings(false);
   };
 
-  const handleSendEmailChangeLink = async () => {
+  const handleSendEmailChangeLink = async (password = null) => {
     const newEmail = emailChangeInput.trim().toLowerCase();
     if (!newEmail || !newEmail.includes('@')) {
       setEmailChangeError('Enter a valid email address.');
@@ -1096,12 +1101,34 @@ const WhatsAppMessenger = () => {
     setEmailChangeError('');
     setEmailChangeMsg('');
     try {
-      const response = await usersAPI.requestEmailChange(newEmail);
-      setEmailChangeMsg(response.data.message);
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error('Not signed in');
+
+      // Re-authenticate first if a password was provided
+      if (password) {
+        const credential = EmailAuthProvider.credential(firebaseUser.email, password);
+        await reauthenticateWithCredential(firebaseUser, credential);
+        setEmailChangeNeedsReauth(false);
+        setReauthPassword('');
+      }
+
+      await verifyBeforeUpdateEmail(firebaseUser, newEmail);
+      setEmailChangeMsg(`Verification link sent to ${newEmail}. Click it to confirm the change. You can close this.`);
       setEmailChangeInput('');
     } catch (err) {
-      const msg = err.response?.data?.error || 'Failed to send verification link. Please try again.';
-      setEmailChangeError(msg);
+      const code = err?.code || '';
+      if (code === 'auth/requires-recent-login') {
+        setEmailChangeNeedsReauth(true);
+        setEmailChangeError('For security, please enter your password to continue.');
+      } else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setEmailChangeError('Incorrect password. Please try again.');
+      } else if (code === 'auth/email-already-in-use') {
+        setEmailChangeError('That email is already used by another account.');
+      } else if (code === 'auth/invalid-email') {
+        setEmailChangeError('Invalid email address.');
+      } else {
+        setEmailChangeError(err?.message || 'Failed to send verification link. Please try again.');
+      }
     } finally {
       setEmailChangeSending(false);
     }
@@ -1776,7 +1803,7 @@ const WhatsAppMessenger = () => {
                   <input
                     type="email"
                     value={emailChangeInput}
-                    onChange={(e) => { setEmailChangeInput(e.target.value); setEmailChangeError(''); setEmailChangeMsg(''); }}
+                    onChange={(e) => { setEmailChangeInput(e.target.value); setEmailChangeError(''); setEmailChangeMsg(''); setEmailChangeNeedsReauth(false); }}
                     placeholder="new@email.com"
                     className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
                     style={{
@@ -1785,14 +1812,40 @@ const WhatsAppMessenger = () => {
                       color: theme === 'light' ? '#1e293b' : '#f1f5f9',
                     }}
                   />
-                  <button
-                    onClick={handleSendEmailChangeLink}
-                    disabled={emailChangeSending || !emailChangeInput.trim()}
-                    className="px-3 py-2 text-xs font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {emailChangeSending ? 'Sending…' : 'Send link'}
-                  </button>
+                  {!emailChangeNeedsReauth && (
+                    <button
+                      onClick={() => handleSendEmailChangeLink()}
+                      disabled={emailChangeSending || !emailChangeInput.trim()}
+                      className="px-3 py-2 text-xs font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {emailChangeSending ? 'Sending…' : 'Send link'}
+                    </button>
+                  )}
                 </div>
+                {emailChangeNeedsReauth && (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="password"
+                      value={reauthPassword}
+                      onChange={(e) => setReauthPassword(e.target.value)}
+                      placeholder="Enter your password to confirm"
+                      className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                      style={{
+                        background: theme === 'light' ? '#f8fafc' : '#0f172a',
+                        border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
+                        color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+                      }}
+                      onKeyDown={(e) => e.key === 'Enter' && reauthPassword && handleSendEmailChangeLink(reauthPassword)}
+                    />
+                    <button
+                      onClick={() => handleSendEmailChangeLink(reauthPassword)}
+                      disabled={emailChangeSending || !reauthPassword}
+                      className="px-3 py-2 text-xs font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {emailChangeSending ? 'Sending…' : 'Confirm'}
+                    </button>
+                  </div>
+                )}
                 {emailChangeError && <p className="text-xs text-red-400 mt-1">{emailChangeError}</p>}
                 {emailChangeMsg && <p className="text-xs text-green-400 mt-1">{emailChangeMsg}</p>}
               </div>
