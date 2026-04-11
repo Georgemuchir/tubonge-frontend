@@ -5,6 +5,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
+import { verifyBeforeUpdateEmail } from 'firebase/auth';
+import { usersAPI } from '../services/api';
 import socketService from '../services/socket';
 import CallManager from './call/CallManager';
 import CallLogs from './call/CallLogs';
@@ -501,6 +503,10 @@ const WhatsAppMessenger = () => {
   const [usernameEditMode, setUsernameEditMode] = useState(false);
   const [usernameSaving, setUsernameSaving] = useState(false);
   const [usernameError, setUsernameError] = useState('');
+  const [emailChangeInput, setEmailChangeInput] = useState('');
+  const [emailChangeSending, setEmailChangeSending] = useState(false);
+  const [emailChangeMsg, setEmailChangeMsg] = useState('');
+  const [emailChangeError, setEmailChangeError] = useState('');
 
   const formatLastSeen = (ts) => {
     if (!ts) return 'Offline';
@@ -1070,8 +1076,44 @@ const WhatsAppMessenger = () => {
     setProfileForm({ name: user?.name || '', username: user?.username || '', phone_number: user?.phone_number || '' });
     setUsernameAvailable(null);
     setProfileError('');
+    setEmailChangeInput('');
+    setEmailChangeMsg('');
+    setEmailChangeError('');
     setShowProfileModal(true);
     setShowSettings(false);
+  };
+
+  const handleSendEmailChangeLink = async () => {
+    const newEmail = emailChangeInput.trim().toLowerCase();
+    if (!newEmail || !newEmail.includes('@')) {
+      setEmailChangeError('Enter a valid email address.');
+      return;
+    }
+    if (newEmail === (user?.email || '').toLowerCase()) {
+      setEmailChangeError('That is already your current email.');
+      return;
+    }
+    setEmailChangeSending(true);
+    setEmailChangeError('');
+    setEmailChangeMsg('');
+    try {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error('Not authenticated');
+      await verifyBeforeUpdateEmail(firebaseUser, newEmail);
+      setEmailChangeMsg(`A verification link has been sent to ${newEmail}. Click it to confirm the change.`);
+      setEmailChangeInput('');
+    } catch (err) {
+      const code = err?.code || '';
+      if (code === 'auth/requires-recent-login') {
+        setEmailChangeError('For security, please sign out and sign back in before changing your email.');
+      } else if (code === 'auth/email-already-in-use') {
+        setEmailChangeError('That email is already in use by another account.');
+      } else {
+        setEmailChangeError(err?.message || 'Failed to send verification link.');
+      }
+    } finally {
+      setEmailChangeSending(false);
+    }
   };
 
   const handleUsernameChange = async (value) => {
@@ -1729,6 +1771,39 @@ const WhatsAppMessenger = () => {
                     color: theme === 'light' ? '#1e293b' : '#f1f5f9',
                   }}
                 />
+              </div>
+
+              {/* Email Change */}
+              <div className="border-t border-gray-700 pt-4">
+                <label className="block text-xs font-medium mb-1" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                  Change Email
+                </label>
+                <p className="text-xs mb-2" style={{ color: theme === 'light' ? '#94a3b8' : '#64748b' }}>
+                  Current: <span style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>{user?.email}</span>
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={emailChangeInput}
+                    onChange={(e) => { setEmailChangeInput(e.target.value); setEmailChangeError(''); setEmailChangeMsg(''); }}
+                    placeholder="new@email.com"
+                    className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                    style={{
+                      background: theme === 'light' ? '#f8fafc' : '#0f172a',
+                      border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
+                      color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+                    }}
+                  />
+                  <button
+                    onClick={handleSendEmailChangeLink}
+                    disabled={emailChangeSending || !emailChangeInput.trim()}
+                    className="px-3 py-2 text-xs font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {emailChangeSending ? 'Sending…' : 'Send link'}
+                  </button>
+                </div>
+                {emailChangeError && <p className="text-xs text-red-400 mt-1">{emailChangeError}</p>}
+                {emailChangeMsg && <p className="text-xs text-green-400 mt-1">{emailChangeMsg}</p>}
               </div>
 
               {profileError && (
