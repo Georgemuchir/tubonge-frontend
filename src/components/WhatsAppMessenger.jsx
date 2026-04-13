@@ -1117,6 +1117,7 @@ const WhatsAppMessenger = () => {
       setEmailChangeInput('');
     } catch (err) {
       const code = err?.code || '';
+      console.error('[EmailChange] Firebase error:', code, err?.message, err);
       if (code === 'auth/requires-recent-login') {
         setEmailChangeNeedsReauth(true);
         setEmailChangeError('For security, please enter your password to continue.');
@@ -1126,8 +1127,10 @@ const WhatsAppMessenger = () => {
         setEmailChangeError('That email is already used by another account.');
       } else if (code === 'auth/invalid-email') {
         setEmailChangeError('Invalid email address.');
+      } else if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {
+        setEmailChangeError(`Domain not authorized in Firebase (${code}). Add your app domain to Firebase Console → Authentication → Settings → Authorized domains.`);
       } else {
-        setEmailChangeError(err?.message || 'Failed to send verification link. Please try again.');
+        setEmailChangeError(`Error (${code || 'unknown'}): ${err?.message || 'Failed to send verification link.'}`);
       }
     } finally {
       setEmailChangeSending(false);
