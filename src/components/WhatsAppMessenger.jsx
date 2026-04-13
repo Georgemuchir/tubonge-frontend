@@ -1112,8 +1112,12 @@ const WhatsAppMessenger = () => {
         setReauthPassword('');
       }
 
-      await verifyBeforeUpdateEmail(firebaseUser, newEmail);
-      setEmailChangeMsg(`Verification link sent to ${newEmail}. Click it to confirm the change. You can close this.`);
+      const actionCodeSettings = {
+        url: `${window.location.origin}/confirm-email-change`,
+        handleCodeInApp: false,
+      };
+      await verifyBeforeUpdateEmail(firebaseUser, newEmail, actionCodeSettings);
+      setEmailChangeMsg(`Verification link sent to ${newEmail}. Click it to confirm the change.`);
       setEmailChangeInput('');
     } catch (err) {
       const code = err?.code || '';
