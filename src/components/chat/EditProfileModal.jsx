@@ -80,8 +80,10 @@ const EditProfileModal = ({ onClose }) => {
       if (!firebaseUser) throw new Error('Not signed in');
 
       if (password) {
+        console.log('[EmailChange] Step 1: re-authenticating...');
         const credential = EmailAuthProvider.credential(firebaseUser.email, password);
         await reauthenticateWithCredential(firebaseUser, credential);
+        console.log('[EmailChange] Step 1: re-auth OK');
         setNeedsReauth(false);
         setReauthPassword('');
       }
@@ -90,12 +92,14 @@ const EditProfileModal = ({ onClose }) => {
         url: `${window.location.origin}/confirm-email-change`,
         handleCodeInApp: false,
       };
+      console.log('[EmailChange] Step 2: sending verifyBeforeUpdateEmail to', trimmedEmail, 'url:', actionCodeSettings.url);
       await verifyBeforeUpdateEmail(firebaseUser, trimmedEmail, actionCodeSettings);
+      console.log('[EmailChange] Step 2: done — email sent');
       setEmailMsg(`Verification link sent to ${trimmedEmail}. Click it to confirm the change.`);
       setNewEmail('');
     } catch (err) {
       const code = err?.code || '';
-      console.error('[EmailChange] Firebase error:', code, err?.message);
+      console.error('[EmailChange] Firebase error:', code, err?.message, JSON.stringify(err));
       if (code === 'auth/requires-recent-login') {
         setNeedsReauth(true);
         setEmailError('For security, please enter your password to continue.');
