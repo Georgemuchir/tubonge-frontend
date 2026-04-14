@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { auth } from '../../firebase';
-import { verifyBeforeUpdateEmail, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { usersAPI } from '../../services/api';
 
 const EditProfileModal = ({ onClose }) => {
@@ -15,11 +15,10 @@ const EditProfileModal = ({ onClose }) => {
 
   // Email change state
   const [newEmail, setNewEmail] = useState('');
-  const [emailSending, setEmailSending] = useState(false);
+  const [password, setPassword] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
   const [emailMsg, setEmailMsg] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [needsReauth, setNeedsReauth] = useState(false);
-  const [reauthPassword, setReauthPassword] = useState('');
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -55,14 +54,17 @@ const EditProfileModal = ({ onClose }) => {
       updateUser(response.data.user);
       setSuccess('Profile updated successfully.');
     } catch (err) {
-      const msg = err.response?.data?.error || 'Failed to update profile.';
-      setError(msg);
+      setError(err.response?.data?.error || 'Failed to update profile.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSendEmailLink = async (password = null) => {
+  const handleEmailChange = async (e) => {
+    e.preventDefault();
+    setEmailError('');
+    setEmailMsg('');
+
     const trimmedEmail = newEmail.trim().toLowerCase();
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
       setEmailError('Enter a valid email address.');
@@ -72,54 +74,45 @@ const EditProfileModal = ({ onClose }) => {
       setEmailError('That is already your current email.');
       return;
     }
-    setEmailSending(true);
-    setEmailError('');
-    setEmailMsg('');
+    if (!password) {
+      setEmailError('Enter your current password to confirm.');
+      return;
+    }
+
+    setEmailSaving(true);
     try {
       const firebaseUser = auth.currentUser;
       if (!firebaseUser) throw new Error('Not signed in');
 
-      if (password) {
-        console.log('[EmailChange] Step 1: re-authenticating...');
-        const credential = EmailAuthProvider.credential(firebaseUser.email, password);
-        await reauthenticateWithCredential(firebaseUser, credential);
-        console.log('[EmailChange] Step 1: re-auth OK');
-        setNeedsReauth(false);
-        setReauthPassword('');
-      }
+      // Re-authenticate with current password
+      const credential = EmailAuthProvider.credential(firebaseUser.email, password);
+      await reauthenticateWithCredential(firebaseUser, credential);
 
-      const actionCodeSettings = {
-        url: `${window.location.origin}/confirm-email-change`,
-        handleCodeInApp: false,
-      };
-      console.log('[EmailChange] Step 2: sending verifyBeforeUpdateEmail to', trimmedEmail, 'url:', actionCodeSettings.url);
-      await verifyBeforeUpdateEmail(firebaseUser, trimmedEmail, actionCodeSettings);
-      console.log('[EmailChange] Step 2: done — email sent');
-      setEmailMsg(`Verification link sent to ${trimmedEmail}. Click it to confirm the change.`);
+      // Update email via backend (which also updates Firebase via Admin SDK)
+      await usersAPI.updateEmail(trimmedEmail);
+      updateUser({ email: trimmedEmail });
+      setEmailMsg(`Email updated to ${trimmedEmail}.`);
       setNewEmail('');
+      setPassword('');
     } catch (err) {
       const code = err?.code || '';
-      console.error('[EmailChange] Firebase error:', code, err?.message, JSON.stringify(err));
-      if (code === 'auth/requires-recent-login') {
-        setNeedsReauth(true);
-        setEmailError('For security, please enter your password to continue.');
-      } else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
         setEmailError('Incorrect password. Please try again.');
-      } else if (code === 'auth/email-already-in-use') {
-        setEmailError('That email is already used by another account.');
-      } else if (code === 'auth/invalid-email') {
-        setEmailError('Invalid email address.');
+      } else if (code === 'auth/too-many-requests') {
+        setEmailError('Too many attempts. Please wait a moment and try again.');
+      } else if (err.response?.data?.error) {
+        setEmailError(err.response.data.error);
       } else {
-        setEmailError(`Error (${code || 'unknown'}): ${err?.message || 'Failed to send link.'}`);
+        setEmailError(err?.message || 'Failed to update email. Please try again.');
       }
     } finally {
-      setEmailSending(false);
+      setEmailSaving(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 relative">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
@@ -129,11 +122,10 @@ const EditProfileModal = ({ onClose }) => {
 
         <h2 className="text-lg font-semibold text-gray-900 mb-5">Edit Profile</h2>
 
+        {/* Name + Username */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Display Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
             <input
               type="text"
               value={name}
@@ -144,9 +136,7 @@ const EditProfileModal = ({ onClose }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Username
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
             <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500">
               <span className="text-gray-400 text-sm mr-1">@</span>
               <input
@@ -158,9 +148,6 @@ const EditProfileModal = ({ onClose }) => {
                 autoComplete="off"
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Others can find you by your username.
-            </p>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -170,12 +157,8 @@ const EditProfileModal = ({ onClose }) => {
             </p>
           )}
 
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-            >
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
               Cancel
             </button>
             <button
@@ -189,56 +172,45 @@ const EditProfileModal = ({ onClose }) => {
           </div>
         </form>
 
-        {/* Email change section */}
+        {/* Email change */}
         <div className="mt-5 pt-5 border-t border-gray-200">
           <p className="text-sm font-medium text-gray-700 mb-1">Change Email</p>
           <p className="text-xs text-gray-400 mb-3">
             Current: <span className="text-gray-600">{user?.email}</span>
           </p>
 
-          <div className="flex gap-2">
+          <form onSubmit={handleEmailChange} className="space-y-2">
             <input
               type="email"
               value={newEmail}
-              onChange={(e) => { setNewEmail(e.target.value); setEmailError(''); setEmailMsg(''); setNeedsReauth(false); }}
-              placeholder="new@email.com"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => { setNewEmail(e.target.value); setEmailError(''); setEmailMsg(''); }}
+              placeholder="New email address"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {!needsReauth && (
-              <button
-                type="button"
-                onClick={() => handleSendEmailLink()}
-                disabled={emailSending || !newEmail.trim()}
-                className="px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
-              >
-                {emailSending ? 'Sending…' : 'Send link'}
-              </button>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setEmailError(''); }}
+              placeholder="Current password to confirm"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            {emailError && <p className="text-xs text-red-600">{emailError}</p>}
+            {emailMsg && (
+              <p className="text-xs text-green-600 flex items-center gap-1">
+                <Check className="w-3 h-3" /> {emailMsg}
+              </p>
             )}
-          </div>
 
-          {needsReauth && (
-            <div className="flex gap-2 mt-2">
-              <input
-                type="password"
-                value={reauthPassword}
-                onChange={(e) => setReauthPassword(e.target.value)}
-                placeholder="Enter your password to confirm"
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onKeyDown={(e) => e.key === 'Enter' && reauthPassword && handleSendEmailLink(reauthPassword)}
-              />
-              <button
-                type="button"
-                onClick={() => handleSendEmailLink(reauthPassword)}
-                disabled={emailSending || !reauthPassword}
-                className="px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
-              >
-                {emailSending ? 'Sending…' : 'Confirm'}
-              </button>
-            </div>
-          )}
-
-          {emailError && <p className="text-xs text-red-600 mt-2">{emailError}</p>}
-          {emailMsg && <p className="text-xs text-green-600 mt-2 flex items-center gap-1"><Check className="w-3 h-3" />{emailMsg}</p>}
+            <button
+              type="submit"
+              disabled={emailSaving || !newEmail.trim() || !password}
+              className="w-full py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {emailSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {emailSaving ? 'Updating…' : 'Update Email'}
+            </button>
+          </form>
         </div>
       </div>
     </div>
