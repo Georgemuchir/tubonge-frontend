@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { auth } from '../../firebase';
-import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { usersAPI } from '../../services/api';
 
 const EditProfileModal = ({ onClose }) => {
@@ -15,7 +13,6 @@ const EditProfileModal = ({ onClose }) => {
 
   // Email change state
   const [newEmail, setNewEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailMsg, setEmailMsg] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -74,36 +71,17 @@ const EditProfileModal = ({ onClose }) => {
       setEmailError('That is already your current email.');
       return;
     }
-    if (!password) {
-      setEmailError('Enter your current password to confirm.');
-      return;
-    }
 
     setEmailSaving(true);
     try {
-      const firebaseUser = auth.currentUser;
-      if (!firebaseUser) throw new Error('Not signed in');
-
-      // Re-authenticate with current password
-      const credential = EmailAuthProvider.credential(firebaseUser.email, password);
-      await reauthenticateWithCredential(firebaseUser, credential);
-
-      // Update email via backend (which also updates Firebase via Admin SDK)
-      await usersAPI.updateEmail(trimmedEmail);
-      updateUser({ email: trimmedEmail });
-      setEmailMsg(`Email updated to ${trimmedEmail}.`);
+      await usersAPI.requestEmailChange(trimmedEmail);
+      setEmailMsg(`Verification link sent to ${trimmedEmail}. Check your inbox and click the link to confirm.`);
       setNewEmail('');
-      setPassword('');
     } catch (err) {
-      const code = err?.code || '';
-      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-        setEmailError('Incorrect password. Please try again.');
-      } else if (code === 'auth/too-many-requests') {
-        setEmailError('Too many attempts. Please wait a moment and try again.');
-      } else if (err.response?.data?.error) {
+      if (err.response?.data?.error) {
         setEmailError(err.response.data.error);
       } else {
-        setEmailError(err?.message || 'Failed to update email. Please try again.');
+        setEmailError('Failed to send verification link. Please try again.');
       }
     } finally {
       setEmailSaving(false);
@@ -187,13 +165,6 @@ const EditProfileModal = ({ onClose }) => {
               placeholder="New email address"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setEmailError(''); }}
-              placeholder="Current password to confirm"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
 
             {emailError && <p className="text-xs text-red-600">{emailError}</p>}
             {emailMsg && (
@@ -204,11 +175,11 @@ const EditProfileModal = ({ onClose }) => {
 
             <button
               type="submit"
-              disabled={emailSaving || !newEmail.trim() || !password}
+              disabled={emailSaving || !newEmail.trim()}
               className="w-full py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {emailSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {emailSaving ? 'Updating…' : 'Update Email'}
+              {emailSaving ? 'Sending…' : 'Send Verification Link'}
             </button>
           </form>
         </div>
