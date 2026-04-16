@@ -98,12 +98,14 @@ const EditProfileModal = ({ onClose }) => {
       await reauthenticateWithCredential(firebaseUser, credential);
 
       // Step 2: ask Firebase to send a verification email to the NEW address.
-      // Firebase handles token generation + delivery — no SMTP config needed.
+      // Use auth.currentUser (not the stale firebaseUser ref) so Firebase
+      // sees the freshly re-authenticated session and doesn't throw
+      // auth/requires-recent-login.
       const actionCodeSettings = {
         url: `${window.location.origin}/confirm-email-change`,
         handleCodeInApp: true,
       };
-      await verifyBeforeUpdateEmail(firebaseUser, trimmedEmail, actionCodeSettings);
+      await verifyBeforeUpdateEmail(auth.currentUser, trimmedEmail, actionCodeSettings);
 
       setEmailMsg(
         `Verification email sent to ${trimmedEmail} by Firebase. ` +
