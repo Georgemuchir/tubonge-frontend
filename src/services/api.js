@@ -54,7 +54,6 @@ export const usersAPI = {
   searchUsers: (query) => api.get(`/users/search?q=${encodeURIComponent(query)}`),
   getProfile: () => api.get('/users/profile'),
   updateProfile: (userData) => api.put('/users/profile', userData),
-  updateEmail: (email) => api.put('/users/update-email', { email }),
   requestEmailChange: (newEmail) => api.post('/users/request-email-change', { new_email: newEmail }),
   confirmEmailChange: (token) => api.post('/users/confirm-email-change', { token }),
   getOnlineUsers: () => api.get('/users/online'),
