@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { X, Check, Loader2, Eye, EyeOff } from 'lucide-react';
 import { auth } from '../../firebase';
-import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  verifyBeforeUpdateEmail,
+} from 'firebase/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { usersAPI } from '../../services/api';
 
@@ -83,22 +87,27 @@ const EditProfileModal = ({ onClose }) => {
 
     setEmailSaving(true);
     try {
-      // Step 1: re-authenticate with Firebase to verify current password
       const firebaseUser = auth.currentUser;
       if (!firebaseUser) {
         setEmailError('Session expired. Please log out and back in, then try again.');
         return;
       }
 
+      // Step 1: verify current password
       const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
       await reauthenticateWithCredential(firebaseUser, credential);
 
-      // Step 2: request the email change — backend will email the confirmation link
-      await usersAPI.requestEmailChange(trimmedEmail);
+      // Step 2: ask Firebase to send a verification email to the NEW address.
+      // Firebase handles token generation + delivery — no SMTP config needed.
+      const actionCodeSettings = {
+        url: `${window.location.origin}/confirm-email-change`,
+        handleCodeInApp: true,
+      };
+      await verifyBeforeUpdateEmail(firebaseUser, trimmedEmail, actionCodeSettings);
 
       setEmailMsg(
-        `Confirmation link sent to ${trimmedEmail}. ` +
-        `Check your inbox and click the link within 30 minutes.`
+        `Verification email sent to ${trimmedEmail} by Firebase. ` +
+        `Click the link in that email to confirm the change.`
       );
       setNewEmail('');
       setCurrentPassword('');
@@ -108,10 +117,12 @@ const EditProfileModal = ({ onClose }) => {
         setEmailError('Incorrect password. Please try again.');
       } else if (code === 'auth/too-many-requests') {
         setEmailError('Too many attempts. Please wait a moment and try again.');
-      } else if (err.response?.data?.error) {
-        setEmailError(err.response.data.error);
+      } else if (code === 'auth/email-already-in-use') {
+        setEmailError('That email is already in use by another account.');
+      } else if (code === 'auth/invalid-email') {
+        setEmailError('Enter a valid email address.');
       } else {
-        setEmailError('Something went wrong. Please try again.');
+        setEmailError(err.message || 'Something went wrong. Please try again.');
       }
     } finally {
       setEmailSaving(false);
@@ -121,10 +132,7 @@ const EditProfileModal = ({ onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6 relative max-h-[90vh] overflow-y-auto">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-        >
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
           <X className="w-5 h-5" />
         </button>
 
@@ -197,7 +205,6 @@ const EditProfileModal = ({ onClose }) => {
               autoComplete="off"
             />
 
-            {/* Password confirmation */}
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -230,7 +237,7 @@ const EditProfileModal = ({ onClose }) => {
               className="w-full py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {emailSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {emailSaving ? 'Verifying…' : 'Send Verification Link'}
+              {emailSaving ? 'Sending…' : 'Send Verification Email'}
             </button>
           </form>
         </div>

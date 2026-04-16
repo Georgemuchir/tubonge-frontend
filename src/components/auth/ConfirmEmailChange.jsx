@@ -1,63 +1,76 @@
 /**
  * ConfirmEmailChange
  *
- * Landed on via the link in the confirmation email:
- *   /confirm-email-change?token=<raw_token>
+ * Handles the Firebase email-change verification link:
+ *   /confirm-email-change?mode=verifyAndChangeEmail&oobCode=...&continueUrl=...
  *
- * No login required — the one-time token is the proof.
- * We send the token to the backend, which verifies it, updates the email,
- * and returns the new address.
+ * Firebase sends this link to the new email address after the user calls
+ * verifyBeforeUpdateEmail(). We call applyActionCode() to let Firebase apply
+ * the change, then the backend auto-syncs the new email on the next request
+ * (auth middleware compares Firebase token email with DB email).
  */
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { usersAPI } from '../../services/api';
+import { auth } from '../../firebase';
+import { applyActionCode, reload } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 
 const ConfirmEmailChange = () => {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const oobCode = searchParams.get('oobCode') || '';
+  const mode = searchParams.get('mode') || '';
 
-  const [status, setStatus] = useState('idle');   // idle | loading | success | error
+  const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const calledRef = useRef(false);                 // prevent double-fire in StrictMode
+  const calledRef = useRef(false);
 
   useEffect(() => {
-    if (!token || calledRef.current) return;
+    if (!oobCode || calledRef.current) return;
     calledRef.current = true;
-
-    const confirm = async () => {
-      setStatus('loading');
-      try {
-        const res = await usersAPI.confirmEmailChange(token);
-        setNewEmail(res.data.email);
-        setStatus('success');
-      } catch (err) {
-        setMessage(
-          err.response?.data?.error ||
-          'Something went wrong. Please request a new confirmation link from your profile settings.'
-        );
-        setStatus('error');
-      }
-    };
-
     confirm();
-  }, [token]);
+  }, [oobCode]);
 
-  // ── No token in URL ──────────────────────────────────────────────────────
-  if (!token) {
+  const confirm = async () => {
+    setStatus('loading');
+    try {
+      // Apply the Firebase action code — this changes the email in Firebase Auth
+      await applyActionCode(auth, oobCode);
+
+      // If the user is logged in on this device, refresh their token so the
+      // app immediately reflects the new email. The backend auth middleware
+      // will auto-sync the new email to MongoDB on the next request.
+      if (auth.currentUser) {
+        await reload(auth.currentUser);
+        await auth.currentUser.getIdToken(true);
+      }
+
+      setStatus('success');
+    } catch (err) {
+      const code = err?.code || '';
+      if (code === 'auth/invalid-action-code' || code === 'auth/expired-action-code') {
+        setMessage('This link has expired or already been used. Please request a new email change.');
+      } else if (code === 'auth/email-already-in-use') {
+        setMessage('That email address is already in use by another account.');
+      } else {
+        setMessage(err.message || 'Something went wrong. Please request a new verification link.');
+      }
+      setStatus('error');
+    }
+  };
+
+  // ── No oobCode ───────────────────────────────────────────────────────────
+  if (!oobCode) {
     return (
       <Screen icon="x" iconColor="red">
         <h1 className="text-xl font-semibold text-white mb-2">Invalid Link</h1>
         <p className="text-gray-400 mb-6">
-          No confirmation token found. Please request a new email change from your profile settings.
+          This link is missing required parameters. Please request a new email change from your profile settings.
         </p>
         <Link to="/" className="btn-secondary">Back to Pinglo</Link>
       </Screen>
     );
   }
 
-  // ── Confirming ───────────────────────────────────────────────────────────
   if (status === 'idle' || status === 'loading') {
     return (
       <Screen>
@@ -67,21 +80,23 @@ const ConfirmEmailChange = () => {
     );
   }
 
-  // ── Success ──────────────────────────────────────────────────────────────
   if (status === 'success') {
+    const isLoggedIn = !!auth.currentUser;
     return (
       <Screen icon="check" iconColor="teal">
         <h1 className="text-xl font-semibold text-white mb-2">Email Updated</h1>
         <p className="text-gray-400 mb-6">
-          Your email has been changed to <strong className="text-white">{newEmail}</strong>.
-          Please log in again with your new address.
+          {isLoggedIn
+            ? 'Your email has been updated. You may need to log out and back in for all changes to take effect.'
+            : 'Your email has been updated. Please log in with your new email address.'}
         </p>
-        <Link to="/login" className="btn-teal">Go to Login</Link>
+        <Link to={isLoggedIn ? '/' : '/login'} className="btn-teal">
+          {isLoggedIn ? 'Go to Pinglo' : 'Go to Login'}
+        </Link>
       </Screen>
     );
   }
 
-  // ── Error ────────────────────────────────────────────────────────────────
   return (
     <Screen icon="x" iconColor="red">
       <h1 className="text-xl font-semibold text-white mb-2">Confirmation Failed</h1>
@@ -91,9 +106,7 @@ const ConfirmEmailChange = () => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// Small layout helper — avoids duplicating the outer card
-// ---------------------------------------------------------------------------
+// ── Layout helper ────────────────────────────────────────────────────────────
 const iconMap = {
   check: (
     <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -106,7 +119,6 @@ const iconMap = {
     </svg>
   ),
 };
-
 const colorMap = {
   teal: { ring: 'bg-teal-500/20', icon: 'text-teal-400' },
   red:  { ring: 'bg-red-500/20',  icon: 'text-red-400'  },
@@ -124,12 +136,10 @@ const Screen = ({ icon, iconColor, children }) => {
         )}
         {children}
       </div>
-
-      {/* Inline button styles to avoid Tailwind config dependency */}
       <style>{`
-        .btn-teal    { display:inline-block; padding:.6rem 1.5rem; border-radius:.75rem; background:#0d9488; color:#fff; font-weight:500; transition:background .15s; }
+        .btn-teal     { display:inline-block;padding:.6rem 1.5rem;border-radius:.75rem;background:#0d9488;color:#fff;font-weight:500;transition:background .15s; }
         .btn-teal:hover { background:#0f766e; }
-        .btn-secondary { display:inline-block; padding:.6rem 1.5rem; border-radius:.75rem; background:#374151; color:#fff; font-weight:500; transition:background .15s; }
+        .btn-secondary{ display:inline-block;padding:.6rem 1.5rem;border-radius:.75rem;background:#374151;color:#fff;font-weight:500;transition:background .15s; }
         .btn-secondary:hover { background:#4b5563; }
       `}</style>
     </div>
