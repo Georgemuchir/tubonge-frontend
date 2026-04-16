@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Check, Loader2 } from 'lucide-react';
+import { X, Check, Loader2, Eye, EyeOff } from 'lucide-react';
+import { auth } from '../../firebase';
+import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { usersAPI } from '../../services/api';
 
@@ -13,6 +15,8 @@ const EditProfileModal = ({ onClose }) => {
 
   // Email change state
   const [newEmail, setNewEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailMsg, setEmailMsg] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -63,6 +67,7 @@ const EditProfileModal = ({ onClose }) => {
     setEmailMsg('');
 
     const trimmedEmail = newEmail.trim().toLowerCase();
+
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
       setEmailError('Enter a valid email address.');
       return;
@@ -71,17 +76,42 @@ const EditProfileModal = ({ onClose }) => {
       setEmailError('That is already your current email.');
       return;
     }
+    if (!currentPassword) {
+      setEmailError('Enter your current password to confirm this change.');
+      return;
+    }
 
     setEmailSaving(true);
     try {
+      // Step 1: re-authenticate with Firebase to verify current password
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        setEmailError('Session expired. Please log out and back in, then try again.');
+        return;
+      }
+
+      const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
+
+      // Step 2: request the email change — backend will email the confirmation link
       await usersAPI.requestEmailChange(trimmedEmail);
-      setEmailMsg(`Verification link sent to ${trimmedEmail}. Check your inbox and click the link to confirm.`);
+
+      setEmailMsg(
+        `Confirmation link sent to ${trimmedEmail}. ` +
+        `Check your inbox and click the link within 30 minutes.`
+      );
       setNewEmail('');
+      setCurrentPassword('');
     } catch (err) {
-      if (err.response?.data?.error) {
+      const code = err?.code || '';
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setEmailError('Incorrect password. Please try again.');
+      } else if (code === 'auth/too-many-requests') {
+        setEmailError('Too many attempts. Please wait a moment and try again.');
+      } else if (err.response?.data?.error) {
         setEmailError(err.response.data.error);
       } else {
-        setEmailError('Failed to send verification link. Please try again.');
+        setEmailError('Something went wrong. Please try again.');
       }
     } finally {
       setEmailSaving(false);
@@ -164,7 +194,28 @@ const EditProfileModal = ({ onClose }) => {
               onChange={(e) => { setNewEmail(e.target.value); setEmailError(''); setEmailMsg(''); }}
               placeholder="New email address"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoComplete="off"
             />
+
+            {/* Password confirmation */}
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => { setCurrentPassword(e.target.value); setEmailError(''); }}
+                placeholder="Current password"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
 
             {emailError && <p className="text-xs text-red-600">{emailError}</p>}
             {emailMsg && (
@@ -175,11 +226,11 @@ const EditProfileModal = ({ onClose }) => {
 
             <button
               type="submit"
-              disabled={emailSaving || !newEmail.trim()}
+              disabled={emailSaving || !newEmail.trim() || !currentPassword}
               className="w-full py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {emailSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {emailSaving ? 'Sending…' : 'Send Verification Link'}
+              {emailSaving ? 'Verifying…' : 'Send Verification Link'}
             </button>
           </form>
         </div>
