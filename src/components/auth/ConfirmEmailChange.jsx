@@ -1,24 +1,67 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { auth } from '../../firebase';
-import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { usersAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 const ConfirmEmailChange = () => {
   const [searchParams] = useSearchParams();
-  const { updateUser } = useAuth();
+  const { updateUser, isAuthenticated, loading: authLoading } = useAuth();
 
   const token = searchParams.get('token') || '';
-  const emailFromUrl = searchParams.get('email') || '';
+  const newEmail = searchParams.get('email') || '';
 
-  const [email, setEmail] = useState(emailFromUrl);
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [message, setMessage] = useState('');
 
+  // Auto-confirm as soon as the user is authenticated and token is present
+  useEffect(() => {
+    if (authLoading || !token || status !== 'idle') return;
+    if (!isAuthenticated) return; // wait for auth state; handled in render below
+    confirm();
+  }, [authLoading, isAuthenticated, token, status]);
+
+  const confirm = async () => {
+    setStatus('loading');
+    try {
+      const res = await usersAPI.confirmEmailChange(token);
+      updateUser({ email: res.data.email });
+      setStatus('success');
+      setMessage(`Your email has been updated to ${res.data.email}.`);
+    } catch (err) {
+      setStatus('error');
+      setMessage(
+        err.response?.data?.error ||
+        'Something went wrong. Please request a new confirmation link.'
+      );
+    }
+  };
+
+  // ── Not logged in ────────────────────────────────────────────────────────
+  if (!authLoading && !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
+        <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="w-14 h-14 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-white mb-2">Sign in first</h1>
+          <p className="text-gray-400 mb-6">
+            You need to be signed in to confirm your email change.
+            Please log in, then click the link in your email again.
+          </p>
+          <Link to="/login" className="inline-block px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors">
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── No token in URL ──────────────────────────────────────────────────────
   if (!token) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
@@ -29,7 +72,9 @@ const ConfirmEmailChange = () => {
             </svg>
           </div>
           <h1 className="text-xl font-semibold text-white mb-2">Invalid Link</h1>
-          <p className="text-gray-400 mb-6">No confirmation token found. Please request a new email change from your profile settings.</p>
+          <p className="text-gray-400 mb-6">
+            No confirmation token found. Please request a new email change from your profile settings.
+          </p>
           <Link to="/" className="inline-block px-6 py-2.5 rounded-xl bg-gray-700 hover:bg-gray-600 text-white font-medium transition-colors">
             Back to Pinglo
           </Link>
@@ -38,7 +83,22 @@ const ConfirmEmailChange = () => {
     );
   }
 
-  if (success) {
+  // ── Loading / confirming ─────────────────────────────────────────────────
+  if (authLoading || status === 'loading' || status === 'idle') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
+        <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <Loader2 className="w-10 h-10 text-teal-400 animate-spin mx-auto mb-4" />
+          <p className="text-gray-300">
+            {newEmail ? `Confirming email change to ${newEmail}…` : 'Confirming email change…'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Success ──────────────────────────────────────────────────────────────
+  if (status === 'success') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
         <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
@@ -48,7 +108,7 @@ const ConfirmEmailChange = () => {
             </svg>
           </div>
           <h1 className="text-xl font-semibold text-white mb-2">Email Updated</h1>
-          <p className="text-gray-400 mb-6">{success}</p>
+          <p className="text-gray-400 mb-6">{message}</p>
           <Link to="/" className="inline-block px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-medium transition-colors">
             Go to Pinglo
           </Link>
@@ -57,105 +117,20 @@ const ConfirmEmailChange = () => {
     );
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      setError('Enter a valid email address.');
-      return;
-    }
-    if (!password) {
-      setError('Enter your current password.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const firebaseUser = auth.currentUser;
-      if (!firebaseUser) {
-        setError('You must be logged in to confirm the email change. Please log in first.');
-        setLoading(false);
-        return;
-      }
-
-      // Re-authenticate with current (old) password
-      const credential = EmailAuthProvider.credential(firebaseUser.email, password);
-      await reauthenticateWithCredential(firebaseUser, credential);
-
-      // Confirm the email change via backend token
-      const res = await usersAPI.confirmEmailChange(token);
-      const newEmail = res.data.email;
-      updateUser({ email: newEmail });
-      setSuccess(`Your email has been updated to ${newEmail}.`);
-    } catch (err) {
-      const code = err?.code || '';
-      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-        setError('Incorrect password. Please try again.');
-      } else if (code === 'auth/too-many-requests') {
-        setError('Too many attempts. Please wait a moment and try again.');
-      } else if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError('Something went wrong. Please try again or request a new verification link.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ── Error ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-md w-full">
-        <h1 className="text-xl font-semibold text-white mb-1">Confirm Email Change</h1>
-        <p className="text-sm text-gray-400 mb-6">
-          Enter your new email address and current password to complete the change.
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">New email address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setError(''); }}
-              placeholder="new@example.com"
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-              autoComplete="email"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Current password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(''); }}
-              placeholder="Your current password"
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-              autoComplete="current-password"
-            />
-          </div>
-
-          {error && <p className="text-sm text-red-400">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? 'Confirming…' : 'Confirm Email Change'}
-          </button>
-        </form>
-
-        <p className="text-xs text-gray-500 text-center mt-4">
-          Link expired?{' '}
-          <Link to="/" className="text-teal-400 hover:underline">
-            Go to settings to request a new one
-          </Link>
-        </p>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+        <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+        <h1 className="text-xl font-semibold text-white mb-2">Confirmation Failed</h1>
+        <p className="text-gray-400 mb-6">{message}</p>
+        <Link to="/" className="inline-block px-6 py-2.5 rounded-xl bg-gray-700 hover:bg-gray-600 text-white font-medium transition-colors">
+          Back to Settings
+        </Link>
       </div>
     </div>
   );
