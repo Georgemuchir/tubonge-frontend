@@ -328,14 +328,14 @@ const ChatWindow = () => {
                   <div className="nexus-empty-subtitle">Start the conversation!</div>
                 </div>
               ) : (
-                messages.map((message, index) => (
+                messages.filter(Boolean).map((message, index, arr) => (
                   <MessageBubble
                     key={message.id}
                     message={message}
                     isOwnMessage={message.sender_id === user?.id}
                     showAvatar={
                       index === 0 ||
-                      messages[index - 1].sender_id !== message.sender_id
+                      arr[index - 1].sender_id !== message.sender_id
                     }
                     otherParticipant={otherParticipant}
                     onReply={canChat ? handleReply : null}

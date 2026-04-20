@@ -47,9 +47,10 @@ const chatReducer = (state, action) => {
       return { ...state, activeConversation: action.payload, messages: [] };
     
     case 'SET_MESSAGES':
-      return { ...state, messages: action.payload };
-    
+      return { ...state, messages: (action.payload || []).filter(Boolean) };
+
     case 'ADD_MESSAGE':
+      if (!action.payload) return state;
       // Check for duplicates before adding
       const exists = state.messages.some(m => m.id === action.payload.id);
       if (exists) {
@@ -59,11 +60,11 @@ const chatReducer = (state, action) => {
         ...state,
         messages: [...state.messages, action.payload]
       };
-    
+
     case 'PREPEND_MESSAGES':
       return {
         ...state,
-        messages: [...action.payload, ...state.messages]
+        messages: [...(action.payload || []).filter(Boolean), ...state.messages]
       };
     
     case 'UPDATE_MESSAGE':
