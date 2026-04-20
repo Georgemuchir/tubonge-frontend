@@ -79,14 +79,14 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     authFlowInProgress.current = true;
     try {
-      const { name, username, email, password } = userData;
+      const { name, username, email, password, phone_number } = userData;
 
       // 1. Create Firebase Auth user
       const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(firebaseUser, { displayName: name });
 
       // 2. Create backend profile (token sent automatically by api.js interceptor)
-      const response = await authAPI.register({ name, username, email });
+      const response = await authAPI.register({ name, username, email, phone_number });
       const user = response.data.user;
 
       localStorage.setItem('user', JSON.stringify(user));
