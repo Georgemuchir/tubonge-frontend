@@ -756,6 +756,15 @@ const WhatsAppMessenger = () => {
     const userId = user.id || user._id;
     if (!userId || userId === 'None' || userId === 'null') return;
     setSelectedUser(user);
+    // If this is a request item from the inbox, set status immediately
+    if (user._isRequest && user._requestId) {
+      setChatStatus('INCOMING_PENDING');
+      setIncomingRequest({ requestId: user._requestId, text: user.lastMessage || '' });
+    } else {
+      setChatStatus('NONE');
+      setIncomingRequest(null);
+      setPendingText('');
+    }
     setLoading(true);
     setShowMobileSidebar(false);
     try {
@@ -1154,6 +1163,7 @@ const WhatsAppMessenger = () => {
         online: onlineUsers[conv.sender_id] || false,
         color: getAvatarColor(conv.sender_name),
         _isRequest: conv._isRequest || false,
+        _requestId: conv._requestId || null,
       }));
   }, [inbox, searchQuery, onlineUsers]);
 
