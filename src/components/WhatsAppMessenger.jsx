@@ -422,7 +422,9 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-gray-400 text-sm truncate flex-1">
-                        {conv.lastMessageType === 'missed_call' ? (
+                        {conv._isRequest ? (
+                          <span className="text-indigo-400">{conv.lastMessage}</span>
+                        ) : conv.lastMessageType === 'missed_call' ? (
                           <span className="text-red-400 flex items-center gap-1">
                             <PhoneOff className="w-3.5 h-3.5 inline" />
                             {conv.lastMessage || 'Missed call'}
@@ -436,7 +438,11 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
                           className="w-10 h-10 rounded-md object-cover border border-gray-700"
                         />
                       )}
-                      {conv.unread > 0 && (
+                      {conv._isRequest ? (
+                        <span className="flex-shrink-0 px-2 py-1 rounded-full bg-indigo-600/80 text-white text-xs font-bold shadow-lg">
+                          Request
+                        </span>
+                      ) : conv.unread > 0 && (
                         <span className="flex-shrink-0 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold shadow-lg">
                           {conv.unread}
                         </span>
@@ -524,23 +530,39 @@ const WhatsAppMessenger = () => {
 
   const fetchInbox = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/inbox`, {
-        headers: {
-          'Authorization': `Bearer ${await getAuthToken()}`,
-        },
-      });
+      const token = await getAuthToken();
+      const [inboxRes, reqRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/messages/inbox`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/messages/requests`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
-        setInbox(data.inbox || []);
-        setTotalUnread(data.total_unread || 0);
-        
-        const onlineStatusMap = {};
-        data.inbox?.forEach(item => {
-          onlineStatusMap[item.sender_id] = item.online || false;
-        });
-        setOnlineUsers(onlineStatusMap);
-      }
+      const inboxData = inboxRes.ok ? await inboxRes.json() : {};
+      const reqData = reqRes.ok ? await reqRes.json() : {};
+
+      const inboxItems = inboxData.inbox || [];
+      const requestItems = (reqData.requests || []).map(r => ({
+        sender_id: r.sender_id,
+        sender_name: r.sender_name,
+        sender_username: r.sender_username,
+        sender_avatar: r.sender_avatar,
+        last_message: r.text,
+        last_message_type: r.message_type,
+        last_message_time: r.created_at,
+        unread_count: 1,
+        _isRequest: true,
+        _requestId: r.id,
+      }));
+
+      // Merge: requests first, then inbox (deduplicate by sender_id)
+      const requestSenderIds = new Set(requestItems.map(r => r.sender_id));
+      const merged = [...requestItems, ...inboxItems.filter(i => !requestSenderIds.has(i.sender_id))];
+
+      setInbox(merged);
+      setTotalUnread((inboxData.total_unread || 0) + requestItems.length);
+
+      const onlineStatusMap = {};
+      inboxItems.forEach(item => { onlineStatusMap[item.sender_id] = item.online || false; });
+      setOnlineUsers(onlineStatusMap);
     } catch (error) {
       console.error('Fetch inbox error:', error);
     }
@@ -639,6 +661,24 @@ const WhatsAppMessenger = () => {
     const socket = socketService.socket;
     if (!socket) return;
     const onRequest = (data) => {
+      // Add to inbox immediately so receiver sees it
+      setInbox(prev => {
+        const already = prev.some(i => i.sender_id === data.sender_id && i._isRequest);
+        if (already) return prev;
+        return [{
+          sender_id: data.sender_id,
+          sender_name: data.sender_name || 'Someone',
+          sender_username: data.sender_username || '',
+          sender_avatar: data.sender_avatar || '',
+          last_message: data.text || '',
+          last_message_type: data.message_type || 'text',
+          last_message_time: new Date().toISOString(),
+          unread_count: 1,
+          _isRequest: true,
+          _requestId: data.request_id,
+        }, ...prev];
+      });
+      // If this chat is currently open, update status
       const otherId = selectedUser?.id || selectedUser?._id;
       if (data.sender_id === otherId) {
         setIncomingRequest({ requestId: data.request_id, text: data.text || '' });
@@ -1112,7 +1152,8 @@ const WhatsAppMessenger = () => {
         time: formatTime(conv.last_message_time),
         unread: conv.unread_count,
         online: onlineUsers[conv.sender_id] || false,
-        color: getAvatarColor(conv.sender_name)
+        color: getAvatarColor(conv.sender_name),
+        _isRequest: conv._isRequest || false,
       }));
   }, [inbox, searchQuery, onlineUsers]);
 
