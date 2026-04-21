@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2 } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -479,6 +479,9 @@ const WhatsAppMessenger = () => {
   const callManagerRef = useRef(null);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [chatStatus, setChatStatus] = useState('NONE'); // NONE | OUTGOING_PENDING | INCOMING_PENDING | ACCEPTED
+  const [pendingText, setPendingText] = useState('');
+  const [incomingRequest, setIncomingRequest] = useState(null); // { requestId, text }
   const [showSettings, setShowSettings] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [activeMsg, setActiveMsg] = useState(null);
@@ -610,6 +613,53 @@ const WhatsAppMessenger = () => {
       socket.off('message_deleted', handleMessageDeleted);
     };
   }, [selectedUser]);
+
+  // Check message request status whenever conversation changes
+  useEffect(() => {
+    if (!selectedUser) { setChatStatus('NONE'); setPendingText(''); setIncomingRequest(null); return; }
+    const userId = selectedUser.id || selectedUser._id;
+    (async () => {
+      try {
+        const token = await getAuthToken();
+        const res = await fetch(`${API_BASE_URL}/messages/chat-status/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setChatStatus(data.status || 'NONE');
+        if (data.status === 'OUTGOING_PENDING') setPendingText(data.text || '');
+        if (data.status === 'INCOMING_PENDING') {
+          setIncomingRequest({ requestId: data.request_id, text: data.text || '' });
+        }
+      } catch { setChatStatus('NONE'); }
+    })();
+  }, [selectedUser?.id, selectedUser?._id]);
+
+  // Socket: live updates for request events
+  useEffect(() => {
+    const socket = socketService.socket;
+    if (!socket) return;
+    const onRequest = (data) => {
+      const otherId = selectedUser?.id || selectedUser?._id;
+      if (data.sender_id === otherId) {
+        setIncomingRequest({ requestId: data.request_id, text: data.text || '' });
+        setChatStatus('INCOMING_PENDING');
+      }
+    };
+    const onAccepted = async () => {
+      setChatStatus('ACCEPTED');
+      setPendingText('');
+      if (selectedUser) {
+        const uid = selectedUser.id || selectedUser._id;
+        const convId = conversationId || uid;
+        const token = await getAuthToken();
+        const res = await fetch(`${API_BASE_URL}/messages/${convId}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) { const d = await res.json(); setMessages(d.messages || []); }
+      }
+    };
+    socket.on('message_request', onRequest);
+    socket.on('request_accepted', onAccepted);
+    return () => { socket.off('message_request', onRequest); socket.off('request_accepted', onAccepted); };
+  }, [selectedUser, conversationId]);
 
   // Handle window resize
   useEffect(() => {
@@ -767,16 +817,27 @@ const WhatsAppMessenger = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        // Replace optimistic message with real one from server
-        setMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
-        fetchInbox();
+        if (data.status === 'pending_request') {
+          // First message became a request — remove optimistic bubble, show pending UI
+          setMessages(prev => prev.filter(m => m.id !== tempId));
+          setChatStatus('OUTGOING_PENDING');
+          setPendingText(sentText);
+        } else {
+          setMessages(prev => prev.map(m => m.id === tempId ? { ...m, ...(data.message || data), _optimistic: false } : m));
+          setChatStatus('ACCEPTED');
+          fetchInbox();
+        }
       } else {
-        // Remove optimistic message on failure
         setMessages(prev => prev.filter(m => m.id !== tempId));
         setMessage(sentText);
         setReplyTo(sentReplyTo);
         const errorData = await response.json().catch(() => ({}));
-        setSendError(errorData.error || 'Failed to send message.');
+        if (errorData.status === 'pending_request') {
+          setChatStatus('OUTGOING_PENDING');
+          setPendingText(sentText);
+        } else {
+          setSendError(errorData.error || 'Failed to send message.');
+        }
       }
     } catch (error) {
       setMessages(prev => prev.filter(m => m.id !== tempId));
@@ -1401,9 +1462,105 @@ const WhatsAppMessenger = () => {
           </div>
           
           <div className="whatsapp-header p-3 border-l border-gray-800 safe-area-bottom">
-            {sendError && (
+            {sendError && chatStatus === 'ACCEPTED' && (
               <div className="mb-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs px-3 py-2">
                 {sendError}
+              </div>
+            )}
+
+            {chatStatus === 'OUTGOING_PENDING' && (
+              <div className="mb-2">
+                {pendingText && (
+                  <div className="flex justify-end mb-3">
+                    <div style={{
+                      maxWidth: '75%', background: 'linear-gradient(135deg,#3b82f6,#6366f1)',
+                      borderRadius: '16px 16px 4px 16px', padding: '10px 14px',
+                      color: '#fff', fontSize: 14, opacity: 0.7,
+                    }}>
+                      <p className="break-words">{pendingText}</p>
+                      <div className="flex items-center justify-end gap-1 mt-1" style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
+                        <Clock size={10} /> Pending approval
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                  background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
+                  borderRadius: 12,
+                }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Clock size={16} color="#818cf8" />
+                  </div>
+                  <div>
+                    <p style={{ color: '#c7d2fe', fontWeight: 600, fontSize: 13, margin: 0 }}>Message request sent</p>
+                    <p style={{ color: '#6b7280', fontSize: 12, margin: '2px 0 0' }}>
+                      Waiting for {selectedUser?.name || 'them'} to accept
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {chatStatus === 'INCOMING_PENDING' && incomingRequest && (
+              <div className="mb-2">
+                <div className="flex justify-start mb-3">
+                  <div style={{
+                    maxWidth: '75%', background: 'rgba(255,255,255,0.07)',
+                    borderRadius: '16px 16px 16px 4px', padding: '10px 14px',
+                    color: '#e5e7eb', fontSize: 14, border: '1px solid rgba(255,255,255,0.1)',
+                  }}>
+                    <p className="break-words">{incomingRequest.text}</p>
+                    <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+                      {selectedUser?.name} wants to connect
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const token = await getAuthToken();
+                        const res = await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/accept`, {
+                          method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        });
+                        if (res.ok) {
+                          const d = await res.json();
+                          setChatStatus('ACCEPTED');
+                          setIncomingRequest(null);
+                          if (d.message) setMessages([d.message]);
+                          fetchInbox();
+                        }
+                      } catch { setSendError('Failed to accept request.'); }
+                    }}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+                      background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 600, fontSize: 14,
+                    }}
+                  >
+                    <UserCheck size={16} /> Accept
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const token = await getAuthToken();
+                        await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/decline`, {
+                          method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        });
+                        setChatStatus('NONE');
+                        setIncomingRequest(null);
+                      } catch { setSendError('Failed to decline request.'); }
+                    }}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      padding: '10px 0', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)',
+                      cursor: 'pointer', background: 'rgba(239,68,68,0.1)', color: '#f87171', fontWeight: 600, fontSize: 14,
+                    }}
+                  >
+                    <UserX size={16} /> Decline
+                  </button>
+                </div>
               </div>
             )}
             {replyTo && (
@@ -1420,7 +1577,7 @@ const WhatsAppMessenger = () => {
                 </button>
               </div>
             )}
-            {isRecording ? (
+            {(chatStatus === 'OUTGOING_PENDING' || chatStatus === 'INCOMING_PENDING') ? null : isRecording ? (
               <div className="flex items-center gap-3">
                 <button onClick={cancelRecording} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors touch-target" title="Cancel">
                   <X className="w-5 h-5" />
