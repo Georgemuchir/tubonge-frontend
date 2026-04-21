@@ -344,19 +344,17 @@ export const ChatProvider = ({ children }) => {
       const conversationId = state.activeConversation._id || state.activeConversation.id;
       
       const response = await messagesAPI.sendMessage(receiverUsername, content.trim(), conversationId, replyToId, replyToContent, replyToSenderName);
-      
-      if (response.status === 403 && response.data?.code === 'REQUEST_NOT_ACCEPTED') {
-        console.error('❌ Cannot send message: Friend request not accepted');
-        alert('You must send and get approval for a friend request before messaging this user.');
-        // Remove optimistic message
+
+      // First message became a request — remove optimistic bubble and signal caller
+      if (response.status === 201 && response.data?.status === 'pending_request') {
         dispatch({ type: 'SET_MESSAGES', payload: state.messages.filter(m => m.id !== optimisticMessage.id) });
-        return;
+        return { pending: true, text: content.trim(), requestId: response.data.request_id };
       }
-      
+
       // Replace optimistic message with real one
       const realMessage = response.data;
       dispatch({ type: 'UPDATE_MESSAGE', payload: { ...optimisticMessage, ...realMessage, status: 'sent' } });
-      
+
       // Send via socket for real-time delivery to other user
       socketService.sendMessage({
         conversation_id: conversationId,
@@ -364,11 +362,12 @@ export const ChatProvider = ({ children }) => {
         sender_id: user._id || user.id
       });
 
+      return { pending: false };
+
     } catch (error) {
       console.error('Failed to send message:', error);
-      if (error.response?.status === 403) {
-        alert('You cannot message this user. Friend request must be accepted first.');
-      }
+      dispatch({ type: 'SET_MESSAGES', payload: state.messages.filter(m => m.id !== optimisticMessage.id) });
+      return { pending: false };
     }
   };
 

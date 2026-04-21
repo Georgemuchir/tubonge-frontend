@@ -246,6 +246,14 @@ class SocketService {
     }
   }
 
+  onMessageRequest(callback) {
+    if (this.socket) this.socket.on('message_request', callback);
+  }
+
+  onRequestAccepted(callback) {
+    if (this.socket) this.socket.on('request_accepted', callback);
+  }
+
   // Admin enforcement
   onForceLogout(callback) {
     if (this.socket) {

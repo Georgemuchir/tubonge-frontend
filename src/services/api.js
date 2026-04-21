@@ -124,6 +124,11 @@ export const messagesAPI = {
   // Mark messages as read
   markAsRead: (conversationId) =>
     api.post(`/messages/${conversationId}/mark-read`),
+
+  // Message request status
+  getChatStatus: (userId) => api.get(`/messages/chat-status/${userId}`),
+  acceptMessageRequest: (requestId) => api.post(`/messages/requests/${requestId}/accept`),
+  declineMessageRequest: (requestId) => api.post(`/messages/requests/${requestId}/decline`),
 };
 
 export default api;

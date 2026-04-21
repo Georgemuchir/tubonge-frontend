@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { messagesAPI } from '../../services/api';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic, Square, X, Reply } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic, Square, X, Reply, Clock, CheckCircle, UserCheck, UserX } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
-import { AlertTriangle } from 'lucide-react';
+import socketService from '../../services/socket';
 
 const ChatWindow = () => {
   const imageInputRef = useRef(null);
@@ -17,7 +17,7 @@ const ChatWindow = () => {
     sendTyping,
     typingUsers,
     setActiveConversation,
-    getRelationshipStatus
+    loadMessages,
   } = useChat();
   const { user } = useAuth();
   const [messageText, setMessageText] = useState('');
@@ -25,8 +25,10 @@ const ChatWindow = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
-  const [relationshipStatus, setRelationshipStatus] = useState('NONE');
+  const [chatStatus, setChatStatus] = useState('NONE');
   const [statusLoading, setStatusLoading] = useState(false);
+  const [pendingText, setPendingText] = useState('');
+  const [incomingRequest, setIncomingRequest] = useState(null); // { requestId, text, senderName }
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -85,19 +87,17 @@ const ChatWindow = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (messageText.trim()) {
-      sendMessage(
-        messageText,
-        'text',
-        replyToMessage?.id || null,
-        replyToMessage?.content || null,
-        replyToMessage?.senderName || null
-      );
-      setMessageText('');
-      setIsTyping(false);
-      setReplyToMessage(null);
+    if (!messageText.trim() || !inputEnabled) return;
+    const text = messageText;
+    setMessageText('');
+    setIsTyping(false);
+    setReplyToMessage(null);
+    const result = await sendMessage(text, 'text', replyToMessage?.id || null, replyToMessage?.content || null, replyToMessage?.senderName || null);
+    if (result?.pending) {
+      setChatStatus('OUTGOING_PENDING');
+      setPendingText(text);
     }
   };
 
@@ -224,20 +224,49 @@ const ChatWindow = () => {
 
   const otherParticipant = getOtherParticipant();
 
-    // Check relationship status on conversation change
-    useEffect(() => {
-      const checkStatus = async () => {
-        if (otherParticipant?.username) {
-          setStatusLoading(true);
-          const status = await getRelationshipStatus(otherParticipant.username);
-          setRelationshipStatus(status);
-          setStatusLoading(false);
-        } else {
-          setRelationshipStatus('NONE');
+    // Check chat status on conversation change
+  useEffect(() => {
+    const checkStatus = async () => {
+      const otherId = otherParticipant?.id;
+      if (!otherId) { setChatStatus('NONE'); return; }
+      setStatusLoading(true);
+      try {
+        const res = await messagesAPI.getChatStatus(otherId);
+        const data = res.data;
+        setChatStatus(data.status);
+        if (data.status === 'OUTGOING_PENDING') setPendingText(data.text || '');
+        if (data.status === 'INCOMING_PENDING') {
+          setIncomingRequest({ requestId: data.request_id, text: data.text || '', senderName: otherParticipant?.name || '' });
         }
-      };
-      checkStatus();
-    }, [activeConversation?.id, otherParticipant?.username]);
+      } catch {
+        setChatStatus('NONE');
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+    checkStatus();
+  }, [activeConversation?.id, otherParticipant?.id]);
+
+  // Listen for incoming message requests and acceptances in real time
+  useEffect(() => {
+    const handleIncomingRequest = (data) => {
+      if (data.sender_id === otherParticipant?.id) {
+        setIncomingRequest({ requestId: data.request_id, text: data.text || '', senderName: otherParticipant?.name || '' });
+        setChatStatus('INCOMING_PENDING');
+      }
+    };
+    const handleRequestAccepted = async (data) => {
+      setChatStatus('ACCEPTED');
+      setPendingText('');
+      if (activeConversation?.id) await loadMessages(activeConversation.id);
+    };
+    socketService.onMessageRequest(handleIncomingRequest);
+    socketService.onRequestAccepted(handleRequestAccepted);
+    return () => {
+      socketService.off('message_request', handleIncomingRequest);
+      socketService.off('request_accepted', handleRequestAccepted);
+    };
+  }, [activeConversation?.id, otherParticipant?.id]);
 
   // Get typing users for this conversation (excluding current user)
   const conversationTypingUsers = typingUsers[activeConversation?.id] || {};
@@ -248,7 +277,9 @@ const ChatWindow = () => {
     return null;
   }
 
-  const canChat = relationshipStatus === 'ACCEPTED';
+  const canChat = chatStatus === 'ACCEPTED';
+  const canSendInitial = chatStatus === 'NONE';
+  const inputEnabled = canChat || canSendInitial;
 
   return (
     <div
@@ -361,26 +392,95 @@ const ChatWindow = () => {
         </div>
       ) : (
         <>
-          {!canChat && (
-            <div className="flex flex-col items-center justify-center py-2 text-yellow-400">
-              <AlertTriangle className="mb-2" size={24} />
-              <div className="font-semibold text-sm">You can't send messages yet</div>
-              {relationshipStatus === 'OUTGOING_PENDING' && (
-                <div className="text-xs mt-1">Friend request sent. Waiting for acceptance.</div>
+          {chatStatus === 'OUTGOING_PENDING' && (
+            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              {pendingText && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                  <div style={{
+                    maxWidth: '70%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                    borderRadius: '18px 18px 4px 18px', padding: '10px 14px',
+                    color: '#fff', fontSize: 14, opacity: 0.75, position: 'relative',
+                  }}>
+                    {pendingText}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 11, color: 'rgba(255,255,255,0.6)', justifyContent: 'flex-end' }}>
+                      <Clock size={10} /> Pending
+                    </div>
+                  </div>
+                </div>
               )}
-              {relationshipStatus === 'INCOMING_PENDING' && (
-                <div className="text-xs mt-1">You have a friend request from this user. <b>Accept it in your inbox to start chatting.</b></div>
-              )}
-              {relationshipStatus === 'NONE' && (
-                <div className="text-xs mt-1">Send a friend request to start chatting.</div>
-              )}
-              {relationshipStatus === 'BLOCKED' && (
-                <div className="text-xs mt-1">You have blocked this user.</div>
-              )}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+                background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)',
+                borderRadius: 14,
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Clock size={18} color="#818cf8" />
+                </div>
+                <div>
+                  <div style={{ color: '#c7d2fe', fontWeight: 600, fontSize: 14 }}>Message request sent</div>
+                  <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>
+                    Waiting for {otherParticipant?.name || 'them'} to accept before you can continue chatting
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Reply preview */}
+          {chatStatus === 'INCOMING_PENDING' && incomingRequest && (
+            <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+                <div style={{
+                  maxWidth: '70%', background: 'rgba(255,255,255,0.06)',
+                  borderRadius: '18px 18px 18px 4px', padding: '10px 14px',
+                  color: '#e5e7eb', fontSize: 14, border: '1px solid rgba(255,255,255,0.08)',
+                }}>
+                  {incomingRequest.text}
+                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+                    {incomingRequest.senderName} wants to connect
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={async () => {
+                    try {
+                      await messagesAPI.acceptMessageRequest(incomingRequest.requestId);
+                      setChatStatus('ACCEPTED');
+                      setIncomingRequest(null);
+                      if (activeConversation?.id) loadMessages(activeConversation.id);
+                    } catch { alert('Failed to accept request.'); }
+                  }}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+                    background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff',
+                    fontWeight: 600, fontSize: 14,
+                  }}
+                >
+                  <UserCheck size={16} /> Accept
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await messagesAPI.declineMessageRequest(incomingRequest.requestId);
+                      setChatStatus('NONE');
+                      setIncomingRequest(null);
+                    } catch { alert('Failed to decline request.'); }
+                  }}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '10px 0', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)',
+                    cursor: 'pointer', background: 'rgba(239,68,68,0.1)', color: '#f87171',
+                    fontWeight: 600, fontSize: 14,
+                  }}
+                >
+                  <UserX size={16} /> Decline
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Reply preview and input — hidden when a request is pending on either side */}
           {replyToMessage && canChat && (
             <div style={{
               display: 'flex',
@@ -413,7 +513,7 @@ const ChatWindow = () => {
             </div>
           )}
 
-          <form
+          {(chatStatus === 'OUTGOING_PENDING' || chatStatus === 'INCOMING_PENDING') ? null : <form
             className="nexus-input-modern"
             onSubmit={handleSendMessage}
           >
@@ -430,7 +530,7 @@ const ChatWindow = () => {
                 disabled={uploadingImage || uploadingVoice || isRecording || !canChat}
                 tabIndex={0}
                 style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 8 }}
-                title={!canChat ? 'You must be friends to send images' : 'Attach image'}
+                title={!canChat ? 'Accept the request first to send images' : 'Attach image'}
               >
                 <ImageIcon className="size-5 text-white/80" />
               </button>
@@ -466,7 +566,11 @@ const ChatWindow = () => {
                   rows={1}
                   value={messageText}
                   onChange={handleInputChange}
-                  placeholder={!canChat ? 'You must be friends to chat' : replyToMessage ? 'Write a reply…' : 'Type a message…'}
+                  placeholder={
+                    canSendInitial ? 'Send a message request…' :
+                    canChat ? (replyToMessage ? 'Write a reply…' : 'Type a message…') :
+                    'You cannot send messages here'
+                  }
                   className="nexus-textarea-modern"
                   onInput={(e) => {
                     const ta = e.currentTarget;
@@ -479,9 +583,9 @@ const ChatWindow = () => {
                       handleSendMessage(e);
                     }
                   }}
-                  disabled={!canChat}
-                  style={!canChat ? { background: '#222', color: '#aaa', cursor: 'not-allowed' } : {}}
-                  title={!canChat ? 'You must be friends to chat' : ''}
+                  disabled={!inputEnabled}
+                  style={!inputEnabled ? { background: '#222', color: '#aaa', cursor: 'not-allowed' } : {}}
+                  title={!inputEnabled ? 'You cannot send messages here' : ''}
                 />
               )}
 
@@ -516,7 +620,7 @@ const ChatWindow = () => {
                   aria-label="Record voice message"
                   onClick={startRecording}
                   disabled={!canChat || uploadingVoice || uploadingImage}
-                  title={!canChat ? 'You must be friends to send voice messages' : 'Hold to record voice note'}
+                  title={!canChat ? 'Accept the request first to send voice messages' : 'Hold to record voice note'}
                 >
                   <Mic className="size-5 text-white/80" />
                 </button>
@@ -525,16 +629,16 @@ const ChatWindow = () => {
               {!isRecording && (
                 <button
                   type="submit"
-                  disabled={!messageText.trim() || !canChat}
+                  disabled={!messageText.trim() || !inputEnabled}
                   className="nexus-send-modern-btn"
-                  title={!canChat ? 'You must be friends to send messages' : ''}
+                  title={canSendInitial ? 'Send message request' : !canChat ? 'Not available' : ''}
                 >
                   <Send className="size-4" />
                   Send
                 </button>
               )}
             </div>
-          </form>
+          </form>}
         </>
       )}
     </div>
