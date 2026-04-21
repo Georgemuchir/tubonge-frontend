@@ -1458,109 +1458,103 @@ const WhatsAppMessenger = () => {
                 );
               })
             )}
+            {/* Pending message bubbles shown inline in the message list */}
+            {chatStatus === 'OUTGOING_PENDING' && pendingText && (
+              <div className="flex flex-col items-end" style={{animation:'fadeIn 0.3s ease-out'}}>
+                <div className="message-sent rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md" style={{maxWidth:'85%',opacity:0.75}}>
+                  <p className="text-white text-sm leading-relaxed break-words">{pendingText}</p>
+                  <div className="flex items-center justify-end gap-1 mt-1">
+                    <Clock size={10} className="text-gray-300" />
+                    <span className="text-xs text-gray-300">Pending</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {chatStatus === 'INCOMING_PENDING' && incomingRequest?.text && (
+              <div className="flex flex-col items-start" style={{animation:'fadeIn 0.3s ease-out'}}>
+                <div className="message-received rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md" style={{maxWidth:'85%'}}>
+                  <p className="text-white text-sm leading-relaxed break-words">{incomingRequest.text}</p>
+                  <div className="flex items-center justify-end gap-1 mt-1">
+                    <span className="text-xs text-gray-400">Message request</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
-          
+
           <div className="whatsapp-header p-3 border-l border-gray-800 safe-area-bottom">
-            {sendError && chatStatus === 'ACCEPTED' && (
+            {sendError && (
               <div className="mb-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs px-3 py-2">
                 {sendError}
               </div>
             )}
 
             {chatStatus === 'OUTGOING_PENDING' && (
-              <div className="mb-2">
-                {pendingText && (
-                  <div className="flex justify-end mb-3">
-                    <div style={{
-                      maxWidth: '75%', background: 'linear-gradient(135deg,#3b82f6,#6366f1)',
-                      borderRadius: '16px 16px 4px 16px', padding: '10px 14px',
-                      color: '#fff', fontSize: 14, opacity: 0.7,
-                    }}>
-                      <p className="break-words">{pendingText}</p>
-                      <div className="flex items-center justify-end gap-1 mt-1" style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
-                        <Clock size={10} /> Pending approval
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                  background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
-                  borderRadius: 12,
-                }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Clock size={16} color="#818cf8" />
-                  </div>
-                  <div>
-                    <p style={{ color: '#c7d2fe', fontWeight: 600, fontSize: 13, margin: 0 }}>Message request sent</p>
-                    <p style={{ color: '#6b7280', fontSize: 12, margin: '2px 0 0' }}>
-                      Waiting for {selectedUser?.name || 'them'} to accept
-                    </p>
-                  </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
+                borderRadius: 12,
+              }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Clock size={16} color="#818cf8" />
+                </div>
+                <div>
+                  <p style={{ color: '#c7d2fe', fontWeight: 600, fontSize: 13, margin: 0 }}>Message request sent</p>
+                  <p style={{ color: '#6b7280', fontSize: 12, margin: '2px 0 0' }}>
+                    Waiting for {selectedUser?.name || 'them'} to accept
+                  </p>
                 </div>
               </div>
             )}
 
             {chatStatus === 'INCOMING_PENDING' && incomingRequest && (
-              <div className="mb-2">
-                <div className="flex justify-start mb-3">
-                  <div style={{
-                    maxWidth: '75%', background: 'rgba(255,255,255,0.07)',
-                    borderRadius: '16px 16px 16px 4px', padding: '10px 14px',
-                    color: '#e5e7eb', fontSize: 14, border: '1px solid rgba(255,255,255,0.1)',
-                  }}>
-                    <p className="break-words">{incomingRequest.text}</p>
-                    <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
-                      {selectedUser?.name} wants to connect
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={async () => {
-                      try {
-                        const token = await getAuthToken();
-                        const res = await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/accept`, {
-                          method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                        });
-                        if (res.ok) {
-                          const d = await res.json();
-                          setChatStatus('ACCEPTED');
-                          setIncomingRequest(null);
-                          if (d.message) setMessages([d.message]);
-                          fetchInbox();
-                        }
-                      } catch { setSendError('Failed to accept request.'); }
-                    }}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
-                      background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 600, fontSize: 14,
-                    }}
-                  >
-                    <UserCheck size={16} /> Accept
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const token = await getAuthToken();
-                        await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/decline`, {
-                          method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                        });
-                        setChatStatus('NONE');
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const token = await getAuthToken();
+                      const res = await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/accept`, {
+                        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      });
+                      if (res.ok) {
+                        const d = await res.json();
+                        setChatStatus('ACCEPTED');
                         setIncomingRequest(null);
-                      } catch { setSendError('Failed to decline request.'); }
-                    }}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      padding: '10px 0', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)',
-                      cursor: 'pointer', background: 'rgba(239,68,68,0.1)', color: '#f87171', fontWeight: 600, fontSize: 14,
-                    }}
-                  >
-                    <UserX size={16} /> Decline
-                  </button>
-                </div>
+                        if (d.message) setMessages([d.message]);
+                        fetchInbox();
+                      }
+                    } catch { setSendError('Failed to accept request.'); }
+                  }}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+                    background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 600, fontSize: 14,
+                  }}
+                >
+                  <UserCheck size={16} /> Accept
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const token = await getAuthToken();
+                      await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/decline`, {
+                        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      });
+                      setChatStatus('NONE');
+                      setIncomingRequest(null);
+                    } catch { setSendError('Failed to decline request.'); }
+                  }}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '10px 0', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)',
+                    cursor: 'pointer', background: 'rgba(239,68,68,0.1)', color: '#f87171', fontWeight: 600, fontSize: 14,
+                  }}
+                >
+                  <UserX size={16} /> Decline
+                </button>
               </div>
             )}
             {replyTo && (
