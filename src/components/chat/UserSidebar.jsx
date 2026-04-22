@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Settings, LogOut, User, MessageCircle } from 'lucide-react';
+import EditProfileModal from './EditProfileModal';
 
 const UserSidebar = () => {
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -57,9 +59,9 @@ const UserSidebar = () => {
                 <p className="text-sm text-gray-500">{user?.email}</p>
               </div>
               
-              <button 
+              <button
                 className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center"
-                onClick={() => setShowDropdown(false)}
+                onClick={() => { setShowDropdown(false); setShowEditProfile(true); }}
               >
                 <User className="w-4 h-4 mr-3" />
                 Profile
@@ -86,6 +88,10 @@ const UserSidebar = () => {
           </>
         )}
       </div>
+
+      {showEditProfile && (
+        <EditProfileModal onClose={() => setShowEditProfile(false)} />
+      )}
     </div>
   );
 };

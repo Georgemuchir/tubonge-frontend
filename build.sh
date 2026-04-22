@@ -7,9 +7,9 @@ echo "🚀 Starting Pinglo Frontend deployment on Render..."
 echo "📦 Installing Node.js dependencies..."
 npm install
 
-# Build the React application
+# Build the React application for staging
 echo "🏗️ Building React application..."
-npm run build
+npm run build:staging
 
 echo "✅ Frontend build completed successfully!"
 

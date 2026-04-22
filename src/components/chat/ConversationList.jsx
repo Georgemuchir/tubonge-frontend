@@ -1,15 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Search, Plus, MessageCircle } from 'lucide-react';
 import UserSearchModal from './UserSearchModal';
+import { messageRequestsAPI } from '../../services/api';
 
 const ConversationList = () => {
-  const { conversations, activeConversation, setActiveConversation } = useChat();
+  const { conversations, activeConversation, setActiveConversation, acceptMessageRequest, declineMessageRequest } = useChat();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [messageRequests, setMessageRequests] = useState([]);
+
+  useEffect(() => {
+    const loadRequests = async () => {
+      try {
+        const response = await messageRequestsAPI.getRequests();
+        setMessageRequests(response.data.requests || []);
+      } catch (e) {
+        setMessageRequests([]);
+      }
+    };
+    loadRequests();
+  }, []);
+
+  const handleAccept = async (requestId) => {
+    await acceptMessageRequest(requestId);
+    setMessageRequests((prev) => prev.filter((r) => r.id !== requestId));
+  };
+
+  const handleDecline = async (requestId) => {
+    await declineMessageRequest(requestId);
+    setMessageRequests((prev) => prev.filter((r) => r.id !== requestId));
+  };
 
   const filteredConversations = conversations.filter(conversation => {
     // Apply search filter
@@ -55,7 +79,7 @@ const ConversationList = () => {
     <>
       {/* Sidebar Header */}
       <div className="nexus-sidebar-header">
-        <h1 className="nexus-app-title">Nexus Chat</h1>
+        <h1 className="nexus-app-title">{user?.username ? `@${user.username}` : user?.name || 'Nexus Chat'}</h1>
         <div className="nexus-search-bar">
           <span className="nexus-search-icon">🔍</span>
           <input 
@@ -78,17 +102,36 @@ const ConversationList = () => {
           </button>
           
           <div className="nexus-chat-filters">
-            <div 
+            <div
               className={`nexus-filter-tab ${activeFilter === 'all' ? 'active' : ''}`}
               onClick={() => setActiveFilter('all')}
             >
               All Chats
             </div>
-            <div 
+            <div
               className={`nexus-filter-tab ${activeFilter === 'unread' ? 'active' : ''}`}
               onClick={() => setActiveFilter('unread')}
             >
               Unread
+            </div>
+            <div
+              className={`nexus-filter-tab ${activeFilter === 'requests' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('requests')}
+              style={{ position: 'relative' }}
+            >
+              Requests
+              {messageRequests.length > 0 && (
+                <span style={{
+                  position: 'absolute', top: -4, right: -4,
+                  background: '#ef4444', color: '#fff',
+                  borderRadius: '50%', fontSize: 10,
+                  minWidth: 16, height: 16,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 3px',
+                }}>
+                  {messageRequests.length > 9 ? '9+' : messageRequests.length}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -96,7 +139,51 @@ const ConversationList = () => {
 
       {/* Conversations List */}
       <div className="nexus-conversations-list">
-        {filteredConversations.length === 0 ? (
+        {activeFilter === 'requests' ? (
+          messageRequests.length === 0 ? (
+            <div className="nexus-empty-state">
+              <div className="nexus-empty-icon">📬</div>
+              <div className="nexus-empty-text">No pending message requests</div>
+            </div>
+          ) : (
+            messageRequests.map((req) => (
+              <div key={req.id} className="nexus-conversation-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                  <div className="nexus-conversation-avatar">
+                    {req.sender_avatar ? (
+                      <img src={req.sender_avatar} alt={req.sender_name} className="w-full h-full rounded-[16px] object-cover" />
+                    ) : (
+                      <span className="text-white font-semibold text-lg">
+                        {req.sender_name?.charAt(0)?.toUpperCase() || '?'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="nexus-conversation-info">
+                    <div className="nexus-conversation-name">{req.sender_name}</div>
+                    <div className="nexus-conversation-preview">@{req.sender_username}</div>
+                  </div>
+                </div>
+                {req.text && (
+                  <div style={{ fontSize: 12, color: '#9ca3af', paddingLeft: 50 }}>{req.text}</div>
+                )}
+                <div style={{ display: 'flex', gap: 8, paddingLeft: 50 }}>
+                  <button
+                    onClick={() => handleAccept(req.id)}
+                    style={{ padding: '4px 14px', background: '#16a34a', color: '#fff', borderRadius: 20, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleDecline(req.id)}
+                    style={{ padding: '4px 14px', background: '#dc2626', color: '#fff', borderRadius: 20, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))
+          )
+        ) : filteredConversations.length === 0 ? (
           <div className="nexus-empty-state">
             <div className="nexus-empty-icon">💬</div>
             <div className="nexus-empty-text">

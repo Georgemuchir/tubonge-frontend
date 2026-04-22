@@ -5,6 +5,7 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  deleteUser,
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import socketService from '../services/socket';
@@ -86,7 +87,15 @@ export const AuthProvider = ({ children }) => {
       await updateProfile(firebaseUser, { displayName: name });
 
       // 2. Create backend profile (token sent automatically by api.js interceptor)
-      const response = await authAPI.register({ name, username, email, phone_number });
+      let response;
+      try {
+        response = await authAPI.register({ name, username, email, phone_number });
+      } catch (backendError) {
+        // Backend registration failed — delete the Firebase account so the
+        // user can retry (otherwise they get "email already in use" forever)
+        await deleteUser(firebaseUser).catch(() => {});
+        throw backendError;
+      }
       const user = response.data.user;
 
       localStorage.setItem('user', JSON.stringify(user));

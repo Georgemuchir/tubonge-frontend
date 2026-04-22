@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useRef } from 'react';
-import { messagesAPI, friendsAPI } from '../services/api';
+import { messagesAPI, messageRequestsAPI } from '../services/api';
 import socketService from '../services/socket';
 import { useAuth } from './AuthContext';
 
@@ -402,48 +402,44 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // Friend Request Functions (NEW - STRICT PERMISSION MODEL)
-  const sendFriendRequest = async (username) => {
+  const getRelationshipStatus = async (userId) => {
     try {
-      const response = await friendsAPI.sendRequest(username);
-      console.log('✅ Friend request sent to:', username);
-      return response.data;
+      const response = await messagesAPI.getChatStatus(userId);
+      return response.data; // { status, request_id?, text?, sender_id? }
     } catch (error) {
-      console.error('❌ Failed to send friend request:', error);
-      throw error;
+      console.error('❌ Failed to get relationship status:', error);
+      return { status: 'NONE' };
     }
   };
 
-  const acceptFriendRequest = async (requestId) => {
+  const getMessageRequests = async () => {
     try {
-      const response = await friendsAPI.acceptRequest(requestId);
-      console.log('✅ Friend request accepted, conversation:', response.data.conversationId);
-      // Reload conversations to show new conversation
+      const response = await messageRequestsAPI.getRequests();
+      return response.data.requests || [];
+    } catch (error) {
+      console.error('❌ Failed to get message requests:', error);
+      return [];
+    }
+  };
+
+  const acceptMessageRequest = async (requestId) => {
+    try {
+      const response = await messageRequestsAPI.accept(requestId);
       await loadConversations();
       return response.data;
     } catch (error) {
-      console.error('❌ Failed to accept friend request:', error);
+      console.error('❌ Failed to accept message request:', error);
       throw error;
     }
   };
 
-  const getRelationshipStatus = async (username) => {
+  const declineMessageRequest = async (requestId) => {
     try {
-      const response = await friendsAPI.getRelationshipStatus(username);
-      return response.data.relationship; // NONE, OUTGOING_PENDING, INCOMING_PENDING, ACCEPTED, BLOCKED
+      const response = await messageRequestsAPI.decline(requestId);
+      return response.data;
     } catch (error) {
-      console.error('❌ Failed to get relationship status:', error);
-      return 'NONE';
-    }
-  };
-
-  const getIncomingRequests = async () => {
-    try {
-      const response = await friendsAPI.getIncomingRequests();
-      return response.data || [];
-    } catch (error) {
-      console.error('❌ Failed to get incoming requests:', error);
-      return [];
+      console.error('❌ Failed to decline message request:', error);
+      throw error;
     }
   };
 
@@ -455,11 +451,11 @@ export const ChatProvider = ({ children }) => {
     sendTyping,
     createConversation,
     loadConversations,
-    // Friend request functions
-    sendFriendRequest,
-    acceptFriendRequest,
+    // Message request functions
     getRelationshipStatus,
-    getIncomingRequests,
+    getMessageRequests,
+    acceptMessageRequest,
+    declineMessageRequest,
   };
 
   return (

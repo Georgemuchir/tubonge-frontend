@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
+import { usersAPI } from '../services/api';
 import socketService from '../services/socket';
 import CallManager from './call/CallManager';
 import CallLogs from './call/CallLogs';
@@ -314,7 +315,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   );
 };
 
-const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery, resolveMediaUrl }) => {
+const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery, resolveMediaUrl, user }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
@@ -331,7 +332,7 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
               <MessageCircle className="w-6 h-6 text-teal-400" />
-              Conversations
+              {user?.username ? `@${user.username}` : user?.name || 'Conversations'}
             </h2>
             <p className="text-sm text-gray-400 mt-0.5">{conversations.length} active chats</p>
           </div>
@@ -481,14 +482,18 @@ const WhatsAppMessenger = () => {
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
   const avatarInputRef = useRef(null);
+  const settingsButtonRef = useRef(null);
   const messagesEndRef = useRef(null);
   const callManagerRef = useRef(null);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [chatStatus, setChatStatus] = useState('NONE'); // NONE | OUTGOING_PENDING | INCOMING_PENDING | ACCEPTED
-  const [pendingText, setPendingText] = useState('');
-  const [incomingRequest, setIncomingRequest] = useState(null); // { requestId, text }
   const [showSettings, setShowSettings] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', username: '', phone_number: '' });
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   const [activeMsg, setActiveMsg] = useState(null);
   const [forwardMsg, setForwardMsg] = useState(null);
@@ -498,12 +503,40 @@ const WhatsAppMessenger = () => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
+  const [showLastSeen, setShowLastSeen] = useState(user?.show_last_seen !== false);
+  const [usernameEdit, setUsernameEdit] = useState('');
+  const [usernameEditMode, setUsernameEditMode] = useState(false);
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+  const [chatStatus, setChatStatus] = useState('NONE'); // NONE | OUTGOING_PENDING | INCOMING_PENDING | ACCEPTED
+  const [pendingText, setPendingText] = useState('');
+  const [incomingRequest, setIncomingRequest] = useState(null); // { requestId, text }
+
+  const formatLastSeen = (ts) => {
+    if (!ts) return 'Offline';
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return 'Offline';
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Last seen just now';
+    if (diffMins < 60) return `Last seen ${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `Last seen ${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Last seen yesterday';
+    if (diffDays < 7) return `Last seen ${diffDays} days ago`;
+    return `Last seen ${date.toLocaleDateString()}`;
+  };
 
   // Close settings panel on outside click
   useEffect(() => {
     if (!showSettings) return;
     const handler = (e) => {
-      if (!e.target.closest('[data-settings-panel]')) setShowSettings(false);
+      if (
+        !e.target.closest('[data-settings-panel]') &&
+        !e.target.closest('[data-settings-popup]')
+      ) setShowSettings(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -595,11 +628,12 @@ const WhatsAppMessenger = () => {
         ...prev,
         [statusData.user_id]: statusData.status === 'online'
       }));
-      
+
       if (selectedUser && (selectedUser.id === statusData.user_id || selectedUser._id === statusData.user_id)) {
         setSelectedUser(prev => ({
           ...prev,
-          online: statusData.status === 'online'
+          online: statusData.status === 'online',
+          last_seen: statusData.status === 'offline' ? (statusData.last_seen || prev.last_seen) : prev.last_seen,
         }));
       }
     };
@@ -658,7 +692,6 @@ const WhatsAppMessenger = () => {
           }));
         }
       } catch {
-        // Don't reset to NONE if we already know it's INCOMING_PENDING from inbox click
         setChatStatus(prev => prev === 'INCOMING_PENDING' ? prev : 'NONE');
       }
     })();
@@ -669,7 +702,6 @@ const WhatsAppMessenger = () => {
     const socket = socketService.socket;
     if (!socket) return;
     const onRequest = (data) => {
-      // Add to inbox immediately so receiver sees it
       setInbox(prev => {
         const already = prev.some(i => i.sender_id === data.sender_id && i._isRequest);
         if (already) return prev;
@@ -686,7 +718,6 @@ const WhatsAppMessenger = () => {
           _requestId: data.request_id,
         }, ...prev];
       });
-      // If this chat is currently open, update status
       const otherId = selectedUser?.id || selectedUser?._id;
       if (data.sender_id === otherId) {
         setIncomingRequest({ requestId: data.request_id, text: data.text || '' });
@@ -696,18 +727,12 @@ const WhatsAppMessenger = () => {
     const onAccepted = async () => {
       setChatStatus('ACCEPTED');
       setPendingText('');
-      if (selectedUser) {
-        const uid = selectedUser.id || selectedUser._id;
-        const convId = conversationId || uid;
-        const token = await getAuthToken();
-        const res = await fetch(`${API_BASE_URL}/messages/${convId}`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) { const d = await res.json(); setMessages(d.messages || []); }
-      }
+      await fetchInbox();
     };
     socket.on('message_request', onRequest);
     socket.on('request_accepted', onAccepted);
     return () => { socket.off('message_request', onRequest); socket.off('request_accepted', onAccepted); };
-  }, [selectedUser, conversationId]);
+  }, [selectedUser]);
 
   // Handle window resize
   useEffect(() => {
@@ -764,17 +789,13 @@ const WhatsAppMessenger = () => {
     const userId = user.id || user._id;
     if (!userId || userId === 'None' || userId === 'null') return;
     setSelectedUser(user);
-    // If this is a request item from the inbox, set status immediately
+    setLoading(true);
+    setShowMobileSidebar(false);
+    // If this is an incoming request, set status immediately
     if (user._isRequest && user._requestId) {
       setChatStatus('INCOMING_PENDING');
       setIncomingRequest({ requestId: user._requestId, text: user.lastMessage || '' });
-    } else {
-      setChatStatus('NONE');
-      setIncomingRequest(null);
-      setPendingText('');
     }
-    setLoading(true);
-    setShowMobileSidebar(false);
     try {
       await fetch(`${API_BASE_URL}/messages/mark-read/${userId}`, {
         method: 'POST',
@@ -872,29 +893,29 @@ const WhatsAppMessenger = () => {
           }),
         }),
       });
-      if (response.ok) {
+      if (response.status === 201) {
         const data = await response.json();
         if (data.status === 'pending_request') {
-          // First message became a request — remove optimistic bubble, show pending UI
+          // First message became a request
           setMessages(prev => prev.filter(m => m.id !== tempId));
           setChatStatus('OUTGOING_PENDING');
           setPendingText(sentText);
-        } else {
-          setMessages(prev => prev.map(m => m.id === tempId ? { ...m, ...(data.message || data), _optimistic: false } : m));
-          setChatStatus('ACCEPTED');
           fetchInbox();
+          return;
         }
+      }
+      if (response.ok) {
+        const data = await response.json();
+        // Replace optimistic message with real one from server
+        setMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
+        fetchInbox();
       } else {
+        // Remove optimistic message on failure
         setMessages(prev => prev.filter(m => m.id !== tempId));
         setMessage(sentText);
         setReplyTo(sentReplyTo);
         const errorData = await response.json().catch(() => ({}));
-        if (errorData.status === 'pending_request') {
-          setChatStatus('OUTGOING_PENDING');
-          setPendingText(sentText);
-        } else {
-          setSendError(errorData.error || 'Failed to send message.');
-        }
+        setSendError(errorData.error || 'Failed to send message.');
       }
     } catch (error) {
       setMessages(prev => prev.filter(m => m.id !== tempId));
@@ -1142,6 +1163,100 @@ const WhatsAppMessenger = () => {
     }
   };
 
+  // Auto-prompt when phone number is missing
+  useEffect(() => {
+    if (user && !user.phone_number) {
+      setProfileForm({ name: user.name || '', username: user.username || '', phone_number: '' });
+      setProfileError('');
+      setShowProfileModal(true);
+    }
+  }, [user?.phone_number]);
+
+  const openProfileModal = () => {
+    setProfileForm({ name: user?.name || '', username: user?.username || '', phone_number: user?.phone_number || '' });
+    setUsernameAvailable(null);
+    setProfileError('');
+    setShowProfileModal(true);
+    setShowSettings(false);
+  };
+
+  const handleUsernameChange = async (value) => {
+    const trimmed = value.trim().toLowerCase();
+    setProfileForm(f => ({ ...f, username: value }));
+    if (!trimmed || trimmed === (user?.username || '').toLowerCase()) {
+      setUsernameAvailable(null);
+      return;
+    }
+    if (trimmed.length < 3) {
+      setUsernameAvailable(false);
+      return;
+    }
+    setUsernameChecking(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/check-username?username=${encodeURIComponent(trimmed)}`, {
+        headers: { 'Authorization': `Bearer ${await getAuthToken()}` },
+      });
+      const data = await res.json();
+      setUsernameAvailable(data.available);
+    } catch {
+      setUsernameAvailable(null);
+    } finally {
+      setUsernameChecking(false);
+    }
+  };
+
+  const handleProfileSave = async () => {
+    if (!profileForm.phone_number.trim()) {
+      setProfileError('Phone number is required.');
+      return;
+    }
+    const newUsername = profileForm.username.trim().toLowerCase();
+    if (newUsername && newUsername !== (user?.username || '').toLowerCase()) {
+      if (newUsername.length < 3) {
+        setProfileError('Username must be at least 3 characters.');
+        return;
+      }
+      if (usernameAvailable === false) {
+        setProfileError('That username is already taken.');
+        return;
+      }
+    }
+    setProfileSaving(true);
+    setProfileError('');
+    try {
+      const payload = {};
+      if (profileForm.name.trim()) payload.name = profileForm.name.trim();
+      payload.phone_number = profileForm.phone_number.trim();
+      if (newUsername && newUsername !== (user?.username || '').toLowerCase()) {
+        payload.username = newUsername;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/users/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getAuthToken()}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setProfileError(data.error || 'Failed to save profile.');
+        return;
+      }
+      updateUser({
+        name: payload.name || user?.name,
+        phone_number: payload.phone_number,
+        ...(payload.username ? { username: payload.username } : {}),
+      });
+      setShowProfileModal(false);
+    } catch {
+      setProfileError('Network error. Please try again.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   const filteredConversations = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return inbox
@@ -1169,6 +1284,7 @@ const WhatsAppMessenger = () => {
         time: formatTime(conv.last_message_time),
         unread: conv.unread_count,
         online: onlineUsers[conv.sender_id] || false,
+        last_seen: conv.last_seen || null,
         color: getAvatarColor(conv.sender_name),
         _isRequest: conv._isRequest || false,
         _requestId: conv._requestId || null,
@@ -1232,8 +1348,9 @@ const WhatsAppMessenger = () => {
           </button>
           
           
-          <div className="relative" data-settings-panel>
+          <div data-settings-panel>
             <button
+              ref={settingsButtonRef}
               onClick={() => setShowSettings(v => !v)}
               className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showSettings ? 'bg-gray-700/50 text-blue-400' : 'text-gray-400 hover:text-blue-400'}`}
               title="Settings"
@@ -1245,58 +1362,8 @@ const WhatsAppMessenger = () => {
                 </span>
               )}
             </button>
-
-            {/* Settings Panel */}
-            {showSettings && (
-              <div
-                className="absolute left-full ml-3 bottom-0 w-56 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden z-50"
-                style={{ background: theme === 'light' ? '#ffffff' : '#1e293b' }}
-              >
-                <div className="px-4 py-3 border-b border-gray-700">
-                  <p className="text-sm font-semibold" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
-                    Settings
-                  </p>
-                </div>
-
-                <div className="px-4 py-3">
-                  <p className="text-xs font-medium mb-2" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
-                    THEME
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => setTheme('dark')}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
-                      style={{
-                        background: theme === 'dark' ? 'rgba(59,130,246,0.15)' : 'transparent',
-                        border: theme === 'dark' ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
-                      }}
-                    >
-                      <Moon className="w-4 h-4" style={{ color: theme === 'dark' ? '#60a5fa' : '#94a3b8' }} />
-                      <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#60a5fa' : (theme === 'light' ? '#64748b' : '#94a3b8') }}>
-                        Dark
-                      </span>
-                      {theme === 'dark' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
-                    </button>
-
-                    <button
-                      onClick={() => setTheme('light')}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
-                      style={{
-                        background: theme === 'light' ? 'rgba(59,130,246,0.1)' : 'transparent',
-                        border: theme === 'light' ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
-                      }}
-                    >
-                      <Sun className="w-4 h-4" style={{ color: theme === 'light' ? '#f59e0b' : '#94a3b8' }} />
-                      <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#f59e0b' : '#94a3b8' }}>
-                        Light
-                      </span>
-                      {theme === 'light' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
+
         </div>
         
         {/* Logout at Bottom */}
@@ -1335,16 +1402,17 @@ const WhatsAppMessenger = () => {
             getAvatarColor={getAvatarColor}
           />
         ) : !selectedUser ? (
-          <ConversationsView 
+          <ConversationsView
             conversations={filteredConversations}
             onSelectUser={handleUserSelect}
-            onNewMessage={() => setShowUserSearch(true)} 
+            onNewMessage={() => setShowUserSearch(true)}
             onOpenSidebar={() => setShowMobileSidebar(true)}
             isMobile={isMobile}
             getAvatarColor={getAvatarColor}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             resolveMediaUrl={resolveMediaUrl}
+            user={user}
           />
         ) : (
           <>
@@ -1383,7 +1451,9 @@ const WhatsAppMessenger = () => {
                   ) : (
                     (onlineUsers[selectedUser?.id] || onlineUsers[selectedUser?._id] || selectedUser?.online) ? (
                       <span className="green-accent">online</span>
-                    ) : <span className="text-gray-400">offline</span>
+                    ) : (
+                      <span className="text-gray-400">{showLastSeen ? formatLastSeen(selectedUser?.last_seen) : 'Offline'}</span>
+                    )
                   )}
                 </p>
               </div>
@@ -1517,115 +1587,88 @@ const WhatsAppMessenger = () => {
                 );
               })
             )}
-            {/* Pending message bubbles shown inline in the message list */}
+            {/* Pending outgoing request bubble */}
             {chatStatus === 'OUTGOING_PENDING' && pendingText && (
-              <div className="flex flex-col items-end" style={{animation:'fadeIn 0.3s ease-out'}}>
-                <div className="message-sent rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md" style={{maxWidth:'85%',opacity:0.75}}>
+              <div className="flex justify-end mb-2 px-4">
+                <div className="max-w-xs lg:max-w-md rounded-2xl rounded-br-sm px-4 py-2 bg-blue-600/80" style={{ opacity: 0.85 }}>
                   <p className="text-white text-sm leading-relaxed break-words">{pendingText}</p>
                   <div className="flex items-center justify-end gap-1 mt-1">
                     <Clock size={10} className="text-gray-300" />
-                    <span className="text-xs text-gray-300">Pending</span>
+                    <span className="text-gray-300 text-xs">Pending</span>
                   </div>
                 </div>
               </div>
             )}
-
+            {/* Incoming request bubble (the text they sent) */}
             {chatStatus === 'INCOMING_PENDING' && incomingRequest?.text && (
-              <div className="flex flex-col items-start" style={{animation:'fadeIn 0.3s ease-out'}}>
-                <div className="message-received rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md" style={{maxWidth:'85%'}}>
+              <div className="flex justify-start mb-2 px-4">
+                <div className="max-w-xs lg:max-w-md rounded-2xl rounded-bl-sm px-4 py-2 bg-indigo-700/80">
                   <p className="text-white text-sm leading-relaxed break-words">{incomingRequest.text}</p>
-                  <div className="flex items-center justify-end gap-1 mt-1">
-                    <span className="text-xs text-gray-400">Message request</span>
-                  </div>
                 </div>
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Accept/Decline for incoming requests */}
+          {chatStatus === 'INCOMING_PENDING' && (
+            <div className="whatsapp-header px-4 py-3 border-l border-gray-800">
+              {!incomingRequest?.requestId && (
+                <p className="text-gray-400 text-xs text-center mb-2">Loading request…</p>
+              )}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  disabled={!incomingRequest?.requestId}
+                  onClick={async () => {
+                    try {
+                      const token = await getAuthToken();
+                      await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/accept`, {
+                        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      });
+                      setChatStatus('ACCEPTED');
+                      setIncomingRequest(null);
+                      fetchInbox();
+                    } catch { setSendError('Failed to accept request.'); }
+                  }}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '10px 0', borderRadius: 10, border: 'none', cursor: incomingRequest?.requestId ? 'pointer' : 'not-allowed',
+                    background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 600, fontSize: 14,
+                    opacity: incomingRequest?.requestId ? 1 : 0.5,
+                  }}
+                >
+                  <UserCheck size={16} /> Accept
+                </button>
+                <button
+                  disabled={!incomingRequest?.requestId}
+                  onClick={async () => {
+                    try {
+                      const token = await getAuthToken();
+                      await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/decline`, {
+                        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                      });
+                      setChatStatus('NONE');
+                      setIncomingRequest(null);
+                    } catch { setSendError('Failed to decline request.'); }
+                  }}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '10px 0', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)',
+                    cursor: incomingRequest?.requestId ? 'pointer' : 'not-allowed',
+                    background: 'rgba(239,68,68,0.1)', color: '#f87171', fontWeight: 600, fontSize: 14,
+                    opacity: incomingRequest?.requestId ? 1 : 0.5,
+                  }}
+                >
+                  <UserX size={16} /> Decline
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="whatsapp-header p-3 border-l border-gray-800 safe-area-bottom">
             {sendError && (
               <div className="mb-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs px-3 py-2">
                 {sendError}
-              </div>
-            )}
-
-            {chatStatus === 'OUTGOING_PENDING' && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
-                borderRadius: 12,
-              }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Clock size={16} color="#818cf8" />
-                </div>
-                <div>
-                  <p style={{ color: '#c7d2fe', fontWeight: 600, fontSize: 13, margin: 0 }}>Message request sent</p>
-                  <p style={{ color: '#6b7280', fontSize: 12, margin: '2px 0 0' }}>
-                    Waiting for {selectedUser?.name || 'them'} to accept
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {chatStatus === 'INCOMING_PENDING' && (
-              <div>
-                {!incomingRequest?.requestId && (
-                  <p style={{ color: '#6b7280', fontSize: 12, textAlign: 'center', marginBottom: 8 }}>
-                    Loading request…
-                  </p>
-                )}
-                <div className="flex gap-2">
-                  <button
-                    disabled={!incomingRequest?.requestId}
-                    onClick={async () => {
-                      try {
-                        const token = await getAuthToken();
-                        const res = await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/accept`, {
-                          method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                        });
-                        if (res.ok) {
-                          const d = await res.json();
-                          setChatStatus('ACCEPTED');
-                          setIncomingRequest(null);
-                          if (d.message) setMessages([d.message]);
-                          fetchInbox();
-                        }
-                      } catch { setSendError('Failed to accept request.'); }
-                    }}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      padding: '10px 0', borderRadius: 10, border: 'none', cursor: incomingRequest?.requestId ? 'pointer' : 'not-allowed',
-                      background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 600, fontSize: 14,
-                      opacity: incomingRequest?.requestId ? 1 : 0.5,
-                    }}
-                  >
-                    <UserCheck size={16} /> Accept
-                  </button>
-                  <button
-                    disabled={!incomingRequest?.requestId}
-                    onClick={async () => {
-                      try {
-                        const token = await getAuthToken();
-                        await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/decline`, {
-                          method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                        });
-                        setChatStatus('NONE');
-                        setIncomingRequest(null);
-                      } catch { setSendError('Failed to decline request.'); }
-                    }}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      padding: '10px 0', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)',
-                      cursor: incomingRequest?.requestId ? 'pointer' : 'not-allowed',
-                      background: 'rgba(239,68,68,0.1)', color: '#f87171', fontWeight: 600, fontSize: 14,
-                      opacity: incomingRequest?.requestId ? 1 : 0.5,
-                    }}
-                  >
-                    <UserX size={16} /> Decline
-                  </button>
-                </div>
               </div>
             )}
             {replyTo && (
@@ -1642,7 +1685,16 @@ const WhatsAppMessenger = () => {
                 </button>
               </div>
             )}
-            {(chatStatus === 'OUTGOING_PENDING' || chatStatus === 'INCOMING_PENDING') ? null : isRecording ? (
+            {(chatStatus === 'OUTGOING_PENDING' || chatStatus === 'INCOMING_PENDING') ? (
+              <div className="text-center py-3">
+                {chatStatus === 'OUTGOING_PENDING' && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Clock size={16} color="#818cf8" />
+                    <span style={{ color: '#818cf8', fontSize: 14, fontWeight: 500 }}>Message request sent — waiting for approval</span>
+                  </div>
+                )}
+              </div>
+            ) : isRecording ? (
               <div className="flex items-center gap-3">
                 <button onClick={cancelRecording} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors touch-target" title="Cancel">
                   <X className="w-5 h-5" />
@@ -1765,6 +1817,305 @@ const WhatsAppMessenger = () => {
         className="hidden"
         onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
       />
+
+      {/* Profile Edit Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div
+            className="w-full max-w-md mx-4 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden"
+            style={{ background: theme === 'light' ? '#ffffff' : '#1e293b' }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+              <div>
+                <h2 className="text-lg font-semibold" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                  {!user?.phone_number ? 'Complete Your Profile' : 'Edit Profile'}
+                </h2>
+                {!user?.phone_number && (
+                  <p className="text-xs mt-0.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                    A phone number is required to use Pinglo.
+                  </p>
+                )}
+              </div>
+              {user?.phone_number && (
+                <button
+                  onClick={() => setShowProfileModal(false)}
+                  className="p-1 rounded-lg hover:bg-gray-700/50 transition-colors"
+                >
+                  <X className="w-5 h-5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }} />
+                </button>
+              )}
+            </div>
+
+            {/* Form */}
+            <div className="px-6 py-5 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Your name"
+                  className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                  style={{
+                    background: theme === 'light' ? '#f8fafc' : '#0f172a',
+                    border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
+                    color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                  Username
+                </label>
+                <div className="relative">
+                  <span
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-sm select-none"
+                    style={{ color: theme === 'light' ? '#94a3b8' : '#64748b' }}
+                  >@</span>
+                  <input
+                    type="text"
+                    value={profileForm.username}
+                    onChange={(e) => handleUsernameChange(e.target.value)}
+                    placeholder="yourhandle"
+                    className="w-full pl-7 pr-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                    style={{
+                      background: theme === 'light' ? '#f8fafc' : '#0f172a',
+                      border: usernameAvailable === true
+                        ? '1px solid #10b981'
+                        : usernameAvailable === false
+                        ? '1px solid #ef4444'
+                        : theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
+                      color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+                    }}
+                  />
+                  {usernameChecking && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">checking…</span>
+                  )}
+                  {!usernameChecking && usernameAvailable === true && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-400">Available</span>
+                  )}
+                  {!usernameChecking && usernameAvailable === false && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-400">Taken</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                  Phone Number <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={profileForm.phone_number}
+                  onChange={(e) => setProfileForm(f => ({ ...f, phone_number: e.target.value }))}
+                  placeholder="+1 234 567 8900"
+                  autoFocus={!user?.phone_number}
+                  className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                  style={{
+                    background: theme === 'light' ? '#f8fafc' : '#0f172a',
+                    border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
+                    color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+                  }}
+                />
+              </div>
+
+              {profileError && (
+                <p className="text-sm text-red-400">{profileError}</p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-700">
+              {user?.phone_number && (
+                <button
+                  onClick={() => setShowProfileModal(false)}
+                  className="px-4 py-2 text-sm rounded-xl transition-all hover:bg-gray-700/50"
+                  style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={handleProfileSave}
+                disabled={profileSaving || !profileForm.phone_number.trim()}
+                className="px-5 py-2 text-sm font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50"
+              >
+                {profileSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Popup — fixed so it's never clipped by overflow-hidden */}
+      {showSettings && (
+        <div
+          data-settings-popup
+          className="fixed z-[100] w-64 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden"
+          style={{
+            background: theme === 'light' ? '#ffffff' : '#1e293b',
+            bottom: 16,
+            left: 88,
+          }}
+        >
+          <div className="px-4 py-3 border-b border-gray-700">
+            <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+              Settings
+            </p>
+          </div>
+
+          {/* Edit Profile */}
+          <div className="px-4 py-2 border-b border-gray-700">
+            <button
+              onClick={openProfileModal}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-gray-700/50"
+            >
+              <User className="w-4 h-4" style={{ color: '#10b981' }} />
+              <span className="text-sm font-medium" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                Edit Profile
+              </span>
+            </button>
+          </div>
+
+          {/* Username */}
+          <div className="px-4 py-3 border-b border-gray-700">
+            <p className="text-xs font-medium mb-2 uppercase tracking-widest" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+              Username
+            </p>
+            {usernameEditMode ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid #334155', background: theme === 'light' ? '#f1f5f9' : '#0f172a' }}>
+                  <span className="px-2 text-sm" style={{ color: '#94a3b8' }}>@</span>
+                  <input
+                    autoFocus
+                    value={usernameEdit}
+                    onChange={e => { setUsernameEdit(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '')); setUsernameError(''); }}
+                    placeholder="new username"
+                    className="flex-1 py-1.5 pr-2 text-sm bg-transparent outline-none"
+                    style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}
+                  />
+                </div>
+                {usernameError && <p className="text-xs text-red-400">{usernameError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (usernameEdit.length < 3) { setUsernameError('At least 3 characters'); return; }
+                      setUsernameSaving(true);
+                      try {
+                        const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+                        const res = await fetch(`${API_BASE_URL}/users/profile`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                          body: JSON.stringify({ username: usernameEdit }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) { setUsernameError(data.error || 'Failed to save'); return; }
+                        updateUser({ username: usernameEdit });
+                        setUsernameEditMode(false);
+                      } catch { setUsernameError('Network error'); }
+                      finally { setUsernameSaving(false); }
+                    }}
+                    disabled={usernameSaving}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white"
+                    style={{ background: '#10b981' }}
+                  >
+                    {usernameSaving ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => { setUsernameEditMode(false); setUsernameError(''); }}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                    style={{ background: '#334155', color: '#94a3b8' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setUsernameEdit(user?.username || ''); setUsernameEditMode(true); setUsernameError(''); }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-gray-700/50 transition-all"
+              >
+                <span className="text-sm" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                  {user?.username ? `@${user.username}` : 'Set username'}
+                </span>
+                <span className="text-xs font-medium" style={{ color: '#10b981' }}>Edit</span>
+              </button>
+            )}
+          </div>
+
+          {/* Privacy */}
+          <div className="px-4 py-3 border-b border-gray-700">
+            <p className="text-xs font-medium mb-2 uppercase tracking-widest" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+              Privacy
+            </p>
+            <div className="flex items-center justify-between px-3 py-2">
+              <span className="text-sm" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>Show last seen</span>
+              <button
+                onClick={async () => {
+                  const next = !showLastSeen;
+                  setShowLastSeen(next);
+                  try {
+                    const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+                    await fetch(`${API_BASE_URL}/users/profile`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify({ show_last_seen: next }),
+                    });
+                    updateUser({ show_last_seen: next });
+                  } catch { setShowLastSeen(!next); }
+                }}
+                style={{
+                  width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
+                  background: showLastSeen ? '#10b981' : '#4b5563',
+                  position: 'relative', transition: 'background 0.2s',
+                }}
+                aria-label="Toggle last seen"
+              >
+                <span style={{
+                  position: 'absolute', top: 3, left: showLastSeen ? 21 : 3,
+                  width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                  transition: 'left 0.2s',
+                }} />
+              </button>
+            </div>
+          </div>
+
+          {/* Theme */}
+          <div className="px-4 py-3">
+            <p className="text-xs font-medium mb-2 uppercase tracking-widest" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+              Theme
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTheme('dark')}
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  background: theme === 'dark' ? 'rgba(59,130,246,0.15)' : 'transparent',
+                  border: theme === 'dark' ? '1px solid rgba(59,130,246,0.4)' : '1px solid #334155',
+                  color: theme === 'dark' ? '#60a5fa' : '#94a3b8',
+                }}
+              >
+                <Moon className="w-4 h-4" /> Dark
+              </button>
+              <button
+                onClick={() => setTheme('light')}
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  background: theme === 'light' ? 'rgba(251,191,36,0.1)' : 'transparent',
+                  border: theme === 'light' ? '1px solid rgba(251,191,36,0.4)' : '1px solid #334155',
+                  color: theme === 'light' ? '#f59e0b' : '#94a3b8',
+                }}
+              >
+                <Sun className="w-4 h-4" /> Light
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Global CallManager — always mounted so calls survive navigation */}
       <CallManager

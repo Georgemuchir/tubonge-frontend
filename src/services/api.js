@@ -125,10 +125,13 @@ export const messagesAPI = {
   markAsRead: (conversationId) =>
     api.post(`/messages/${conversationId}/mark-read`),
 
-  // Message request status
-  getChatStatus: (userId) => api.get(`/messages/chat-status/${userId}`),
-  acceptMessageRequest: (requestId) => api.post(`/messages/requests/${requestId}/accept`),
-  declineMessageRequest: (requestId) => api.post(`/messages/requests/${requestId}/decline`),
+  getChatStatus: (userId) => api.get('/messages/chat-status/' + userId),
+};
+
+export const messageRequestsAPI = {
+  getRequests: () => api.get('/messages/requests'),
+  accept: (requestId) => api.post(`/messages/requests/${requestId}/accept`),
+  decline: (requestId) => api.post(`/messages/requests/${requestId}/decline`),
 };
 
 export default api;
