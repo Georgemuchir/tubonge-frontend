@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     authFlowInProgress.current = true;
     try {
-      const { name, username, email, password } = userData;
+      const { name, username, email, password, phone_number } = userData;
 
       // 1. Create Firebase Auth user
       const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
       // 2. Create backend profile (token sent automatically by api.js interceptor)
       let response;
       try {
-        response = await authAPI.register({ name, username, email });
+        response = await authAPI.register({ name, username, email, phone_number });
       } catch (backendError) {
         // Backend registration failed — delete the Firebase account so the
         // user can retry (otherwise they get "email already in use" forever)
