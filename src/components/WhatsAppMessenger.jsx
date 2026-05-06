@@ -1219,7 +1219,7 @@ const WhatsAppMessenger = () => {
 
       const actionCodeSettings = {
         url: `${window.location.origin}/confirm-email-change`,
-        handleCodeInApp: false,
+        handleCodeInApp: true,
       };
       await verifyBeforeUpdateEmail(firebaseUser, newEmail, actionCodeSettings);
       setEmailChangeMsg(`Verification link sent to ${newEmail}. Click it to confirm the change.`);

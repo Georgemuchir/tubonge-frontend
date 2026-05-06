@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { auth } from '../firebase';
+import { serverReady, getActiveApiUrl } from './serverConfig';
 
 const normalizeApiBaseUrl = (url) => {
   const trimmed = (url || '').trim().replace(/\/+$/, '');
@@ -7,18 +8,20 @@ const normalizeApiBaseUrl = (url) => {
   return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 };
 
+// Kept for external consumers that import API_BASE_URL directly
 export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
 
-// Create axios instance
+// Create axios instance without a fixed baseURL — set dynamically per request
 const api = axios.create({
-  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add Firebase ID token to requests (auto-refreshes when expired)
+// Wait for server selection, then attach the active URL + Firebase token
 api.interceptors.request.use(async (config) => {
+  await serverReady;
+  config.baseURL = getActiveApiUrl();
   const firebaseUser = auth.currentUser;
   if (firebaseUser) {
     const token = await firebaseUser.getIdToken();

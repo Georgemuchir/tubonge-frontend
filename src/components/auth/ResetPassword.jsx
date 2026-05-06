@@ -30,7 +30,10 @@ const ResetPassword = () => {
 
     verifyPasswordResetCode(auth, oobCode)
       .then(() => setTokenValid(true))
-      .catch(() => setError('This password reset link is invalid or has expired.'))
+      .catch((err) => {
+        console.error('verifyPasswordResetCode error:', err.code, err.message);
+        setError(`This password reset link is invalid or has expired. (${err.code})`);
+      })
       .finally(() => setVerifying(false));
   }, [oobCode]);
 

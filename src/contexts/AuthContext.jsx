@@ -10,6 +10,7 @@ import {
 import { auth } from '../firebase';
 import socketService from '../services/socket';
 import { authAPI } from '../services/api';
+import { serverReady } from '../services/serverConfig';
 
 const AuthContext = createContext();
 
@@ -47,6 +48,7 @@ export const AuthProvider = ({ children }) => {
 
       if (firebaseUser) {
         try {
+          await serverReady;
           const response = await authAPI.getProfile();
           const user = response.data.user;
           localStorage.setItem('user', JSON.stringify(user));

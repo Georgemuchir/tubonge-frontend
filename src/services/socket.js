@@ -1,39 +1,62 @@
 import { io } from 'socket.io-client';
+import { serverReady, getActiveSocketUrl, onServerSwitch, hasLocalServer } from './serverConfig';
+
+const TRANSPORTS = (import.meta.env.VITE_SOCKET_TRANSPORTS || 'websocket,polling')
+  .split(',')
+  .map((t) => t.trim())
+  .filter((x) => ['websocket', 'polling'].includes(x));
+const transports = TRANSPORTS.length ? TRANSPORTS : ['websocket', 'polling'];
 
 class SocketService {
   constructor() {
     this.socket = null;
     this.connected = false;
+    this._token = null;
+    this._consecutiveErrors = 0;
+    this._switchUnsub = null;
   }
 
-  connect(token) {
-    if (this.socket?.connected) {
-      return;
-    }
+  async connect(token) {
+    this._token = token;
+    if (this.socket?.connected) return;
 
-    const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+    await serverReady;
+    this._connectToUrl(getActiveSocketUrl(), token);
 
-    // Parse transports: default to websocket,polling for prod-like behavior
-    const parsed = (import.meta.env.VITE_SOCKET_TRANSPORTS || 'websocket,polling')
-      .split(',')
-      .map((t) => t.trim())
-      .filter((x) => ['websocket', 'polling'].includes(x));
-    const transports = parsed.length ? parsed : ['websocket', 'polling'];
+    // Reconnect when serverConfig switches servers (e.g. primary recovered)
+    this._switchUnsub?.();
+    this._switchUnsub = onServerSwitch(() => {
+      const newUrl = getActiveSocketUrl();
+      if (this.socket && this._currentUrl !== newUrl) {
+        console.info('[socket] Server switched — reconnecting to', newUrl);
+        this.socket.disconnect();
+        this.socket = null;
+        this.connected = false;
+        this._connectToUrl(newUrl, this._token);
+      }
+    });
+  }
 
-    this.socket = io(SOCKET_URL, {
+  _connectToUrl(url, token) {
+    this._currentUrl = url;
+    this._consecutiveErrors = 0;
+
+    this.socket = io(url, {
       path: '/socket.io',
       auth: { token },
       transports,
-      withCredentials: false
+      withCredentials: false,
+      // Only limit reconnection attempts when a fallback server exists.
+      // With no fallback, let Socket.IO retry forever (original behaviour).
+      ...(hasLocalServer ? { reconnectionAttempts: 5 } : {}),
     });
 
-    // Log effective transport after connect
     this.socket.on('connect', () => {
       console.warn('[socket] connected via:', this.socket.io.engine.transport.name);
       this.connected = true;
+      this._consecutiveErrors = 0;
     });
 
-    // Log upgrade to WebSocket
     this.socket.io.on('upgrade', () => {
       console.warn('[socket] upgraded to:', this.socket.io.engine.transport.name);
     });
@@ -44,13 +67,28 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+      console.error('[socket] connection error:', error.message);
+      this._consecutiveErrors += 1;
     });
 
-    return this.socket;
+    // All reconnection attempts exhausted — try the other server
+    this.socket.io.on('reconnect_failed', async () => {
+      console.warn('[socket] Reconnection failed — checking for fallback');
+      await serverReady;
+      const fallbackUrl = getActiveSocketUrl();
+      if (fallbackUrl !== this._currentUrl) {
+        console.info('[socket] Switching to fallback:', fallbackUrl);
+        this.socket.disconnect();
+        this.socket = null;
+        this.connected = false;
+        this._connectToUrl(fallbackUrl, this._token);
+      }
+    });
   }
 
   disconnect() {
+    this._switchUnsub?.();
+    this._switchUnsub = null;
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
