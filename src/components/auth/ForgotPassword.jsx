@@ -17,7 +17,11 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+      const actionCodeSettings = {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: false,
+      };
+      await sendPasswordResetEmail(auth, email.trim().toLowerCase(), actionCodeSettings);
       setSent(true);
     } catch (err) {
       // Always show success to prevent email enumeration
