@@ -1406,14 +1406,14 @@ const WhatsAppMessenger = () => {
         <div className="mb-8 relative">
           <button
             onClick={() => avatarInputRef.current?.click()}
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-2 ring-teal-400/40 hover:ring-teal-400/80 cursor-pointer hover:scale-105 transition-all duration-200 overflow-hidden border-2 border-white/10"
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-2 ring-teal-400/40 hover:ring-teal-400/80 cursor-pointer hover:scale-105 transition-all duration-200 overflow-hidden relative border-2 border-white/10"
             title="Change profile photo"
           >
             {user?.avatar ? (
               <img
                 src={resolveMediaUrl(user.avatar)}
                 alt="Profile"
-                className="w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover object-center"
               />
             ) : (
               user?.name?.charAt(0).toUpperCase() || 'P'
