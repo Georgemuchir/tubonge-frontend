@@ -1403,10 +1403,10 @@ const WhatsAppMessenger = () => {
         ${isMobile ? 'max-w-[85%]' : ''}
       `}>
         {/* User Profile */}
-        <div className="mb-8">
+        <div className="mb-8 relative">
           <button
             onClick={() => avatarInputRef.current?.click()}
-            className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-teal-400/30 cursor-pointer hover:scale-110 transition-transform overflow-hidden"
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-2 ring-teal-400/40 hover:ring-teal-400/80 cursor-pointer hover:scale-105 transition-all duration-200 overflow-hidden border-2 border-white/10"
             title="Change profile photo"
           >
             {user?.avatar ? (
@@ -1420,8 +1420,8 @@ const WhatsAppMessenger = () => {
             )}
           </button>
           {totalUnread > 0 && (
-            <div className="mt-2 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold text-center shadow-lg animate-pulse">
-              {totalUnread}
+            <div className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md border-2 border-gray-900">
+              {totalUnread > 99 ? '99+' : totalUnread}
             </div>
           )}
         </div>
