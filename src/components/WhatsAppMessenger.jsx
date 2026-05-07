@@ -572,8 +572,21 @@ const WhatsAppMessenger = () => {
   }, [selectedUser, loading, messages.length]);
 
   const fetchInbox = async () => {
-    await serverReady;
+    // Show cached inbox immediately — zero wait on every load after the first
     try {
+      const cached = localStorage.getItem('pinglo_inbox_cache');
+      if (cached) {
+        const { merged, totalUnread, onlineMap } = JSON.parse(cached);
+        setInbox(merged);
+        setTotalUnread(totalUnread);
+        setOnlineUsers(onlineMap);
+        setInboxLoading(false);
+      }
+    } catch {}
+
+    // Fetch fresh data in background (don't block UI)
+    try {
+      await serverReady;
       const token = await getAuthToken();
       const [inboxRes, reqRes] = await Promise.all([
         fetch(`${getBase()}/messages/inbox`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -597,16 +610,20 @@ const WhatsAppMessenger = () => {
         _requestId: r.id,
       }));
 
-      // Merge: requests first, then inbox (deduplicate by sender_id)
       const requestSenderIds = new Set(requestItems.map(r => r.sender_id));
       const merged = [...requestItems, ...inboxItems.filter(i => !requestSenderIds.has(i.sender_id))];
+      const totalUnread = (inboxData.total_unread || 0) + requestItems.length;
+      const onlineMap = {};
+      inboxItems.forEach(item => { onlineMap[item.sender_id] = item.online || false; });
 
       setInbox(merged);
-      setTotalUnread((inboxData.total_unread || 0) + requestItems.length);
+      setTotalUnread(totalUnread);
+      setOnlineUsers(onlineMap);
 
-      const onlineStatusMap = {};
-      inboxItems.forEach(item => { onlineStatusMap[item.sender_id] = item.online || false; });
-      setOnlineUsers(onlineStatusMap);
+      // Persist for next load
+      try {
+        localStorage.setItem('pinglo_inbox_cache', JSON.stringify({ merged, totalUnread, onlineMap }));
+      } catch {}
     } catch (error) {
       console.error('Fetch inbox error:', error);
     } finally {
@@ -852,15 +869,13 @@ const WhatsAppMessenger = () => {
       return;
     }
     setSendError('');
-    await serverReady;
 
-    // Pre-fetch token so it doesn't delay rendering
-    const token = await getAuthToken();
-
-    // Optimistic update — force React to paint the message NOW before any network call
+    // Capture state NOW before any awaits can run
     const tempId = `temp_${Date.now()}`;
     const sentText = message;
     const sentReplyTo = replyTo;
+
+    // Optimistic update FIRST — message appears instantly, zero delay
     flushSync(() => {
       setMessages(prev => [...prev, {
         id: tempId,
@@ -878,6 +893,10 @@ const WhatsAppMessenger = () => {
       setMessage('');
       setReplyTo(null);
     });
+
+    // Server selection + auth run after the UI is already updated
+    await serverReady;
+    const token = await getAuthToken();
 
     try {
       const socket = socketService.socket;
