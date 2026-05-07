@@ -311,7 +311,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   );
 };
 
-const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery, resolveMediaUrl, user }) => {
+const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery, resolveMediaUrl, user }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
@@ -330,7 +330,9 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
               <MessageCircle className="w-6 h-6 text-teal-400" />
               {user?.username ? `@${user.username}` : user?.name || 'Conversations'}
             </h2>
-            <p className="text-sm text-gray-400 mt-0.5">{conversations.length} active chats</p>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {inboxLoading ? 'Loading chats…' : `${conversations.length} active chats`}
+            </p>
           </div>
         </div>
         <button
@@ -357,7 +359,12 @@ const ConversationsView = ({ conversations, onSelectUser, onNewMessage, onOpenSi
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar">
-        {conversations.length === 0 ? (
+        {inboxLoading ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-400 text-sm">Loading conversations…</p>
+          </div>
+        ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 slide-up">
             <div className="relative mb-8">
               <div className="absolute inset-0 bg-teal-500/20 rounded-full blur-2xl"></div>
@@ -469,6 +476,7 @@ const WhatsAppMessenger = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [inbox, setInbox] = useState([]);
+  const [inboxLoading, setInboxLoading] = useState(true);
   const [totalUnread, setTotalUnread] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState({});
   const [typingUsers, setTypingUsers] = useState({});
@@ -601,6 +609,8 @@ const WhatsAppMessenger = () => {
       setOnlineUsers(onlineStatusMap);
     } catch (error) {
       console.error('Fetch inbox error:', error);
+    } finally {
+      setInboxLoading(false);
     }
   };
 
@@ -1467,6 +1477,7 @@ const WhatsAppMessenger = () => {
         ) : !selectedUser ? (
           <ConversationsView
             conversations={filteredConversations}
+            inboxLoading={inboxLoading}
             onSelectUser={handleUserSelect}
             onNewMessage={() => setShowUserSearch(true)}
             onOpenSidebar={() => setShowMobileSidebar(true)}
