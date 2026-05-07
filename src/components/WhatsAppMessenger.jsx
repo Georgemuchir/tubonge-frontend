@@ -8,6 +8,7 @@ import { auth } from '../firebase';
 import { verifyBeforeUpdateEmail, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { usersAPI } from '../services/api';
 import socketService from '../services/socket';
+import { getActiveApiUrl, serverReady } from '../services/serverConfig';
 import CallManager from './call/CallManager';
 import CallLogs from './call/CallLogs';
 
@@ -17,14 +18,8 @@ const getAuthToken = async () => {
   return firebaseUser.getIdToken();
 };
 
-const normalizeApiBaseUrl = (url) => {
-  const trimmed = (url || '').trim().replace(/\/+$/, '');
-  if (!trimmed) return 'http://localhost:5000/api';
-  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
-};
-
-const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+const getBase = () => getActiveApiUrl();
+const getOrigin = () => getBase().replace(/\/api\/?$/, '');
 
 const styles = `
   @keyframes blob {
@@ -223,7 +218,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   const loadUsers = async (query) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
+      const response = await fetch(`${getBase()}/users/search?q=${encodeURIComponent(query)}`, {
         headers: {
           'Authorization': `Bearer ${await getAuthToken()}`,
         },
@@ -557,7 +552,7 @@ const WhatsAppMessenger = () => {
   // Keep-alive ping every 10 min to prevent Render free tier cold starts
   useEffect(() => {
     const id = setInterval(() => {
-      fetch(`${API_BASE_URL}/health`).catch(() => {});
+      fetch(`${getBase()}/health`).catch(() => {});
     }, 10 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
@@ -569,11 +564,12 @@ const WhatsAppMessenger = () => {
   }, [selectedUser, loading, messages.length]);
 
   const fetchInbox = async () => {
+    await serverReady;
     try {
       const token = await getAuthToken();
       const [inboxRes, reqRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/messages/inbox`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE_URL}/messages/requests`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${getBase()}/messages/inbox`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${getBase()}/messages/requests`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       const inboxData = inboxRes.ok ? await inboxRes.json() : {};
@@ -684,7 +680,7 @@ const WhatsAppMessenger = () => {
     (async () => {
       try {
         const token = await getAuthToken();
-        const res = await fetch(`${API_BASE_URL}/messages/chat-status/${userId}`, {
+        const res = await fetch(`${getBase()}/messages/chat-status/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -789,7 +785,7 @@ const WhatsAppMessenger = () => {
   const resolveMediaUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return `${API_ORIGIN}${url}`;
+    return `${getOrigin()}${url}`;
   };
 
   const handleUserSelect = async (user) => {
@@ -804,7 +800,7 @@ const WhatsAppMessenger = () => {
       setIncomingRequest({ requestId: user._requestId, text: user.lastMessage || '' });
     }
     try {
-      await fetch(`${API_BASE_URL}/messages/mark-read/${userId}`, {
+      await fetch(`${getBase()}/messages/mark-read/${userId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${await getAuthToken()}`,
@@ -815,7 +811,7 @@ const WhatsAppMessenger = () => {
       console.error('Mark read error:', error);
     }
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/${userId}`, {
+      const response = await fetch(`${getBase()}/messages/${userId}`, {
         headers: {
           'Authorization': `Bearer ${await getAuthToken()}`,
         },
@@ -846,6 +842,7 @@ const WhatsAppMessenger = () => {
       return;
     }
     setSendError('');
+    await serverReady;
 
     // Pre-fetch token so it doesn't delay rendering
     const token = await getAuthToken();
@@ -884,7 +881,7 @@ const WhatsAppMessenger = () => {
     } catch (err) {}
 
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/send`, {
+      const response = await fetch(`${getBase()}/messages/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -935,7 +932,7 @@ const WhatsAppMessenger = () => {
   const uploadChatImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
-    const response = await fetch(`${API_BASE_URL}/messages/upload-image`, {
+    const response = await fetch(`${getBase()}/messages/upload-image`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${await getAuthToken()}`,
@@ -960,7 +957,7 @@ const WhatsAppMessenger = () => {
       setIsSending(true);
       setSendError('');
       const imageUrl = await uploadChatImage(file);
-      const response = await fetch(`${API_BASE_URL}/messages/send`, {
+      const response = await fetch(`${getBase()}/messages/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1047,14 +1044,14 @@ const WhatsAppMessenger = () => {
     try {
       const formData = new FormData();
       formData.append('voice', blob, 'voice.webm');
-      const uploadRes = await fetch(`${API_BASE_URL}/messages/upload-voice`, {
+      const uploadRes = await fetch(`${getBase()}/messages/upload-voice`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${await getAuthToken()}` },
         body: formData,
       });
       if (!uploadRes.ok) throw new Error('Voice upload failed');
       const { url } = await uploadRes.json();
-      const sendRes = await fetch(`${API_BASE_URL}/messages/send`, {
+      const sendRes = await fetch(`${getBase()}/messages/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1096,7 +1093,7 @@ const WhatsAppMessenger = () => {
     ));
     try {
       const token = await getAuthToken();
-      const res = await fetch(`${API_BASE_URL}/messages/delete/${msgId}`, {
+      const res = await fetch(`${getBase()}/messages/delete/${msgId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -1124,7 +1121,7 @@ const WhatsAppMessenger = () => {
     setForwardMsg(null);
     if (!msg || !contact) return;
     try {
-      await fetch(`${API_BASE_URL}/messages/send`, {
+      await fetch(`${getBase()}/messages/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1149,7 +1146,7 @@ const WhatsAppMessenger = () => {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const response = await fetch(`${API_BASE_URL}/users/avatar`, {
+      const response = await fetch(`${getBase()}/users/avatar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${await getAuthToken()}`,
@@ -1259,7 +1256,7 @@ const WhatsAppMessenger = () => {
     }
     setUsernameChecking(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/users/check-username?username=${encodeURIComponent(trimmed)}`, {
+      const res = await fetch(`${getBase()}/users/check-username?username=${encodeURIComponent(trimmed)}`, {
         headers: { 'Authorization': `Bearer ${await getAuthToken()}` },
       });
       const data = await res.json();
@@ -1297,7 +1294,7 @@ const WhatsAppMessenger = () => {
         payload.username = newUsername;
       }
 
-      const response = await fetch(`${API_BASE_URL}/users/profile`, {
+      const response = await fetch(`${getBase()}/users/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1688,7 +1685,7 @@ const WhatsAppMessenger = () => {
                   onClick={async () => {
                     try {
                       const token = await getAuthToken();
-                      await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/accept`, {
+                      await fetch(`${getBase()}/messages/requests/${incomingRequest.requestId}/accept`, {
                         method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                       });
                       setChatStatus('ACCEPTED');
@@ -1710,7 +1707,7 @@ const WhatsAppMessenger = () => {
                   onClick={async () => {
                     try {
                       const token = await getAuthToken();
-                      await fetch(`${API_BASE_URL}/messages/requests/${incomingRequest.requestId}/decline`, {
+                      await fetch(`${getBase()}/messages/requests/${incomingRequest.requestId}/decline`, {
                         method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                       });
                       setChatStatus('NONE');
@@ -2132,7 +2129,7 @@ const WhatsAppMessenger = () => {
                       setUsernameSaving(true);
                       try {
                         const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
-                        const res = await fetch(`${API_BASE_URL}/users/profile`, {
+                        const res = await fetch(`${getBase()}/users/profile`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                           body: JSON.stringify({ username: usernameEdit }),
@@ -2185,7 +2182,7 @@ const WhatsAppMessenger = () => {
                   setShowLastSeen(next);
                   try {
                     const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
-                    await fetch(`${API_BASE_URL}/users/profile`, {
+                    await fetch(`${getBase()}/users/profile`, {
                       method: 'PUT',
                       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                       body: JSON.stringify({ show_last_seen: next }),
