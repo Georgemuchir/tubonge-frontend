@@ -928,52 +928,59 @@ const WhatsAppMessenger = () => {
       }
     } catch (err) {}
 
-    try {
-      const response = await fetch(`${getBase()}/messages/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          recipient_id: selectedUser.id || selectedUser._id,
-          content: sentText,
-          ...(sentReplyTo && {
-            reply_to_id: sentReplyTo.id || sentReplyTo._id,
-            reply_to_content: sentReplyTo.content,
-            reply_to_sender_name: sentReplyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
-          }),
+    const sendPayload = () => fetch(`${getBase()}/messages/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        recipient_id: recipientId,
+        content: sentText,
+        ...(sentReplyTo && {
+          reply_to_id: sentReplyTo.id || sentReplyTo._id,
+          reply_to_content: sentReplyTo.content,
+          reply_to_sender_name: sentReplyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
         }),
-      });
-      if (response.status === 201) {
-        const data = await response.json();
-        if (data.status === 'pending_request') {
-          // First message became a request
-          setMessages(prev => prev.filter(m => m.id !== tempId));
-          setChatStatus('OUTGOING_PENDING');
-          setPendingText(sentText);
-          fetchInbox();
-          return;
-        }
-      }
-      if (response.ok) {
-        const data = await response.json();
-        // Replace optimistic message with real one from server
-        setMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
-        fetchInbox();
-      } else {
-        // Remove optimistic message on failure
+      }),
+    });
+
+    let response;
+    try {
+      response = await sendPayload();
+    } catch {
+      // First attempt failed (server may be waking up) — wait 4 s and retry once
+      setSendError('Connecting to server…');
+      await new Promise(r => setTimeout(r, 4000));
+      try {
+        response = await sendPayload();
+        setSendError('');
+      } catch {
         setMessages(prev => prev.filter(m => m.id !== tempId));
         setMessage(sentText);
         setReplyTo(sentReplyTo);
-        const errorData = await response.json().catch(() => ({}));
-        setSendError(errorData.error || 'Failed to send message.');
+        setSendError('Server unreachable. Please try again.');
+        return;
       }
-    } catch (error) {
+    }
+
+    if (response.status === 201) {
+      const data = await response.json();
+      if (data.status === 'pending_request') {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        setChatStatus('OUTGOING_PENDING');
+        setPendingText(sentText);
+        fetchInbox();
+        return;
+      }
+    }
+    if (response.ok) {
+      const data = await response.json();
+      setMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
+      fetchInbox();
+    } else {
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setMessage(sentText);
       setReplyTo(sentReplyTo);
-      setSendError('Network error sending message.');
+      const errorData = await response.json().catch(() => ({}));
+      setSendError(errorData.error || 'Failed to send message.');
     }
   };
 
