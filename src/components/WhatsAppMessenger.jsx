@@ -874,15 +874,17 @@ const WhatsAppMessenger = () => {
     const tempId = `temp_${Date.now()}`;
     const sentText = message;
     const sentReplyTo = replyTo;
+    const recipientId = selectedUser.id || selectedUser._id;
+    const now = new Date().toISOString();
 
-    // Optimistic update FIRST — message appears instantly, zero delay
+    // Optimistic update FIRST — message bubble + inbox preview update in the same paint frame
     flushSync(() => {
       setMessages(prev => [...prev, {
         id: tempId,
         sender_id: user?.id || user?._id,
-        recipient_id: selectedUser.id || selectedUser._id,
+        recipient_id: recipientId,
         content: sentText,
-        timestamp: new Date().toISOString(),
+        timestamp: now,
         message_type: 'text',
         _optimistic: true,
         ...(replyTo && {
@@ -892,6 +894,23 @@ const WhatsAppMessenger = () => {
       }]);
       setMessage('');
       setReplyTo(null);
+      // Update inbox sidebar instantly — no waiting for fetchInbox round-trip
+      setInbox(prev => {
+        const updated = prev.map(item =>
+          item.sender_id === recipientId
+            ? { ...item, last_message: sentText, last_message_time: now, last_message_type: 'text' }
+            : item
+        );
+        try {
+          const raw = localStorage.getItem('pinglo_inbox_cache');
+          if (raw) {
+            const c = JSON.parse(raw);
+            c.merged = updated;
+            localStorage.setItem('pinglo_inbox_cache', JSON.stringify(c));
+          }
+        } catch {}
+        return updated;
+      });
     });
 
     // Server selection + auth run after the UI is already updated
@@ -1002,6 +1021,20 @@ const WhatsAppMessenger = () => {
       if (response.ok) {
         const data = await response.json();
         setMessages([...messages, data.message]);
+        const rid = selectedUser.id || selectedUser._id;
+        const ts = new Date().toISOString();
+        setInbox(prev => {
+          const updated = prev.map(item =>
+            item.sender_id === rid
+              ? { ...item, last_message: '📷 Photo', last_message_time: ts, last_message_type: 'image' }
+              : item
+          );
+          try {
+            const raw = localStorage.getItem('pinglo_inbox_cache');
+            if (raw) { const c = JSON.parse(raw); c.merged = updated; localStorage.setItem('pinglo_inbox_cache', JSON.stringify(c)); }
+          } catch {}
+          return updated;
+        });
         fetchInbox();
       } else {
         const errorData = await response.json().catch(() => ({}));
