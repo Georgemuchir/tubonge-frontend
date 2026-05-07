@@ -28,7 +28,7 @@ const _checkHealth = async (apiUrl) => {
   const base = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
   try {
     const res = await fetch(`${base}/api/health`, {
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(5000),
       cache: 'no-store',
     });
     return res.ok;
