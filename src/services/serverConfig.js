@@ -14,7 +14,8 @@ const PRIMARY_SOCKET_URL  = PRIMARY_SOCKET  || FALLBACK_SOCKET;
 const FALLBACK_SOCKET_URL = FALLBACK_SOCKET;
 
 // No health-check needed when there is no separate local server configured
-const HAS_LOCAL = !!(PRIMARY_API && PRIMARY_API !== FALLBACK_API);
+const HAS_LOCAL = !!(PRIMARY_API && PRIMARY_API !== FALLBACK_API) &&
+  import.meta.env.VITE_SKIP_HEALTH_CHECK !== 'true';
 
 let _apiUrl    = PRIMARY_API_FULL;
 let _socketUrl = PRIMARY_SOCKET_URL;
