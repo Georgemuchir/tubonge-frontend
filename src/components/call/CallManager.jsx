@@ -116,7 +116,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
         clearInterval(ringtoneRef.current.interval);
         ringtoneRef.current.osc.stop();
         ringtoneRef.current.ctx.close();
-      } catch (e) { /* ok */ }
+      } catch {}
       ringtoneRef.current = null;
     }
   }, []);
@@ -125,7 +125,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const cleanup = useCallback(() => {
     stopRingtone();
     if (peerRef.current) {
-      try { peerRef.current.destroy(); } catch (e) { /* ok */ }
+      try { peerRef.current.destroy(); } catch {}
       peerRef.current = null;
     }
     if (localStreamRef.current) {
@@ -211,7 +211,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
           setTimeout(() => setError(''), 3000);
         }
       };
-    } catch (e) { /* ok */ }
+    } catch {}
   }, []);
 
   // ── Flip camera ──
@@ -291,7 +291,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       peer.on('stream', attachRemoteStream);
       peer.on('connect', () => { startTimer(); setConnectionQuality('good'); });
       peer.on('close', () => { if (callStateRef.current === CALL_STATE.CONNECTED) endCall(); });
-      peer.on('error', (err) => { if (callStateRef.current === CALL_STATE.CONNECTED) { setError('Connection lost'); endCall(); } });
+      peer.on('error', () => { if (callStateRef.current === CALL_STATE.CONNECTED) { setError('Connection lost'); endCall(); } });
 
       peerRef.current = peer;
       monitorConnection(peer);
@@ -362,7 +362,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
         iceCandidateBuffer.current.forEach(c => { if (!peer.destroyed) peer.signal(c); });
         iceCandidateBuffer.current = [];
       }
-    } catch (err) {
+    } catch {
       rejectCall();
     }
   }, [incomingCallData, currentUserId, getMedia, endCall, stopRingtone, attachRemoteStream, startTimer, monitorConnection]);
@@ -465,7 +465,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
     const handleIceCandidate = (data) => {
       if (peerRef.current && !peerRef.current.destroyed) {
-        try { peerRef.current.signal(data.candidate); } catch (e) { /* ok */ }
+        try { peerRef.current.signal(data.candidate); } catch {}
       } else if (!peerRef.current) {
         iceCandidateBuffer.current.push(data.candidate);
       }

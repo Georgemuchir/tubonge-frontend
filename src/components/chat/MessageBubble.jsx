@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../../services/api';
 // Strip /api suffix to get the base server URL for media files
 const SERVER_URL = API_BASE_URL.replace(/\/api$/, '');
 
-const MessageBubble = ({ message, isOwnMessage, showAvatar, otherParticipant, onReply }) => {
+const MessageBubble = ({ message, isOwnMessage, _showAvatar, _otherParticipant, onReply }) => {
   const [hovered, setHovered] = useState(false);
 
   const formatTime = (timestamp) => {

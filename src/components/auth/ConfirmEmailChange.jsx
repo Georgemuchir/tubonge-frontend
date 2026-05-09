@@ -18,7 +18,6 @@ import { Loader2 } from 'lucide-react';
 const ConfirmEmailChange = () => {
   const [searchParams] = useSearchParams();
   const oobCode = searchParams.get('oobCode') || '';
-  const mode = searchParams.get('mode') || '';
 
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');

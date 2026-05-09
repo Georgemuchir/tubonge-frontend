@@ -134,7 +134,7 @@ const ChatWindow = () => {
         sendMessage(res.data.url, 'image', replyToMessage?.id || null, replyToMessage?.content || null, replyToMessage?.senderName || null);
         setReplyToMessage(null);
       }
-    } catch (err) {
+    } catch {
       alert('Failed to upload image.');
     } finally {
       setUploadingImage(false);

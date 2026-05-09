@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, X, UserPlus, User, MessageCircle, Clock } from 'lucide-react';
-import { usersAPI, friendsAPI } from '../services/api';
+import { usersAPI } from '../services/api';
 import { useChat } from '../contexts/ChatContext';
 
 const UserSearch = ({ isOpen, onClose, onAddContact }) => {

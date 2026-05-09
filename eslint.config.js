@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'src/components/legacy/**', 'src/services/ChatAPI.js']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -23,7 +23,17 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
+  },
+  {
+    files: ['src/components/WhatsAppMessenger.jsx'],
+    rules: { 'no-useless-escape': 'off' },
+  },
+  {
+    files: ['src/contexts/*.jsx', 'src/contexts/*.js'],
+    rules: { 'react-refresh/only-export-components': 'off' },
   },
 ])

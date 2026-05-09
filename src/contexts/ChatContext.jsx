@@ -49,17 +49,12 @@ const chatReducer = (state, action) => {
     case 'SET_MESSAGES':
       return { ...state, messages: (action.payload || []).filter(Boolean) };
 
-    case 'ADD_MESSAGE':
+    case 'ADD_MESSAGE': {
       if (!action.payload) return state;
-      // Check for duplicates before adding
       const exists = state.messages.some(m => m.id === action.payload.id);
-      if (exists) {
-        return state;
-      }
-      return {
-        ...state,
-        messages: [...state.messages, action.payload]
-      };
+      if (exists) return state;
+      return { ...state, messages: [...state.messages, action.payload] };
+    }
 
     case 'PREPEND_MESSAGES':
       return {
@@ -305,7 +300,7 @@ export const ChatProvider = ({ children }) => {
   };
 
   // Send message
-  const sendMessage = async (content, messageType = 'text', replyToId = null, replyToContent = null, replyToSenderName = null) => {
+  const sendMessage = async (content, _messageType = 'text', replyToId = null, replyToContent = null, replyToSenderName = null) => {
     console.log('sendMessage called with:', { content, activeConversation: state.activeConversation, user });
     
     if (!state.activeConversation) {
@@ -323,20 +318,18 @@ export const ChatProvider = ({ children }) => {
       return;
     }
 
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      conversation_id: state.activeConversation._id || state.activeConversation.id,
+      text: content.trim(),
+      sender_id: user._id || user.id,
+      created_at: new Date().toISOString(),
+      status: 'sending'
+    };
+
     try {
       console.log(`Sending message to conversation ${state.activeConversation._id || state.activeConversation.id}`);
-      
-      // Create optimistic message immediately for instant feedback
-      const optimisticMessage = {
-        id: `temp-${Date.now()}`,
-        conversation_id: state.activeConversation._id || state.activeConversation.id,
-        text: content.trim(),
-        sender_id: user._id || user.id,
-        created_at: new Date().toISOString(),
-        status: 'sending'
-      };
-      
-      // Add optimistic message to UI immediately
+
       dispatch({ type: 'ADD_MESSAGE', payload: optimisticMessage });
 
       // Send via NEW strict API

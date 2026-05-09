@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
 import { verifyBeforeUpdateEmail, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { usersAPI } from '../services/api';
+import '../services/api';
 import socketService from '../services/socket';
 import { getActiveApiUrl, serverReady } from '../services/serverConfig';
 import CallManager from './call/CallManager';
@@ -311,7 +311,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   );
 };
 
-const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, getAvatarColor, searchQuery, setSearchQuery, resolveMediaUrl, user }) => {
+const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
@@ -468,11 +468,10 @@ const WhatsAppMessenger = () => {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
-  const [conversationId, setConversationId] = useState(null);
+  const [_conversationId, setConversationId] = useState(null);
   const [message, setMessage] = useState('');
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showOutbox, setShowOutbox] = useState(false);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [inbox, setInbox] = useState([]);
@@ -926,7 +925,7 @@ const WhatsAppMessenger = () => {
           is_typing: false
         });
       }
-    } catch (err) {}
+    } catch {}
 
     const sendPayload = () => fetch(`${getBase()}/messages/send`, {
       method: 'POST',
@@ -1559,7 +1558,6 @@ const WhatsAppMessenger = () => {
             onNewMessage={() => setShowUserSearch(true)}
             onOpenSidebar={() => setShowMobileSidebar(true)}
             isMobile={isMobile}
-            getAvatarColor={getAvatarColor}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             resolveMediaUrl={resolveMediaUrl}
@@ -1896,10 +1894,10 @@ const WhatsAppMessenger = () => {
                             sender_id: user?.id || user?._id,
                             is_typing: false
                           });
-                        } catch (err) {}
+                        } catch {}
                       }, 1500);
                     }
-                  } catch (err) {}
+                  } catch {}
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {

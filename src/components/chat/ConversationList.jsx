@@ -18,7 +18,7 @@ const ConversationList = () => {
       try {
         const response = await messageRequestsAPI.getRequests();
         setMessageRequests(response.data.requests || []);
-      } catch (e) {
+      } catch {
         setMessageRequests([]);
       }
     };
@@ -250,9 +250,8 @@ const ConversationList = () => {
       {showUserSearch && (
         <UserSearchModal
           onClose={() => setShowUserSearch(false)}
-          onSelectUser={(selectedUser) => {
+          onSelectUser={(_selectedUser) => {
             setShowUserSearch(false);
-            // Logic to create/open conversation with selected user will be handled in the modal
           }}
         />
       )}

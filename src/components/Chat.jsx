@@ -1,12 +1,10 @@
-import { useEffect } from 'react';
 import { useChat } from '../contexts/ChatContext';
 import ConversationList from './chat/ConversationList';
 import ChatWindow from './chat/ChatWindow';
-import UserSidebar from './chat/UserSidebar';
 import '../styles/nexus-chat.css';
 
 const Chat = () => {
-  const { conversations, activeConversation, loading } = useChat();
+  const { activeConversation, loading } = useChat();
 
   if (loading) {
     return (
