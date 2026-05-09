@@ -11,6 +11,7 @@ import socketService from '../services/socket';
 import { getActiveApiUrl, serverReady } from '../services/serverConfig';
 import CallManager from './call/CallManager';
 import CallLogs from './call/CallLogs';
+import ContactProfilePanel from './chat/ContactProfilePanel';
 
 const getAuthToken = async () => {
   const firebaseUser = auth.currentUser;
@@ -497,6 +498,7 @@ const WhatsAppMessenger = () => {
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState('');
+  const [showContactProfile, setShowContactProfile] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [activeMsg, setActiveMsg] = useState(null);
   const [forwardMsg, setForwardMsg] = useState(null);
@@ -1529,7 +1531,7 @@ const WhatsAppMessenger = () => {
       </div>
       
       {/* Chat Area */}
-      <div className={`flex-1 flex flex-col min-h-0 ${isMobile && selectedUser ? 'mobile-chat' : ''}`}>
+      <div className={`flex-1 flex flex-col min-h-0 ${isMobile && selectedUser ? 'mobile-chat' : ''}`} style={{ position: 'relative' }}>
         {showCallLogs && !selectedUser ? (
           <CallLogs
             onBack={() => setShowCallLogs(false)}
@@ -1626,7 +1628,11 @@ const WhatsAppMessenger = () => {
               <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
                 <Search className="w-5 h-5" />
               </button>
-              <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target">
+              <button
+                onClick={() => setShowContactProfile(true)}
+                className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
+                title="Contact info"
+              >
                 <MoreVertical className="w-5 h-5" />
               </button>
             </div>
@@ -1930,10 +1936,25 @@ const WhatsAppMessenger = () => {
             </div>
             )}
           </div>
+
+          {/* Contact profile slide-in panel */}
+          {showContactProfile && selectedUser && (
+            <ContactProfilePanel
+              participant={{
+                id: selectedUser.id || selectedUser._id,
+                name: selectedUser.name,
+                username: selectedUser.username || '',
+                avatar: selectedUser.avatar || '',
+                status: (onlineUsers[selectedUser.id] || onlineUsers[selectedUser._id] || selectedUser.online) ? 'online' : 'offline',
+              }}
+              onClose={() => setShowContactProfile(false)}
+              onBlockStatusChange={() => {}}
+            />
+          )}
           </>
         )}
       </div>
-      
+
       {showUserSearch && (
         <UserSearch
           onClose={() => setShowUserSearch(false)}
