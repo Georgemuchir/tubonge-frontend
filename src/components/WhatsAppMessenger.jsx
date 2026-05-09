@@ -985,15 +985,22 @@ const WhatsAppMessenger = () => {
   };
 
   const uploadChatImage = async (file) => {
+    await serverReady;
+    const token = await getAuthToken();
     const formData = new FormData();
     formData.append('image', file);
-    const response = await fetch(`${getBase()}/messages/upload-image`, {
+    const doUpload = () => fetch(`${getBase()}/messages/upload-image`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${await getAuthToken()}`,
-      },
+      headers: { 'Authorization': `Bearer ${token}` },
       body: formData,
     });
+    let response;
+    try {
+      response = await doUpload();
+    } catch {
+      await new Promise(r => setTimeout(r, 4000));
+      response = await doUpload();
+    }
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || 'Image upload failed');
@@ -1012,12 +1019,11 @@ const WhatsAppMessenger = () => {
       setIsSending(true);
       setSendError('');
       const imageUrl = await uploadChatImage(file);
-      const response = await fetch(`${getBase()}/messages/send`, {
+      await serverReady;
+      const token = await getAuthToken();
+      const doSend = () => fetch(`${getBase()}/messages/send`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await getAuthToken()}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           recipient_id: selectedUser.id || selectedUser._id,
           content: '📷 Photo',
@@ -1025,6 +1031,18 @@ const WhatsAppMessenger = () => {
           image_url: imageUrl,
         }),
       });
+      let response;
+      try {
+        response = await doSend();
+      } catch {
+        setSendError('Connecting to server…');
+        await new Promise(r => setTimeout(r, 4000));
+        try { response = await doSend(); setSendError(''); }
+        catch (err) {
+          setSendError(err.message || 'Image send failed.');
+          return;
+        }
+      }
       if (response.ok) {
         const data = await response.json();
         setMessages([...messages, data.message]);
