@@ -62,6 +62,7 @@ export const usersAPI = {
   getOnlineUsers: () => api.get('/users/online'),
   blockUser: (userId) => api.post(`/users/block/${userId}`),
   unblockUser: (userId) => api.post(`/users/unblock/${userId}`),
+  getPublicProfile: (userId) => api.get(`/users/${userId}/public-profile`),
 };
 
 // Friend Requests API (NEW - STRICT PERMISSION MODEL)
