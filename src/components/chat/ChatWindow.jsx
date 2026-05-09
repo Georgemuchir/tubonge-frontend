@@ -7,6 +7,31 @@ import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import { AlertTriangle } from 'lucide-react';
 
+const compressImage = (file, maxDim = 1280, quality = 0.82) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width >= height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+        else { width = Math.round((width * maxDim) / height); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })),
+        'image/jpeg',
+        quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+
 const formatLastSeen = (ts) => {
   if (!ts) return 'Offline';
   const date = new Date(ts);
@@ -30,6 +55,8 @@ const ChatWindow = () => {
     messages,
     messagesLoading,
     sendMessage,
+    sendImageMessage,
+    addOptimisticImageMessage,
     sendTyping,
     typingUsers,
     setActiveConversation,
@@ -123,22 +150,34 @@ const ChatWindow = () => {
     }
   };
 
-  // Handle image file selection and upload
+  // Handle image file selection — compress, show preview immediately, then upload
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    e.target.value = '';
+
+    const blobUrl = URL.createObjectURL(file);
+    const tempId = addOptimisticImageMessage(blobUrl);
     setUploadingImage(true);
+
     try {
-      const res = await messagesAPI.uploadImage(file);
-      if (res.data && res.data.url) {
-        sendMessage(res.data.url, 'image', replyToMessage?.id || null, replyToMessage?.content || null, replyToMessage?.senderName || null);
+      const compressed = await compressImage(file);
+      const res = await messagesAPI.uploadImage(compressed);
+      if (res.data?.url) {
+        await sendImageMessage(
+          tempId,
+          res.data.url,
+          replyToMessage?.id || null,
+          replyToMessage?.content || null,
+          replyToMessage?.senderName || null
+        );
         setReplyToMessage(null);
       }
     } catch {
       alert('Failed to upload image.');
     } finally {
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
       setUploadingImage(false);
-      e.target.value = '';
     }
   };
 

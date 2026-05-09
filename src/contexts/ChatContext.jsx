@@ -99,12 +99,26 @@ const chatReducer = (state, action) => {
       return {
         ...state,
         onlineUsers: state.onlineUsers.map(user =>
-          user.id === action.payload.userId 
+          user.id === action.payload.userId
             ? { ...user, status: action.payload.status }
             : user
         )
       };
-    
+
+    case 'REPLACE_TEMP_MESSAGE':
+      return {
+        ...state,
+        messages: state.messages.map(msg =>
+          msg.id === action.payload.tempId ? action.payload.realMessage : msg
+        )
+      };
+
+    case 'REMOVE_MESSAGE':
+      return {
+        ...state,
+        messages: state.messages.filter(m => m.id !== action.payload)
+      };
+
     default:
       return state;
   }
@@ -364,6 +378,44 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Add an optimistic image bubble immediately (returns tempId)
+  const addOptimisticImageMessage = (blobUrl) => {
+    const tempId = `temp-img-${Date.now()}`;
+    dispatch({
+      type: 'ADD_MESSAGE',
+      payload: {
+        id: tempId,
+        conversation_id: state.activeConversation?._id || state.activeConversation?.id,
+        content: blobUrl,
+        message_type: 'image',
+        sender_id: user?._id || user?.id,
+        timestamp: new Date().toISOString(),
+        status: 'sending',
+      },
+    });
+    return tempId;
+  };
+
+  // Persist image message to server then swap the temp bubble with the real one
+  const sendImageMessage = async (tempId, imageUrl, replyToId = null, replyToContent = null, replyToSenderName = null) => {
+    const conversationId = state.activeConversation?._id || state.activeConversation?.id;
+    const receiverUsername = state.activeConversation?.participant?.username;
+    try {
+      const response = await messagesAPI.sendMessage(
+        receiverUsername, imageUrl, conversationId, replyToId, replyToContent, replyToSenderName
+      );
+      const realMessage = { ...response.data, message_type: 'image' };
+      dispatch({ type: 'REPLACE_TEMP_MESSAGE', payload: { tempId, realMessage } });
+      socketService.sendMessage({
+        conversation_id: conversationId,
+        text: imageUrl,
+        sender_id: user?._id || user?.id,
+      });
+    } catch {
+      dispatch({ type: 'REMOVE_MESSAGE', payload: tempId });
+    }
+  };
+
   // Send typing indicator
   const sendTyping = (isTyping) => {
     if (state.activeConversation && user) {
@@ -441,6 +493,8 @@ export const ChatProvider = ({ children }) => {
     setActiveConversation,
     loadMessages,
     sendMessage,
+    sendImageMessage,
+    addOptimisticImageMessage,
     sendTyping,
     createConversation,
     loadConversations,

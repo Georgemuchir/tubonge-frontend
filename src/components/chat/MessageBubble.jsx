@@ -17,16 +17,17 @@ const MessageBubble = ({ message, isOwnMessage, _showAvatar, _otherParticipant, 
     }
   };
 
-  // Build a usable absolute URL for media (voice/image) content
   const mediaUrl = (content) => {
     if (!content) return '';
-    if (content.startsWith('http://') || content.startsWith('https://')) return content;
-    // e.g. "/api/messages/voice/abc.webm" → "http://localhost:5000/api/messages/voice/abc.webm"
+    if (content.startsWith('http://') || content.startsWith('https://') || content.startsWith('blob:')) return content;
     return `${SERVER_URL}${content}`;
   };
 
   const isImage = message.message_type === 'image' ||
-    (typeof message.content === 'string' && message.content.startsWith('/api/messages/image/'));
+    (typeof message.content === 'string' && (
+      message.content.startsWith('/api/messages/image/') ||
+      message.content.startsWith('blob:')
+    ));
   const isVoice = message.message_type === 'voice' ||
     (typeof message.content === 'string' && message.content.startsWith('/api/messages/voice/'));
   const hasReply = !!message.reply_to_id;
@@ -85,12 +86,26 @@ const MessageBubble = ({ message, isOwnMessage, _showAvatar, _otherParticipant, 
 
         {/* Message content */}
         {isImage ? (
-          <img
-            src={mediaUrl(message.content)}
-            alt="sent image"
-            className="max-w-xs max-h-60 rounded-lg border border-gray-200"
-            style={{ marginBottom: 4 }}
-          />
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <img
+              src={mediaUrl(message.content)}
+              alt="sent image"
+              className="max-w-xs max-h-60 rounded-lg border border-gray-200"
+              style={{ marginBottom: 4, opacity: message.status === 'sending' ? 0.6 : 1 }}
+            />
+            {message.status === 'sending' && (
+              <div style={{
+                position: 'absolute', inset: 0, display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                borderRadius: 8,
+              }}>
+                <div className="animate-spin" style={{
+                  width: 28, height: 28, border: '3px solid rgba(255,255,255,0.7)',
+                  borderTopColor: 'transparent', borderRadius: '50%',
+                }} />
+              </div>
+            )}
+          </div>
         ) : isVoice ? (
           <audio
             controls
