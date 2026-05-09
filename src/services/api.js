@@ -131,6 +131,8 @@ export const messagesAPI = {
     api.post(`/messages/${conversationId}/mark-read`),
 
   getChatStatus: (userId) => api.get('/messages/chat-status/' + userId),
+
+  getSharedMedia: (otherUserId) => api.get(`/messages/shared-media/${otherUserId}`),
 };
 
 export const messageRequestsAPI = {

@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic, Square, X, Reply } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
+import ContactProfilePanel from './ContactProfilePanel';
 import { AlertTriangle } from 'lucide-react';
 
 const compressImage = (file, maxDim = 1280, quality = 0.82) =>
@@ -68,6 +69,7 @@ const ChatWindow = () => {
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const [relationshipStatus, setRelationshipStatus] = useState('NONE');
@@ -336,6 +338,7 @@ const ChatWindow = () => {
         '--accent': '#10b981',
         '--frameFrom': '#0c1324',
         '--frameTo': '#0a0f1a',
+        position: 'relative',
       }}
     >
       {/* Glass header */}
@@ -374,13 +377,13 @@ const ChatWindow = () => {
         </div>
 
         <div className="nexus-actions-modern">
-          <button className="nexus-action-modern-btn" aria-label="Audio call">
+          <button className="nexus-action-modern-btn" aria-label="View profile" onClick={() => setShowProfile(true)}>
             <Phone className="size-5"/>
           </button>
-          <button className="nexus-action-modern-btn" aria-label="Video call">
+          <button className="nexus-action-modern-btn" aria-label="View profile" onClick={() => setShowProfile(true)}>
             <Video className="size-5"/>
           </button>
-          <button className="nexus-action-modern-btn" aria-label="More">
+          <button className="nexus-action-modern-btn" aria-label="View profile" onClick={() => setShowProfile(true)}>
             <MoreVertical className="size-5"/>
           </button>
         </div>
@@ -629,6 +632,14 @@ const ChatWindow = () => {
             </div>
           </form>
         </>
+      )}
+
+      {/* Contact profile slide-in panel */}
+      {showProfile && (
+        <ContactProfilePanel
+          participant={otherParticipant}
+          onClose={() => setShowProfile(false)}
+        />
       )}
     </div>
   );
