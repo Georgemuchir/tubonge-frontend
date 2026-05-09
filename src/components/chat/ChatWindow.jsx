@@ -442,6 +442,12 @@ const ChatWindow = () => {
           {!canChat && (
             <div className="flex flex-col items-center justify-center py-3 text-yellow-400">
               <AlertTriangle className="mb-2" size={24} />
+              {relationshipStatus === 'BLOCKED' && (
+                <>
+                  <div className="font-semibold text-sm text-red-400">You blocked this contact</div>
+                  <div className="text-xs mt-1 text-gray-400">Open their profile to unblock.</div>
+                </>
+              )}
               {relationshipStatus === 'OUTGOING_PENDING' && (
                 <>
                   <div className="font-semibold text-sm">Message request sent</div>
@@ -639,6 +645,7 @@ const ChatWindow = () => {
         <ContactProfilePanel
           participant={otherParticipant}
           onClose={() => setShowProfile(false)}
+          onBlockStatusChange={(status) => setRelationshipStatus(status)}
         />
       )}
     </div>

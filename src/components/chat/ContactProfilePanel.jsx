@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, ImageIcon, Mic, Link } from 'lucide-react';
-import { messagesAPI, API_BASE_URL } from '../../services/api';
+import { X, ImageIcon, Mic, Link, ShieldOff, ShieldCheck } from 'lucide-react';
+import { messagesAPI, usersAPI, API_BASE_URL } from '../../services/api';
 
 const SERVER_URL = API_BASE_URL.replace(/\/api$/, '');
 
@@ -16,19 +16,42 @@ const TABS = [
   { key: 'Links', icon: Link },
 ];
 
-const ContactProfilePanel = ({ participant, onClose }) => {
+const ContactProfilePanel = ({ participant, onClose, onBlockStatusChange }) => {
   const [activeTab, setActiveTab] = useState('Photos');
   const [media, setMedia] = useState({ images: [], voices: [], links: [] });
   const [loading, setLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
 
   useEffect(() => {
     if (!participant?.id) return;
     setLoading(true);
-    messagesAPI.getSharedMedia(participant.id)
-      .then(res => setMedia(res.data))
-      .catch(() => setMedia({ images: [], voices: [], links: [] }))
+    Promise.all([
+      messagesAPI.getSharedMedia(participant.id),
+      messagesAPI.getChatStatus(participant.id),
+    ]).then(([mediaRes, statusRes]) => {
+      setMedia(mediaRes.data);
+      setIsBlocked(statusRes.data?.status === 'BLOCKED');
+    }).catch(() => setMedia({ images: [], voices: [], links: [] }))
       .finally(() => setLoading(false));
   }, [participant?.id]);
+
+  const handleBlock = async () => {
+    setBlockLoading(true);
+    try {
+      if (isBlocked) {
+        await usersAPI.unblockUser(participant.id);
+        setIsBlocked(false);
+        onBlockStatusChange?.('ACCEPTED');
+      } else {
+        await usersAPI.blockUser(participant.id);
+        setIsBlocked(true);
+        onBlockStatusChange?.('BLOCKED');
+      }
+    } finally {
+      setBlockLoading(false);
+    }
+  };
 
   const items =
     activeTab === 'Photos' ? media.images
@@ -97,6 +120,29 @@ const ContactProfilePanel = ({ participant, onClose }) => {
             {participant.status === 'online' ? 'Active now' : 'Offline'}
           </span>
         </div>
+
+        {/* Block / Unblock */}
+        <button
+          onClick={handleBlock}
+          disabled={blockLoading}
+          style={{
+            marginTop: 16,
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 20px', borderRadius: 20,
+            border: `1px solid ${isBlocked ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+            background: isBlocked ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+            color: isBlocked ? '#10b981' : '#ef4444',
+            cursor: blockLoading ? 'not-allowed' : 'pointer',
+            fontSize: 13, fontWeight: 500,
+            opacity: blockLoading ? 0.6 : 1,
+            transition: 'opacity 0.15s',
+          }}
+        >
+          {isBlocked
+            ? <><ShieldCheck style={{ width: 15, height: 15 }} /> Unblock</>
+            : <><ShieldOff style={{ width: 15, height: 15 }} /> Block</>
+          }
+        </button>
       </div>
 
       {/* Tabs */}

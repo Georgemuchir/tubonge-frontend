@@ -60,6 +60,8 @@ export const usersAPI = {
   requestEmailChange: (newEmail) => api.post('/users/request-email-change', { new_email: newEmail }),
   confirmEmailChange: (token) => api.post('/users/confirm-email-change', { token }),
   getOnlineUsers: () => api.get('/users/online'),
+  blockUser: (userId) => api.post(`/users/block/${userId}`),
+  unblockUser: (userId) => api.post(`/users/unblock/${userId}`),
 };
 
 // Friend Requests API (NEW - STRICT PERMISSION MODEL)
