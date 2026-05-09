@@ -1662,7 +1662,7 @@ const WhatsAppMessenger = () => {
                         <p className="text-sm italic text-gray-400">
                           {(msg.deleted_by || msg.sender_id) === (user?.id || user?._id)
                             ? 'Message deleted'
-                            : 'Ooooops! Deleted 😭'}
+                            : 'Ooooops! message deleted 😭'}
                         </p>
                       ) : (
                         <>
