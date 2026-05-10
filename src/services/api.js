@@ -136,6 +136,7 @@ export const messagesAPI = {
   getChatStatus: (userId) => api.get('/messages/chat-status/' + userId),
 
   getSharedMedia: (otherUserId) => api.get(`/messages/shared-media/${otherUserId}`),
+  deleteConversation: (otherUserId) => api.delete(`/messages/conversation/${otherUserId}`),
 };
 
 export const messageRequestsAPI = {

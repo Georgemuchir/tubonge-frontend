@@ -1949,6 +1949,12 @@ const WhatsAppMessenger = () => {
               }}
               onClose={() => setShowContactProfile(false)}
               onBlockStatusChange={() => {}}
+              onDelete={() => {
+                const deletedId = selectedUser.id || selectedUser._id;
+                setInbox(prev => prev.filter(c => c.sender_id !== deletedId && c.id !== deletedId));
+                setSelectedUser(null);
+                setShowContactProfile(false);
+              }}
             />
           )}
           </>

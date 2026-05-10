@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, ImageIcon, Mic, Link, ShieldOff, ShieldCheck, Phone } from 'lucide-react';
+import { X, ImageIcon, Mic, Link, ShieldOff, ShieldCheck, Phone, Trash2 } from 'lucide-react';
 import { messagesAPI, usersAPI, API_BASE_URL } from '../../services/api';
 
 const SERVER_URL = API_BASE_URL.replace(/\/api$/, '');
@@ -16,7 +16,7 @@ const TABS = [
   { key: 'Links', icon: Link },
 ];
 
-const ContactProfilePanel = ({ participant, onClose, onBlockStatusChange }) => {
+const ContactProfilePanel = ({ participant, onClose, onBlockStatusChange, onDelete }) => {
   const [activeTab, setActiveTab] = useState('Photos');
   const [media, setMedia] = useState({ images: [], voices: [], links: [] });
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,8 @@ const ContactProfilePanel = ({ participant, onClose, onBlockStatusChange }) => {
   const [blockLoading, setBlockLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!participant?.id) return;
@@ -54,6 +56,18 @@ const ContactProfilePanel = ({ participant, onClose, onBlockStatusChange }) => {
       }
     } finally {
       setBlockLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    setDeleteLoading(true);
+    try {
+      await messagesAPI.deleteConversation(participant.id);
+      onDelete?.();
+    } finally {
+      setDeleteLoading(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -201,6 +215,27 @@ const ContactProfilePanel = ({ participant, onClose, onBlockStatusChange }) => {
               ? <><ShieldCheck style={{ width: 15, height: 15 }} /> Unblock</>
               : <><ShieldOff style={{ width: 15, height: 15 }} /> Block</>
             }
+          </button>
+
+          {/* Delete conversation */}
+          <button
+            onClick={handleDelete}
+            disabled={deleteLoading}
+            style={{
+              marginTop: 10,
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 20px', borderRadius: 20,
+              border: '1px solid rgba(239,68,68,0.4)',
+              background: confirmDelete ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.06)',
+              color: '#ef4444',
+              cursor: deleteLoading ? 'not-allowed' : 'pointer',
+              fontSize: 13, fontWeight: 500,
+              opacity: deleteLoading ? 0.6 : 1,
+              transition: 'background 0.15s',
+            }}
+          >
+            <Trash2 style={{ width: 15, height: 15 }} />
+            {confirmDelete ? 'Tap again to confirm' : 'Delete chat'}
           </button>
         </div>
 
