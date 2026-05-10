@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -312,11 +312,11 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   );
 };
 
-const ACTION_PANEL_WIDTH = 136;
+const ACTION_PANEL_WIDTH = 204;
 const SWIPE_THRESHOLD = 60;
 const LONG_PRESS_MS = 500;
 
-const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, isMuted, resolveMediaUrl }) => {
+const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchive, isMuted, isArchived, resolveMediaUrl }) => {
   const [offset, setOffset] = useState(0);
   const startXRef = useRef(null);
   const startYRef = useRef(null);
@@ -387,14 +387,21 @@ const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute
           onClick={(e) => { e.stopPropagation(); onMute(conv); snapTo(0); }}
           style={{ flex: 1, background: '#374151', color: '#d1d5db', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
         >
-          {isMuted ? <Bell style={{ width: 19, height: 19 }} /> : <BellOff style={{ width: 19, height: 19 }} />}
+          {isMuted ? <Bell style={{ width: 18, height: 18 }} /> : <BellOff style={{ width: 18, height: 18 }} />}
           {isMuted ? 'Unmute' : 'Mute'}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onArchive(conv); snapTo(0); }}
+          style={{ flex: 1, background: '#0ea5e9', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
+        >
+          {isArchived ? <ArchiveRestore style={{ width: 18, height: 18 }} /> : <Archive style={{ width: 18, height: 18 }} />}
+          {isArchived ? 'Unarchive' : 'Archive'}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(conv); snapTo(0); }}
           style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
         >
-          <Trash2 style={{ width: 19, height: 19 }} />
+          <Trash2 style={{ width: 18, height: 18 }} />
           Delete
         </button>
       </div>
@@ -466,13 +473,26 @@ const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute
   );
 };
 
-const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user, onDelete, onMute, mutedIds }) => {
+const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user, onDelete, onMute, onArchive, mutedIds, archivedIds }) => {
+  const [showArchived, setShowArchived] = useState(false);
+
+  const activeConvs = conversations.filter(c => !archivedIds.has(c.id));
+  const archivedConvs = conversations.filter(c => archivedIds.has(c.id));
+  const displayConvs = showArchived ? archivedConvs : activeConvs;
+
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
       <div className="whatsapp-header p-5 flex items-center justify-between border-b border-gray-700 shadow-lg">
         <div className="flex items-center gap-3">
-          {isMobile && (
+          {showArchived ? (
+            <button
+              onClick={() => setShowArchived(false)}
+              className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-all touch-target"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          ) : isMobile && (
             <button
               onClick={onOpenSidebar}
               className="p-2 rounded-lg hover:bg-gray-700 text-white transition-all touch-target"
@@ -482,20 +502,24 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
           )}
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <MessageCircle className="w-6 h-6 text-teal-400" />
-              {user?.username ? `@${user.username}` : user?.name || 'Conversations'}
+              {showArchived
+                ? <><Archive className="w-6 h-6 text-sky-400" /> Archived</>
+                : <><MessageCircle className="w-6 h-6 text-teal-400" />{user?.username ? `@${user.username}` : user?.name || 'Conversations'}</>
+              }
             </h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              {inboxLoading ? 'Loading chats…' : `${conversations.length} active chats`}
+              {inboxLoading ? 'Loading chats…' : showArchived ? `${archivedConvs.length} archived` : `${activeConvs.length} active chats`}
             </p>
           </div>
         </div>
-        <button
-          onClick={onNewMessage}
-          className="p-3 rounded-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white transition-all shadow-lg hover:shadow-xl touch-target"
-        >
-          <Plus className="w-6 h-6" />
-        </button>
+        {!showArchived && (
+          <button
+            onClick={onNewMessage}
+            className="p-3 rounded-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white transition-all shadow-lg hover:shadow-xl touch-target"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
+        )}
       </div>
 
       {/* Search Bar */}
@@ -545,7 +569,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
           </div>
         ) : (
           <div className="space-y-0">
-            {conversations.map((conv, index) => (
+            {displayConvs.map((conv, index) => (
               <SwipeableConversationItem
                 key={conv.id}
                 conv={conv}
@@ -553,10 +577,40 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
                 onSelectUser={onSelectUser}
                 onDelete={onDelete}
                 onMute={onMute}
+                onArchive={onArchive}
                 isMuted={mutedIds.has(conv.id)}
+                isArchived={archivedIds.has(conv.id)}
                 resolveMediaUrl={resolveMediaUrl}
               />
             ))}
+            {/* Archived row — only shown in main view when there are archived chats */}
+            {!showArchived && archivedConvs.length > 0 && (
+              <button
+                onClick={() => setShowArchived(true)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 20px', background: 'none', border: 'none',
+                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                  color: '#9ca3af', cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+                className="hover:bg-gray-800/40"
+              >
+                <div style={{
+                  width: 48, height: 48, borderRadius: '50%',
+                  background: 'rgba(14,165,233,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Archive style={{ width: 22, height: 22, color: '#0ea5e9' }} />
+                </div>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{ color: '#e5e7eb', fontWeight: 600, fontSize: 15 }}>Archived</div>
+                  <div style={{ color: '#6b7280', fontSize: 13 }}>{archivedConvs.length} chat{archivedConvs.length !== 1 ? 's' : ''}</div>
+                </div>
+                <ChevronRight style={{ width: 18, height: 18, color: '#4b5563' }} />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -579,6 +633,9 @@ const WhatsAppMessenger = () => {
   const [inboxLoading, setInboxLoading] = useState(true);
   const [mutedIds, setMutedIds] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('pinglo_muted') || '[]')); } catch { return new Set(); }
+  });
+  const [archivedIds, setArchivedIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('pinglo_archived') || '[]')); } catch { return new Set(); }
   });
   const [totalUnread, setTotalUnread] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState({});
@@ -937,6 +994,16 @@ const WhatsAppMessenger = () => {
       const next = new Set(prev);
       if (next.has(userId)) { next.delete(userId); } else { next.add(userId); }
       localStorage.setItem('pinglo_muted', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const handleArchiveConversation = (conv) => {
+    const userId = conv.id || conv.sender_id;
+    setArchivedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) { next.delete(userId); } else { next.add(userId); }
+      localStorage.setItem('pinglo_archived', JSON.stringify([...next]));
       return next;
     });
   };
@@ -1691,7 +1758,9 @@ const WhatsAppMessenger = () => {
             user={user}
             onDelete={handleDeleteConversation}
             onMute={handleMuteConversation}
+            onArchive={handleArchiveConversation}
             mutedIds={mutedIds}
+            archivedIds={archivedIds}
           />
         ) : (
           <>
