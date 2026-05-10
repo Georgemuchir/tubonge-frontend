@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -312,7 +312,161 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   );
 };
 
-const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user }) => {
+const ACTION_PANEL_WIDTH = 136;
+const SWIPE_THRESHOLD = 60;
+const LONG_PRESS_MS = 500;
+
+const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, isMuted, resolveMediaUrl }) => {
+  const [offset, setOffset] = useState(0);
+  const startXRef = useRef(null);
+  const startYRef = useRef(null);
+  const isDraggingRef = useRef(false);
+  const longPressTimerRef = useRef(null);
+  const animateRef = useRef(true);
+
+  const revealed = offset <= -(ACTION_PANEL_WIDTH / 2);
+
+  const snapTo = (target) => {
+    animateRef.current = true;
+    setOffset(target);
+  };
+
+  const onTouchStart = (e) => {
+    startXRef.current = e.touches[0].clientX;
+    startYRef.current = e.touches[0].clientY;
+    isDraggingRef.current = false;
+    animateRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      snapTo(-ACTION_PANEL_WIDTH);
+    }, LONG_PRESS_MS);
+  };
+
+  const onTouchMove = (e) => {
+    if (startXRef.current === null) return;
+    const dx = e.touches[0].clientX - startXRef.current;
+    const dy = e.touches[0].clientY - startYRef.current;
+    if (Math.abs(dy) > Math.abs(dx)) { clearTimeout(longPressTimerRef.current); return; }
+    if (Math.abs(dx) > 8) { clearTimeout(longPressTimerRef.current); isDraggingRef.current = true; }
+    const base = revealed ? -ACTION_PANEL_WIDTH : 0;
+    const next = Math.max(-ACTION_PANEL_WIDTH, Math.min(0, base + dx));
+    setOffset(next);
+  };
+
+  const onTouchEnd = () => {
+    clearTimeout(longPressTimerRef.current);
+    snapTo(offset < -(ACTION_PANEL_WIDTH / 2) ? -ACTION_PANEL_WIDTH : 0);
+    setTimeout(() => { isDraggingRef.current = false; }, 50);
+    startXRef.current = null;
+  };
+
+  const onMouseDown = (e) => {
+    longPressTimerRef.current = setTimeout(() => {
+      snapTo(-ACTION_PANEL_WIDTH);
+    }, LONG_PRESS_MS);
+    e.currentTarget._mouseDownX = e.clientX;
+  };
+
+  const onMouseMove = (e) => {
+    if (Math.abs(e.clientX - (e.currentTarget._mouseDownX || e.clientX)) > 6) {
+      clearTimeout(longPressTimerRef.current);
+    }
+  };
+
+  const onMouseUp = () => clearTimeout(longPressTimerRef.current);
+
+  const handleClick = () => {
+    if (isDraggingRef.current || offset !== 0) { snapTo(0); return; }
+    onSelectUser(conv);
+  };
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden' }} className="border-b border-gray-700/50">
+      {/* Action buttons */}
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: ACTION_PANEL_WIDTH, display: 'flex' }}>
+        <button
+          onClick={(e) => { e.stopPropagation(); onMute(conv); snapTo(0); }}
+          style={{ flex: 1, background: '#374151', color: '#d1d5db', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
+        >
+          {isMuted ? <Bell style={{ width: 19, height: 19 }} /> : <BellOff style={{ width: 19, height: 19 }} />}
+          {isMuted ? 'Unmute' : 'Mute'}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(conv); snapTo(0); }}
+          style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
+        >
+          <Trash2 style={{ width: 19, height: 19 }} />
+          Delete
+        </button>
+      </div>
+
+      {/* Swipeable content */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
+        onClick={handleClick}
+        style={{
+          transform: `translateX(${offset}px)`,
+          transition: animateRef.current ? 'transform 0.22s ease' : 'none',
+          userSelect: 'none',
+          background: 'var(--wa-bg, #111827)',
+          animationDelay: `${index * 0.02}s`,
+        }}
+        className="p-4 cursor-pointer hover:bg-gray-800/50 slide-up"
+      >
+        <div className="flex items-center gap-4">
+          <div className="relative flex-shrink-0">
+            <div className={`w-16 h-16 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-gray-700/50 overflow-hidden`}>
+              {conv.avatar ? (
+                <img src={resolveMediaUrl(conv.avatar)} alt={conv.name} className="w-full h-full object-cover" />
+              ) : (
+                conv.name?.charAt(0).toUpperCase() || 'U'
+              )}
+            </div>
+            {conv.online && (
+              <div className="absolute bottom-0 right-0 w-4 h-4 green-bg rounded-full border-3 border-gray-900 shadow-lg animate-pulse" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-white font-semibold text-lg truncate flex items-center gap-2">
+                {conv.name}
+                {isMuted && <BellOff style={{ width: 13, height: 13, color: '#6b7280', flexShrink: 0 }} />}
+              </h3>
+              <span className="text-xs text-gray-500 font-medium ml-2 flex-shrink-0">{conv.time}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-gray-400 text-sm truncate flex-1">
+                {conv._isRequest ? (
+                  <span className="text-indigo-400">{conv.lastMessage}</span>
+                ) : conv.lastMessageType === 'missed_call' ? (
+                  <span className="text-red-400 flex items-center gap-1">
+                    <PhoneOff className="w-3.5 h-3.5 inline" />
+                    {conv.lastMessage || 'Missed call'}
+                  </span>
+                ) : conv.lastMessageType === 'image' ? '📷 Photo' : (conv.lastMessage || 'No messages yet')}
+              </p>
+              {conv.lastMessageType === 'image' && conv.lastMessageImageUrl && (
+                <img src={resolveMediaUrl(conv.lastMessageImageUrl)} alt="" className="w-10 h-10 rounded-md object-cover border border-gray-700" />
+              )}
+              {conv._isRequest ? (
+                <span className="flex-shrink-0 px-2 py-1 rounded-full bg-indigo-600/80 text-white text-xs font-bold shadow-lg">Request</span>
+              ) : conv.unread > 0 && (
+                <span className="flex-shrink-0 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold shadow-lg">{conv.unread}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user, onDelete, onMute, mutedIds }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
@@ -392,70 +546,16 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
         ) : (
           <div className="space-y-0">
             {conversations.map((conv, index) => (
-              <div
+              <SwipeableConversationItem
                 key={conv.id}
-                onClick={() => onSelectUser(conv)}
-                className="p-4 cursor-pointer transition-all border-b border-gray-700/50 hover:bg-gray-800/50 slide-up"
-                style={{animationDelay: `${index * 0.02}s`}}
-              >
-                <div className="flex items-center gap-4">
-                  {/* Avatar Section */}
-                  <div className="relative flex-shrink-0">
-                    <div className={`w-16 h-16 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-gray-700/50 overflow-hidden`}>
-                      {conv.avatar ? (
-                        <img
-                          src={resolveMediaUrl(conv.avatar)}
-                          alt={conv.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        conv.name?.charAt(0).toUpperCase() || 'U'
-                      )}
-                    </div>
-                    {conv.online && (
-                      <div className="absolute bottom-0 right-0 w-4 h-4 green-bg rounded-full border-3 border-gray-900 shadow-lg animate-pulse"></div>
-                    )}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="text-white font-semibold text-lg truncate">
-                        {conv.name}
-                      </h3>
-                      <span className="text-xs text-gray-500 font-medium ml-2 flex-shrink-0">{conv.time}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-gray-400 text-sm truncate flex-1">
-                        {conv._isRequest ? (
-                          <span className="text-indigo-400">{conv.lastMessage}</span>
-                        ) : conv.lastMessageType === 'missed_call' ? (
-                          <span className="text-red-400 flex items-center gap-1">
-                            <PhoneOff className="w-3.5 h-3.5 inline" />
-                            {conv.lastMessage || 'Missed call'}
-                          </span>
-                        ) : conv.lastMessageType === 'image' ? '📷 Photo' : (conv.lastMessage || 'No messages yet')}
-                      </p>
-                      {conv.lastMessageType === 'image' && conv.lastMessageImageUrl && (
-                        <img
-                          src={resolveMediaUrl(conv.lastMessageImageUrl)}
-                          alt=""
-                          className="w-10 h-10 rounded-md object-cover border border-gray-700"
-                        />
-                      )}
-                      {conv._isRequest ? (
-                        <span className="flex-shrink-0 px-2 py-1 rounded-full bg-indigo-600/80 text-white text-xs font-bold shadow-lg">
-                          Request
-                        </span>
-                      ) : conv.unread > 0 && (
-                        <span className="flex-shrink-0 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold shadow-lg">
-                          {conv.unread}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                conv={conv}
+                index={index}
+                onSelectUser={onSelectUser}
+                onDelete={onDelete}
+                onMute={onMute}
+                isMuted={mutedIds.has(conv.id)}
+                resolveMediaUrl={resolveMediaUrl}
+              />
             ))}
           </div>
         )}
@@ -477,6 +577,9 @@ const WhatsAppMessenger = () => {
   const [loading, setLoading] = useState(false);
   const [inbox, setInbox] = useState([]);
   const [inboxLoading, setInboxLoading] = useState(true);
+  const [mutedIds, setMutedIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('pinglo_muted') || '[]')); } catch { return new Set(); }
+  });
   const [totalUnread, setTotalUnread] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState({});
   const [typingUsers, setTypingUsers] = useState({});
@@ -814,6 +917,28 @@ const WhatsAppMessenger = () => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     return `${getOrigin()}${url}`;
+  };
+
+  const handleDeleteConversation = async (conv) => {
+    const userId = conv.id || conv.sender_id;
+    try {
+      const token = await getAuthToken();
+      await fetch(`${getBase()}/messages/conversation/${userId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch { /* best-effort */ }
+    setInbox(prev => prev.filter(c => c.sender_id !== userId && c.id !== userId));
+  };
+
+  const handleMuteConversation = (conv) => {
+    const userId = conv.id || conv.sender_id;
+    setMutedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) { next.delete(userId); } else { next.add(userId); }
+      localStorage.setItem('pinglo_muted', JSON.stringify([...next]));
+      return next;
+    });
   };
 
   const handleUserSelect = async (user) => {
@@ -1564,6 +1689,9 @@ const WhatsAppMessenger = () => {
             setSearchQuery={setSearchQuery}
             resolveMediaUrl={resolveMediaUrl}
             user={user}
+            onDelete={handleDeleteConversation}
+            onMute={handleMuteConversation}
+            mutedIds={mutedIds}
           />
         ) : (
           <>
