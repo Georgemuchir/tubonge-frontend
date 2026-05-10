@@ -318,16 +318,18 @@ const LONG_PRESS_MS = 500;
 
 const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchive, isMuted, isArchived, resolveMediaUrl }) => {
   const [offset, setOffset] = useState(0);
+  const [animate, setAnimate] = useState(false);
+  const offsetRef = useRef(0);
+  const revealedRef = useRef(false);
   const startXRef = useRef(null);
   const startYRef = useRef(null);
   const isDraggingRef = useRef(false);
   const longPressTimerRef = useRef(null);
-  const animateRef = useRef(true);
-
-  const revealed = offset <= -(ACTION_PANEL_WIDTH / 2);
 
   const snapTo = (target) => {
-    animateRef.current = true;
+    setAnimate(true);
+    offsetRef.current = target;
+    revealedRef.current = target <= -SWIPE_THRESHOLD;
     setOffset(target);
   };
 
@@ -335,10 +337,8 @@ const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute
     startXRef.current = e.touches[0].clientX;
     startYRef.current = e.touches[0].clientY;
     isDraggingRef.current = false;
-    animateRef.current = false;
-    longPressTimerRef.current = setTimeout(() => {
-      snapTo(-ACTION_PANEL_WIDTH);
-    }, LONG_PRESS_MS);
+    setAnimate(false);
+    longPressTimerRef.current = setTimeout(() => snapTo(-ACTION_PANEL_WIDTH), LONG_PRESS_MS);
   };
 
   const onTouchMove = (e) => {
@@ -347,27 +347,26 @@ const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute
     const dy = e.touches[0].clientY - startYRef.current;
     if (Math.abs(dy) > Math.abs(dx)) { clearTimeout(longPressTimerRef.current); return; }
     if (Math.abs(dx) > 8) { clearTimeout(longPressTimerRef.current); isDraggingRef.current = true; }
-    const base = revealed ? -ACTION_PANEL_WIDTH : 0;
+    const base = revealedRef.current ? -ACTION_PANEL_WIDTH : 0;
     const next = Math.max(-ACTION_PANEL_WIDTH, Math.min(0, base + dx));
+    offsetRef.current = next;
     setOffset(next);
   };
 
   const onTouchEnd = () => {
     clearTimeout(longPressTimerRef.current);
-    snapTo(offset < -(ACTION_PANEL_WIDTH / 2) ? -ACTION_PANEL_WIDTH : 0);
+    snapTo(offsetRef.current < -SWIPE_THRESHOLD ? -ACTION_PANEL_WIDTH : 0);
     setTimeout(() => { isDraggingRef.current = false; }, 50);
     startXRef.current = null;
   };
 
   const onMouseDown = (e) => {
-    longPressTimerRef.current = setTimeout(() => {
-      snapTo(-ACTION_PANEL_WIDTH);
-    }, LONG_PRESS_MS);
-    e.currentTarget._mouseDownX = e.clientX;
+    longPressTimerRef.current = setTimeout(() => snapTo(-ACTION_PANEL_WIDTH), LONG_PRESS_MS);
+    e.currentTarget._lp_startX = e.clientX;
   };
 
   const onMouseMove = (e) => {
-    if (Math.abs(e.clientX - (e.currentTarget._mouseDownX || e.clientX)) > 6) {
+    if (Math.abs(e.clientX - (e.currentTarget._lp_startX || e.clientX)) > 6) {
       clearTimeout(longPressTimerRef.current);
     }
   };
@@ -375,7 +374,7 @@ const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute
   const onMouseUp = () => clearTimeout(longPressTimerRef.current);
 
   const handleClick = () => {
-    if (isDraggingRef.current || offset !== 0) { snapTo(0); return; }
+    if (isDraggingRef.current || offsetRef.current !== 0) { snapTo(0); return; }
     onSelectUser(conv);
   };
 
@@ -418,9 +417,9 @@ const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute
         onClick={handleClick}
         style={{
           transform: `translateX(${offset}px)`,
-          transition: animateRef.current ? 'transform 0.22s ease' : 'none',
+          transition: animate ? 'transform 0.22s ease' : 'none',
           userSelect: 'none',
-          background: 'var(--wa-bg, #111827)',
+          background: '#111827',
           animationDelay: `${index * 0.02}s`,
         }}
         className="p-4 cursor-pointer hover:bg-gray-800/50 slide-up"
