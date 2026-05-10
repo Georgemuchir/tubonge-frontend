@@ -312,130 +312,59 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   );
 };
 
-const ACTION_PANEL_WIDTH = 204;
-const SWIPE_THRESHOLD = 60;
 const LONG_PRESS_MS = 500;
 
-const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchive, isMuted, isArchived, resolveMediaUrl }) => {
-  const [offset, setOffset] = useState(0);
-  const [animate, setAnimate] = useState(false);
-  const offsetRef = useRef(0);
-  const revealedRef = useRef(false);
-  const startXRef = useRef(null);
-  const startYRef = useRef(null);
-  const isDraggingRef = useRef(false);
-  const longPressTimerRef = useRef(null);
+const menuBtnStyle = {
+  display: 'flex', alignItems: 'center', gap: 10,
+  padding: '11px 16px', background: 'none', border: 'none',
+  color: '#e5e7eb', cursor: 'pointer', fontSize: 14, fontWeight: 500,
+  width: '100%', textAlign: 'left',
+  transition: 'background 0.12s',
+};
 
-  const snapTo = (target) => {
-    setAnimate(true);
-    offsetRef.current = target;
-    revealedRef.current = target <= -SWIPE_THRESHOLD;
-    setOffset(target);
+const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchive, isMuted, isArchived, resolveMediaUrl }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const longPressRef = useRef(null);
+  const movedRef = useRef(false);
+
+  const openMenu = () => setMenuOpen(true);
+  const closeMenu = () => setMenuOpen(false);
+
+  /* ── touch: long-press ── */
+  const onTouchStart = () => {
+    movedRef.current = false;
+    longPressRef.current = setTimeout(() => { if (!movedRef.current) openMenu(); }, LONG_PRESS_MS);
   };
+  const onTouchMove = () => { movedRef.current = true; clearTimeout(longPressRef.current); };
+  const onTouchEnd = () => clearTimeout(longPressRef.current);
 
-  const onTouchStart = (e) => {
-    startXRef.current = e.touches[0].clientX;
-    startYRef.current = e.touches[0].clientY;
-    isDraggingRef.current = false;
-    setAnimate(false);
-    longPressTimerRef.current = setTimeout(() => snapTo(-ACTION_PANEL_WIDTH), LONG_PRESS_MS);
-  };
-
-  const onTouchMove = (e) => {
-    if (startXRef.current === null) return;
-    const dx = e.touches[0].clientX - startXRef.current;
-    const dy = e.touches[0].clientY - startYRef.current;
-    if (Math.abs(dy) > Math.abs(dx)) { clearTimeout(longPressTimerRef.current); return; }
-    if (Math.abs(dx) > 8) { clearTimeout(longPressTimerRef.current); isDraggingRef.current = true; }
-    const base = revealedRef.current ? -ACTION_PANEL_WIDTH : 0;
-    const next = Math.max(-ACTION_PANEL_WIDTH, Math.min(0, base + dx));
-    offsetRef.current = next;
-    setOffset(next);
-  };
-
-  const onTouchEnd = () => {
-    clearTimeout(longPressTimerRef.current);
-    snapTo(offsetRef.current < -SWIPE_THRESHOLD ? -ACTION_PANEL_WIDTH : 0);
-    setTimeout(() => { isDraggingRef.current = false; }, 50);
-    startXRef.current = null;
-  };
-
-  const onMouseDown = (e) => {
-    longPressTimerRef.current = setTimeout(() => snapTo(-ACTION_PANEL_WIDTH), LONG_PRESS_MS);
-    e.currentTarget._lp_startX = e.clientX;
-  };
-
-  const onMouseMove = (e) => {
-    if (Math.abs(e.clientX - (e.currentTarget._lp_startX || e.clientX)) > 6) {
-      clearTimeout(longPressTimerRef.current);
-    }
-  };
-
-  const onMouseUp = () => clearTimeout(longPressTimerRef.current);
+  /* ── mouse: right-click ── */
+  const onContextMenu = (e) => { e.preventDefault(); openMenu(); };
 
   const handleClick = () => {
-    if (isDraggingRef.current || offsetRef.current !== 0) { snapTo(0); return; }
+    if (menuOpen) { closeMenu(); return; }
     onSelectUser(conv);
   };
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden' }} className="border-b border-gray-700/50">
-      {/* Action buttons */}
-      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: ACTION_PANEL_WIDTH, display: 'flex' }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); onMute(conv); snapTo(0); }}
-          style={{ flex: 1, background: '#374151', color: '#d1d5db', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
-        >
-          {isMuted ? <Bell style={{ width: 18, height: 18 }} /> : <BellOff style={{ width: 18, height: 18 }} />}
-          {isMuted ? 'Unmute' : 'Mute'}
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onArchive(conv); snapTo(0); }}
-          style={{ flex: 1, background: '#0ea5e9', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
-        >
-          {isArchived ? <ArchiveRestore style={{ width: 18, height: 18 }} /> : <Archive style={{ width: 18, height: 18 }} />}
-          {isArchived ? 'Unarchive' : 'Archive'}
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(conv); snapTo(0); }}
-          style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
-        >
-          <Trash2 style={{ width: 18, height: 18 }} />
-          Delete
-        </button>
-      </div>
-
-      {/* Swipeable content */}
+    <div style={{ position: 'relative' }} className="border-b border-gray-700/50">
       <div
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
+        onContextMenu={onContextMenu}
         onClick={handleClick}
-        style={{
-          transform: `translateX(${offset}px)`,
-          transition: animate ? 'transform 0.22s ease' : 'none',
-          userSelect: 'none',
-          background: '#111827',
-          animationDelay: `${index * 0.02}s`,
-        }}
+        style={{ userSelect: 'none', animationDelay: `${index * 0.02}s` }}
         className="p-4 cursor-pointer hover:bg-gray-800/50 slide-up"
       >
         <div className="flex items-center gap-4">
           <div className="relative flex-shrink-0">
             <div className={`w-16 h-16 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-gray-700/50 overflow-hidden`}>
-              {conv.avatar ? (
-                <img src={resolveMediaUrl(conv.avatar)} alt={conv.name} className="w-full h-full object-cover" />
-              ) : (
-                conv.name?.charAt(0).toUpperCase() || 'U'
-              )}
+              {conv.avatar
+                ? <img src={resolveMediaUrl(conv.avatar)} alt={conv.name} className="w-full h-full object-cover" />
+                : conv.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            {conv.online && (
-              <div className="absolute bottom-0 right-0 w-4 h-4 green-bg rounded-full border-3 border-gray-900 shadow-lg animate-pulse" />
-            )}
+            {conv.online && <div className="absolute bottom-0 right-0 w-4 h-4 green-bg rounded-full border-3 border-gray-900 shadow-lg animate-pulse" />}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
@@ -447,27 +376,65 @@ const SwipeableConversationItem = ({ conv, index, onSelectUser, onDelete, onMute
             </div>
             <div className="flex items-center justify-between gap-2">
               <p className="text-gray-400 text-sm truncate flex-1">
-                {conv._isRequest ? (
-                  <span className="text-indigo-400">{conv.lastMessage}</span>
-                ) : conv.lastMessageType === 'missed_call' ? (
-                  <span className="text-red-400 flex items-center gap-1">
-                    <PhoneOff className="w-3.5 h-3.5 inline" />
-                    {conv.lastMessage || 'Missed call'}
-                  </span>
-                ) : conv.lastMessageType === 'image' ? '📷 Photo' : (conv.lastMessage || 'No messages yet')}
+                {conv._isRequest
+                  ? <span className="text-indigo-400">{conv.lastMessage}</span>
+                  : conv.lastMessageType === 'missed_call'
+                    ? <span className="text-red-400 flex items-center gap-1"><PhoneOff className="w-3.5 h-3.5 inline" />{conv.lastMessage || 'Missed call'}</span>
+                    : conv.lastMessageType === 'image' ? '📷 Photo' : (conv.lastMessage || 'No messages yet')}
               </p>
               {conv.lastMessageType === 'image' && conv.lastMessageImageUrl && (
                 <img src={resolveMediaUrl(conv.lastMessageImageUrl)} alt="" className="w-10 h-10 rounded-md object-cover border border-gray-700" />
               )}
-              {conv._isRequest ? (
-                <span className="flex-shrink-0 px-2 py-1 rounded-full bg-indigo-600/80 text-white text-xs font-bold shadow-lg">Request</span>
-              ) : conv.unread > 0 && (
-                <span className="flex-shrink-0 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold shadow-lg">{conv.unread}</span>
-              )}
+              {conv._isRequest
+                ? <span className="flex-shrink-0 px-2 py-1 rounded-full bg-indigo-600/80 text-white text-xs font-bold shadow-lg">Request</span>
+                : conv.unread > 0 && <span className="flex-shrink-0 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold shadow-lg">{conv.unread}</span>}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Context menu */}
+      {menuOpen && (
+        <>
+          <div onClick={closeMenu} style={{ position: 'fixed', inset: 0, zIndex: 200 }} />
+          <div style={{
+            position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+            zIndex: 201, background: '#1f2937',
+            borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            minWidth: 160, overflow: 'hidden',
+          }}>
+            <button
+              onClick={() => { onMute(conv); closeMenu(); }}
+              style={menuBtnStyle}
+              className="hover:bg-gray-700/60"
+            >
+              {isMuted ? <Bell style={{ width: 16, height: 16, color: '#10b981' }} /> : <BellOff style={{ width: 16, height: 16, color: '#9ca3af' }} />}
+              {isMuted ? 'Unmute' : 'Mute'}
+            </button>
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+            <button
+              onClick={() => { onArchive(conv); closeMenu(); }}
+              style={menuBtnStyle}
+              className="hover:bg-gray-700/60"
+            >
+              {isArchived
+                ? <ArchiveRestore style={{ width: 16, height: 16, color: '#0ea5e9' }} />
+                : <Archive style={{ width: 16, height: 16, color: '#0ea5e9' }} />}
+              {isArchived ? 'Unarchive' : 'Archive'}
+            </button>
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+            <button
+              onClick={() => { onDelete(conv); closeMenu(); }}
+              style={{ ...menuBtnStyle, color: '#ef4444' }}
+              className="hover:bg-red-900/30"
+            >
+              <Trash2 style={{ width: 16, height: 16 }} />
+              Delete
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -569,7 +536,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
         ) : (
           <div className="space-y-0">
             {displayConvs.map((conv, index) => (
-              <SwipeableConversationItem
+              <ConversationItem
                 key={conv.id}
                 conv={conv}
                 index={index}
