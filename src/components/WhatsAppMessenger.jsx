@@ -2003,7 +2003,14 @@ const WhatsAppMessenger = () => {
                 </button>
               </div>
             )}
-            {(chatStatus === 'OUTGOING_PENDING' || chatStatus === 'INCOMING_PENDING') ? (
+            {chatStatus === 'BLOCKED' ? (
+              <div className="text-center py-3">
+                <div className="flex items-center justify-center gap-2">
+                  <span style={{ color: '#ef4444', fontSize: 14, fontWeight: 500 }}>You blocked this contact.</span>
+                  <span style={{ color: '#9ca3af', fontSize: 13 }}>Open their profile to unblock.</span>
+                </div>
+              </div>
+            ) : (chatStatus === 'OUTGOING_PENDING' || chatStatus === 'INCOMING_PENDING') ? (
               <div className="text-center py-3">
                 {chatStatus === 'OUTGOING_PENDING' && (
                   <div className="flex items-center justify-center gap-2">
@@ -2111,7 +2118,10 @@ const WhatsAppMessenger = () => {
                 status: (onlineUsers[selectedUser.id] || onlineUsers[selectedUser._id] || selectedUser.online) ? 'online' : 'offline',
               }}
               onClose={() => setShowContactProfile(false)}
-              onBlockStatusChange={() => {}}
+              onBlockStatusChange={(status) => {
+                setChatStatus(status === 'BLOCKED' ? 'BLOCKED' : 'ACCEPTED');
+                if (status !== 'BLOCKED') setSendError('');
+              }}
               onDelete={() => {
                 const deletedId = selectedUser.id || selectedUser._id;
                 setInbox(prev => prev.filter(c => c.sender_id !== deletedId && c.id !== deletedId));
