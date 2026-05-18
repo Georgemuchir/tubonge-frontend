@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { messagesAPI } from '../../services/api';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Film, Mic, Square, X, Reply } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic, Square, X, Reply } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import ContactProfilePanel from './ContactProfilePanel';
@@ -51,7 +51,6 @@ const formatLastSeen = (ts) => {
 
 const ChatWindow = () => {
   const imageInputRef = useRef(null);
-  const videoInputRef = useRef(null);
   const {
     activeConversation,
     messages,
@@ -70,7 +69,6 @@ const ChatWindow = () => {
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -154,62 +152,60 @@ const ChatWindow = () => {
     }
   };
 
-  // Handle image file selection — compress, show preview immediately, then upload
-  const handleImageChange = async (e) => {
+  // Handle image or video file selection
+  const handleMediaChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     e.target.value = '';
 
-    const blobUrl = URL.createObjectURL(file);
-    const tempId = addOptimisticImageMessage(blobUrl);
-    setUploadingImage(true);
+    const isVideo = file.type.startsWith('video/');
 
-    try {
-      const compressed = await compressImage(file);
-      const res = await messagesAPI.uploadImage(compressed);
-      if (res.data?.url) {
-        await sendImageMessage(
-          tempId,
-          res.data.url,
-          replyToMessage?.id || null,
-          replyToMessage?.content || null,
-          replyToMessage?.senderName || null
-        );
-        setReplyToMessage(null);
+    if (isVideo) {
+      if (file.size > 50 * 1024 * 1024) {
+        alert('Video must be under 50 MB.');
+        return;
       }
-    } catch {
-      alert('Failed to upload image.');
-    } finally {
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      setUploadingImage(false);
-    }
-  };
-
-  const handleVideoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    e.target.value = '';
-    if (file.size > 50 * 1024 * 1024) {
-      alert('Video must be under 50 MB.');
-      return;
-    }
-    setUploadingVideo(true);
-    try {
-      const res = await messagesAPI.uploadVideo(file);
-      if (res.data?.url) {
-        sendMessage(
-          res.data.url,
-          'video',
-          replyToMessage?.id || null,
-          replyToMessage?.content || null,
-          replyToMessage?.senderName || null
-        );
-        setReplyToMessage(null);
+      setUploadingImage(true);
+      try {
+        const res = await messagesAPI.uploadVideo(file);
+        if (res.data?.url) {
+          sendMessage(
+            res.data.url,
+            'video',
+            replyToMessage?.id || null,
+            replyToMessage?.content || null,
+            replyToMessage?.senderName || null
+          );
+          setReplyToMessage(null);
+        }
+      } catch {
+        alert('Failed to upload video.');
+      } finally {
+        setUploadingImage(false);
       }
-    } catch {
-      alert('Failed to upload video.');
-    } finally {
-      setUploadingVideo(false);
+    } else {
+      const blobUrl = URL.createObjectURL(file);
+      const tempId = addOptimisticImageMessage(blobUrl);
+      setUploadingImage(true);
+      try {
+        const compressed = await compressImage(file);
+        const res = await messagesAPI.uploadImage(compressed);
+        if (res.data?.url) {
+          await sendImageMessage(
+            tempId,
+            res.data.url,
+            replyToMessage?.id || null,
+            replyToMessage?.content || null,
+            replyToMessage?.senderName || null
+          );
+          setReplyToMessage(null);
+        }
+      } catch {
+        alert('Failed to upload image.');
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        setUploadingImage(false);
+      }
     }
   };
 
@@ -551,57 +547,32 @@ const ChatWindow = () => {
             onSubmit={handleSendMessage}
           >
             <div className="nexus-input-container-modern">
-              {/* Image upload button */}
+              {/* Media upload button (images + videos) */}
               <button
                 type="button"
                 className="nexus-attachment-btn cursor-pointer hover:bg-blue-700 focus:bg-blue-800 focus:outline-none"
-                aria-label="Attach image"
+                aria-label="Attach photo or video"
                 onClick={() => {
                   if (!canChat) return;
                   if (imageInputRef.current) imageInputRef.current.click();
                 }}
-                disabled={uploadingImage || uploadingVideo || uploadingVoice || isRecording || !canChat}
+                disabled={uploadingImage || uploadingVoice || isRecording || !canChat}
                 tabIndex={0}
                 style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 8 }}
-                title={!canChat ? 'You must be friends to send images' : 'Attach image'}
+                title={!canChat ? 'You must be friends to send media' : 'Attach photo or video'}
               >
                 <ImageIcon className="size-5 text-white/80" />
               </button>
               <input
                 ref={imageInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 style={{ display: 'none' }}
-                onChange={handleImageChange}
+                onChange={handleMediaChange}
                 disabled={uploadingImage || !canChat}
               />
 
-              {/* Video upload button */}
-              <button
-                type="button"
-                className="nexus-attachment-btn cursor-pointer hover:bg-blue-700 focus:bg-blue-800 focus:outline-none"
-                aria-label="Attach video"
-                onClick={() => {
-                  if (!canChat) return;
-                  if (videoInputRef.current) videoInputRef.current.click();
-                }}
-                disabled={uploadingImage || uploadingVideo || uploadingVoice || isRecording || !canChat}
-                tabIndex={0}
-                style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 8 }}
-                title={!canChat ? 'You must be friends to send videos' : 'Attach video'}
-              >
-                <Film className="size-5 text-white/80" />
-              </button>
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/*"
-                style={{ display: 'none' }}
-                onChange={handleVideoChange}
-                disabled={uploadingVideo || !canChat}
-              />
-
-              {(uploadingImage || uploadingVoice || uploadingVideo) && (
+              {(uploadingImage || uploadingVoice) && (
                 <span className="text-xs text-gray-400 ml-2">Uploading...</span>
               )}
 
@@ -674,7 +645,7 @@ const ChatWindow = () => {
                   className="nexus-voice-btn"
                   aria-label="Record voice message"
                   onClick={startRecording}
-                  disabled={!canChat || uploadingVoice || uploadingImage || uploadingVideo}
+                  disabled={!canChat || uploadingVoice || uploadingImage}
                   title={!canChat ? 'You must be friends to send voice messages' : 'Hold to record voice note'}
                 >
                   <Mic className="size-5 text-white/80" />
