@@ -30,6 +30,8 @@ const MessageBubble = ({ message, isOwnMessage, _showAvatar, _otherParticipant, 
     ));
   const isVoice = message.message_type === 'voice' ||
     (typeof message.content === 'string' && message.content.startsWith('/api/messages/voice/'));
+  const isVideo = message.message_type === 'video' ||
+    (typeof message.content === 'string' && message.content.startsWith('/api/messages/video/'));
   const hasReply = !!message.reply_to_id;
 
   return (
@@ -106,6 +108,13 @@ const MessageBubble = ({ message, isOwnMessage, _showAvatar, _otherParticipant, 
               </div>
             )}
           </div>
+        ) : isVideo ? (
+          <video
+            controls
+            src={mediaUrl(message.content)}
+            style={{ maxWidth: 280, maxHeight: 200, borderRadius: 8, marginBottom: 4, display: 'block' }}
+            preload="metadata"
+          />
         ) : isVoice ? (
           <audio
             controls

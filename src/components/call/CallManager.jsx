@@ -66,7 +66,8 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const [error, setError] = useState('');
   const [connectionQuality, setConnectionQuality] = useState('good');
   const [facingMode, setFacingMode] = useState('user');
-  const [isOutgoing, setIsOutgoing] = useState(true); // false when we accepted an incoming call
+  const [isOutgoing, setIsOutgoing] = useState(true);
+  const [showControls, setShowControls] = useState(true);
 
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -150,6 +151,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     setCallDuration(0);
     setIsMuted(false);
     setIsVideoOff(false);
+    setShowControls(true);
   }, [stopRingtone]);
 
   // ── Get user media ──
@@ -548,16 +550,21 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     // ── VIDEO CALL ──
     if (callType === 'video') {
       return (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col overflow-hidden">
           <style>{CALL_CSS}</style>
 
-          <div className="flex-1 relative overflow-hidden">
+          {/* Main video area — tap to toggle controls when connected */}
+          <div
+            className="flex-1 relative overflow-hidden"
+            onClick={() => isConnected && setShowControls(c => !c)}
+            style={{ cursor: isConnected ? 'pointer' : 'default' }}
+          >
             <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
             <audio ref={remoteAudioRef} autoPlay playsInline />
 
             {/* Top overlay */}
             <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
-            <div className="absolute top-0 inset-x-0 px-4 pt-4 flex items-start justify-between">
+            <div className="absolute top-0 inset-x-0 px-4 pt-4 flex items-start justify-between pointer-events-none">
               <div>
                 <p className="text-white font-semibold text-lg drop-shadow">{remoteName}</p>
                 <StatusLine />
@@ -580,23 +587,23 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
           </div>
 
-          {/* Controls bar */}
-          <div className="bg-gray-900 border-t border-gray-700 px-6 py-4 flex justify-center items-center gap-4">
+          {/* Controls bar — slides down to hide on tap */}
+          <div className={`bg-gray-900 border-t border-gray-700 px-6 py-5 flex justify-center items-center gap-5 transition-transform duration-300 ease-in-out ${showControls ? 'translate-y-0' : 'translate-y-full'}`}>
             <Btn onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'}
-              className={`w-12 h-12 ${isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
-              {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              className={`w-14 h-14 ${isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
+              {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
             </Btn>
             <Btn onClick={toggleVideo} title={isVideoOff ? 'Camera on' : 'Camera off'}
-              className={`w-12 h-12 ${isVideoOff ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
-              {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+              className={`w-14 h-14 ${isVideoOff ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
+              {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
             </Btn>
             <Btn onClick={flipCamera} title="Flip camera"
-              className="w-12 h-12 bg-gray-700 hover:bg-gray-600 text-white">
-              <RefreshCw className="w-5 h-5" />
+              className="w-14 h-14 bg-gray-700 hover:bg-gray-600 text-white">
+              <RefreshCw className="w-6 h-6" />
             </Btn>
             <Btn onClick={endCall} title="End call"
-              className="w-14 h-14 bg-red-600 hover:bg-red-700 text-white">
-              <PhoneOff className="w-6 h-6" />
+              className="w-16 h-16 bg-red-600 hover:bg-red-700 text-white">
+              <PhoneOff className="w-7 h-7" />
             </Btn>
           </div>
         </div>
@@ -605,12 +612,16 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
     // ── AUDIO CALL ──
     return (
-      <div className="fixed inset-0 z-[100] bg-gray-900 flex flex-col">
+      <div className="fixed inset-0 z-[100] bg-gray-900 flex flex-col overflow-hidden">
         <style>{CALL_CSS}</style>
         <audio ref={remoteAudioRef} autoPlay playsInline />
 
-        {/* Main area */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6">
+        {/* Main area — tap to toggle controls when connected */}
+        <div
+          className="flex-1 flex flex-col items-center justify-center px-6"
+          onClick={() => isConnected && setShowControls(c => !c)}
+          style={{ cursor: isConnected ? 'pointer' : 'default' }}
+        >
           <CallAvatar name={remoteName} size="lg" pulse={!isConnected} />
           <h2 className="mt-6 text-2xl font-semibold text-white">{remoteName}</h2>
           <StatusLine />
@@ -623,19 +634,19 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
           )}
         </div>
 
-        {/* Controls */}
-        <div className="bg-gray-800 border-t border-gray-700 px-8 py-8 flex justify-center items-center gap-8">
+        {/* Controls — slides down to hide on tap */}
+        <div className={`bg-gray-800 border-t border-gray-700 px-8 py-8 flex justify-center items-center gap-8 transition-transform duration-300 ease-in-out ${showControls ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="flex flex-col items-center gap-1.5">
             <Btn onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'}
-              className={`w-14 h-14 ${isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
-              {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+              className={`w-16 h-16 ${isMuted ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
+              {isMuted ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
             </Btn>
             <span className="text-xs text-gray-500">{isMuted ? 'Unmute' : 'Mute'}</span>
           </div>
           <div className="flex flex-col items-center gap-1.5">
             <Btn onClick={endCall} title="End call"
-              className="w-16 h-16 bg-red-600 hover:bg-red-700 text-white">
-              <PhoneOff className="w-7 h-7" />
+              className="w-20 h-20 bg-red-600 hover:bg-red-700 text-white">
+              <PhoneOff className="w-8 h-8" />
             </Btn>
             <span className="text-xs text-gray-500">End</span>
           </div>

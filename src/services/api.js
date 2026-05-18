@@ -106,6 +106,15 @@ export const messagesAPI = {
       });
     },
 
+    // Upload video for chat
+    uploadVideo: (file) => {
+      const formData = new FormData();
+      formData.append('video', file, file.name || 'video.mp4');
+      return api.post('/messages/upload-video', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+
   // Get all conversations (inbox)
   getConversations: () => api.get('/messages/inbox'),
 
