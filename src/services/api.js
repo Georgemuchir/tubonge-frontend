@@ -123,8 +123,8 @@ export const messagesAPI = {
     api.get(`/messages/${conversationId}?page=${page}&limit=${limit}`),
 
   // Send message (STRICT: requires friendship)
-  sendMessage: (receiverUsername, text, conversationId = null, replyToId = null, replyToContent = null, replyToSenderName = null) => {
-    const payload = { text };
+  sendMessage: (receiverUsername, text, conversationId = null, replyToId = null, replyToContent = null, replyToSenderName = null, messageType = 'text') => {
+    const payload = { text, message_type: messageType };
     if (conversationId) {
       payload.conversationId = conversationId;
     } else {

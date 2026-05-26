@@ -314,20 +314,21 @@ export const ChatProvider = ({ children }) => {
   };
 
   // Send message
-  const sendMessage = async (content, _messageType = 'text', replyToId = null, replyToContent = null, replyToSenderName = null) => {
-    console.log('sendMessage called with:', { content, activeConversation: state.activeConversation, user });
-    
+  const sendMessage = async (content, messageType = 'text', replyToId = null, replyToContent = null, replyToSenderName = null) => {
+    console.log('sendMessage called with:', { content, messageType, activeConversation: state.activeConversation, user });
+
     if (!state.activeConversation) {
       console.error('Cannot send message: No active conversation');
       return;
     }
-    
+
     if (!user) {
       console.error('Cannot send message: No user');
       return;
     }
-    
-    if (!content.trim()) {
+
+    // For non-text messages (video/voice) the content is a URL — allow it even without spaces
+    if (!content || (!content.trim() && messageType === 'text')) {
       console.error('Cannot send message: Empty content');
       return;
     }
@@ -335,22 +336,27 @@ export const ChatProvider = ({ children }) => {
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
       conversation_id: state.activeConversation._id || state.activeConversation.id,
-      text: content.trim(),
+      content: content.trim(),
+      message_type: messageType,
       sender_id: user._id || user.id,
-      created_at: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       status: 'sending'
     };
 
     try {
-      console.log(`Sending message to conversation ${state.activeConversation._id || state.activeConversation.id}`);
+      console.log(`Sending ${messageType} message to conversation ${state.activeConversation._id || state.activeConversation.id}`);
 
       dispatch({ type: 'ADD_MESSAGE', payload: optimisticMessage });
 
       // Send via NEW strict API
       const receiverUsername = state.activeConversation.participant?.username;
       const conversationId = state.activeConversation._id || state.activeConversation.id;
-      
-      const response = await messagesAPI.sendMessage(receiverUsername, content.trim(), conversationId, replyToId, replyToContent, replyToSenderName);
+
+      const response = await messagesAPI.sendMessage(
+        receiverUsername, content.trim(), conversationId,
+        replyToId, replyToContent, replyToSenderName,
+        messageType
+      );
 
       // First message became a request — remove optimistic bubble and signal caller
       if (response.status === 201 && response.data?.status === 'pending_request') {
@@ -358,15 +364,16 @@ export const ChatProvider = ({ children }) => {
         return { pending: true, text: content.trim(), requestId: response.data.request_id };
       }
 
-      // Replace optimistic message with real one
-      const realMessage = response.data;
+      // Replace optimistic message with real one (keep message_type from our call)
+      const realMessage = { ...response.data?.message || response.data, message_type: messageType };
       dispatch({ type: 'UPDATE_MESSAGE', payload: { ...optimisticMessage, ...realMessage, status: 'sent' } });
 
       // Send via socket for real-time delivery to other user
       socketService.sendMessage({
         conversation_id: conversationId,
         text: content.trim(),
-        sender_id: user._id || user.id
+        sender_id: user._id || user.id,
+        message_type: messageType,
       });
 
       return { pending: false };
@@ -402,14 +409,17 @@ export const ChatProvider = ({ children }) => {
     const receiverUsername = state.activeConversation?.participant?.username;
     try {
       const response = await messagesAPI.sendMessage(
-        receiverUsername, imageUrl, conversationId, replyToId, replyToContent, replyToSenderName
+        receiverUsername, imageUrl, conversationId,
+        replyToId, replyToContent, replyToSenderName,
+        'image'
       );
-      const realMessage = { ...response.data, message_type: 'image' };
+      const realMessage = { ...(response.data?.message || response.data), message_type: 'image' };
       dispatch({ type: 'REPLACE_TEMP_MESSAGE', payload: { tempId, realMessage } });
       socketService.sendMessage({
         conversation_id: conversationId,
         text: imageUrl,
         sender_id: user?._id || user?.id,
+        message_type: 'image',
       });
     } catch {
       dispatch({ type: 'REMOVE_MESSAGE', payload: tempId });
