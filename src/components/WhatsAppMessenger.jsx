@@ -53,18 +53,19 @@ const styles = `
   .slide-up        { animation: slideUp 0.4s ease-out; }
 
   .glass-card {
-    background: linear-gradient(135deg, var(--wa-header), var(--wa-bg));
+    background: rgba(16,16,32,0.72);
     backdrop-filter: blur(20px);
-    border: 1px solid var(--wa-border);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   }
   .glass-card:hover {
-    border-color: rgba(59,130,246,0.3);
-    box-shadow: 0 12px 40px rgba(59,130,246,0.2);
+    border-color: rgba(124,58,237,0.35);
+    box-shadow: 0 12px 40px rgba(124,58,237,0.2);
   }
 
-  .message-sent     { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
-  .message-received { background: var(--wa-msg-received-bg); color: var(--wa-msg-received-txt); }
+  .message-sent     { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%); color: #fff; box-shadow: 0 2px 12px rgba(124,58,237,0.35); }
+  .message-received { background: var(--wa-msg-received-bg); color: var(--wa-msg-received-txt); border: 1px solid rgba(255,255,255,0.06); }
 
   .hover-lift { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
   .hover-lift:hover {
@@ -72,9 +73,9 @@ const styles = `
     box-shadow: 0 16px 48px rgba(59,130,246,0.3);
   }
 
-  .scrollbar-thin::-webkit-scrollbar       { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar       { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: var(--wa-scrollbar-track); }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 3px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.45); border-radius: 99px; }
 
   /* ── Theme-aware messenger classes ── */
   .whatsapp-bg      { background-color: var(--wa-bg); color: var(--wa-text); }
@@ -473,7 +474,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
               {showArchived
                 ? <><Archive className="w-6 h-6 text-sky-400" /> Archived</>
-                : <><MessageCircle className="w-6 h-6 text-teal-400" />{user?.username ? `@${user.username}` : user?.name || 'Conversations'}</>
+                : <><MessageCircle className="w-6 h-6 text-violet-400" />{user?.username ? `@${user.username}` : user?.name || 'Conversations'}</>
               }
             </h2>
             <p className="text-sm text-gray-400 mt-0.5">
@@ -484,7 +485,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
         {!showArchived && (
           <button
             onClick={onNewMessage}
-            className="p-3 rounded-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white transition-all shadow-lg hover:shadow-xl touch-target"
+            className="p-3 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white transition-all shadow-lg hover:shadow-violet-500/30 hover:shadow-xl touch-target"
           >
             <Plus className="w-6 h-6" />
           </button>
@@ -500,7 +501,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full pl-12 pr-4 py-3 rounded-xl whatsapp-input text-white text-sm placeholder-gray-400 focus:outline-none border border-gray-700 focus:border-teal-500 transition-colors touch-target"
+            className="w-full pl-12 pr-4 py-3 rounded-xl whatsapp-input text-white text-sm placeholder-gray-400 focus:outline-none border border-white/5 focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all touch-target"
           />
         </div>
       </div>
@@ -509,13 +510,13 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
       <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar">
         {inboxLoading ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <div className="w-10 h-10 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-gray-400 text-sm">Loading conversations…</p>
           </div>
         ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 slide-up">
             <div className="relative mb-8">
-              <div className="absolute inset-0 bg-teal-500/20 rounded-full blur-2xl"></div>
+              <div className="absolute inset-0 bg-violet-500/20 rounded-full blur-2xl"></div>
               <div className="relative inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border-4 border-gray-700 shadow-2xl">
                 <MessageCircle className="w-16 h-16 text-gray-500" />
               </div>
@@ -528,7 +529,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
             </p>
             <button
               onClick={onNewMessage}
-              className="px-8 py-4 rounded-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white font-semibold transition-all shadow-xl hover:shadow-2xl hover:scale-105"
+              className="px-8 py-4 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-semibold transition-all shadow-xl hover:shadow-violet-500/30 hover:shadow-2xl hover:scale-105"
             >
               <div className="flex items-center gap-2">
                 <Plus className="w-5 h-5" />
@@ -1758,7 +1759,7 @@ const WhatsAppMessenger = () => {
         <div className="mb-8 relative">
           <button
             onClick={() => avatarInputRef.current?.click()}
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-2 ring-teal-400/40 hover:ring-teal-400/80 cursor-pointer hover:scale-105 transition-all duration-200 overflow-hidden relative border-2 border-white/10"
+            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-2 ring-violet-500/30 hover:ring-violet-400/60 cursor-pointer hover:scale-105 transition-all duration-200 overflow-hidden relative border-2 border-white/10"
             title="Change profile photo"
           >
             {user?.avatar ? (
@@ -1782,7 +1783,7 @@ const WhatsAppMessenger = () => {
         <div className="flex-1 flex flex-col gap-4 items-center">
           <button
             onClick={() => setShowUserSearch(true)}
-            className="p-4 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-teal-400 transition-all touch-target group relative"
+            className="p-4 rounded-xl hover:bg-violet-500/10 text-gray-400 hover:text-violet-400 transition-all touch-target group relative"
             title="New Chat"
           >
             <MessageCircle className="w-6 h-6" />
@@ -1796,7 +1797,7 @@ const WhatsAppMessenger = () => {
             <button
               ref={settingsButtonRef}
               onClick={() => setShowSettings(v => !v)}
-              className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showSettings ? 'bg-gray-700/50 text-blue-400' : 'text-gray-400 hover:text-blue-400'}`}
+              className={`p-4 rounded-xl hover:bg-violet-500/10 transition-all touch-target group relative ${showSettings ? 'bg-violet-500/15 text-violet-400' : 'text-gray-400 hover:text-violet-400'}`}
               title="Settings"
             >
               <Settings className="w-6 h-6" />
@@ -2131,10 +2132,10 @@ const WhatsAppMessenger = () => {
               </div>
             )}
             {replyTo && (
-              <div className="mb-2 flex items-center gap-2 rounded-lg bg-gray-700/50 border-l-2 border-blue-400 px-3 py-2">
-                <CornerUpLeft className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <div className="mb-2 flex items-center gap-2 rounded-lg bg-violet-500/10 border-l-2 border-violet-500 px-3 py-2">
+                <CornerUpLeft className="w-4 h-4 text-violet-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-blue-300 mb-0.5">
+                  <p className="text-xs font-semibold text-violet-300 mb-0.5">
                     {replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them')}
                   </p>
                   <p className="text-xs text-gray-400 truncate">{replyTo.content}</p>
@@ -2199,7 +2200,7 @@ const WhatsAppMessenger = () => {
                 ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 : <Film className="w-5 h-5" />}
             </button>
-            <div className="flex-1 whatsapp-input rounded-lg px-3 py-2 md:px-4 md:py-2">
+            <div className="flex-1 whatsapp-input rounded-xl px-3 py-2 md:px-4 md:py-2 border border-white/5">
               <input
                 type="text"
                 value={message}
@@ -2241,7 +2242,7 @@ const WhatsAppMessenger = () => {
               <button
                 onClick={handleSend}
                 disabled={isSending}
-                className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
+                className="p-2 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white transition-all shadow-lg hover:shadow-violet-500/30 touch-target disabled:opacity-50"
               >
                 {isSending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
               </button>
@@ -2249,7 +2250,7 @@ const WhatsAppMessenger = () => {
               <button
                 onClick={startRecording}
                 disabled={uploadingVoice}
-                className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
+                className="p-2 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white transition-all shadow-lg hover:shadow-violet-500/30 touch-target disabled:opacity-50"
                 title="Record voice note"
               >
                 {uploadingVoice ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mic className="w-5 h-5" />}
@@ -2456,7 +2457,7 @@ const WhatsAppMessenger = () => {
                     <button
                       onClick={() => handleSendEmailChangeLink()}
                       disabled={emailChangeSending || !emailChangeInput.trim()}
-                      className="px-3 py-2 text-xs font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
+                      className="px-3 py-2 text-xs font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
                     >
                       {emailChangeSending ? 'Sending…' : 'Send link'}
                     </button>
@@ -2480,7 +2481,7 @@ const WhatsAppMessenger = () => {
                     <button
                       onClick={() => handleSendEmailChangeLink(reauthPassword)}
                       disabled={emailChangeSending || !reauthPassword}
-                      className="px-3 py-2 text-xs font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
+                      className="px-3 py-2 text-xs font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
                     >
                       {emailChangeSending ? 'Sending…' : 'Confirm'}
                     </button>
@@ -2509,7 +2510,7 @@ const WhatsAppMessenger = () => {
               <button
                 onClick={handleProfileSave}
                 disabled={profileSaving || !profileForm.phone_number.trim()}
-                className="px-5 py-2 text-sm font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50"
+                className="px-5 py-2 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white transition-all disabled:opacity-50"
               >
                 {profileSaving ? 'Saving…' : 'Save'}
               </button>
