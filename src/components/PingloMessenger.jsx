@@ -78,17 +78,17 @@ const styles = `
   .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.45); border-radius: 99px; }
 
   /* ── Theme-aware messenger classes ── */
-  .whatsapp-bg      { background-color: var(--pinglo-bg); color: var(--pinglo-text); }
-  .whatsapp-header  { background-color: var(--pinglo-header); }
-  .whatsapp-sidebar { background-color: var(--pinglo-sidebar); }
-  .whatsapp-chat-bg {
+  .pinglo-bg      { background-color: var(--pinglo-bg); color: var(--pinglo-text); }
+  .pinglo-header  { background-color: var(--pinglo-header); }
+  .pinglo-sidebar { background-color: var(--pinglo-sidebar); }
+  .pinglo-chat-bg {
     background-color: var(--pinglo-chat-bg);
     background-image: repeating-linear-gradient(
       45deg, transparent, transparent 35px,
       rgba(59,130,246,0.03) 35px, rgba(59,130,246,0.03) 70px
     );
   }
-  .whatsapp-input         { background-color: var(--pinglo-input-bg); color: var(--pinglo-text); }
+  .pinglo-input         { background-color: var(--pinglo-input-bg); color: var(--pinglo-text); }
   .conversation-hover:hover { background-color: var(--pinglo-hover); }
   .conversation-active    { background-color: var(--pinglo-active); }
 
@@ -174,7 +174,7 @@ const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
     : msg.content;
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="whatsapp-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={e => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
+      <div className="pinglo-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={e => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xl font-semibold text-white">Forward to...</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
@@ -186,7 +186,7 @@ const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input type="text" value={query} onChange={e => setQuery(e.target.value)}
             placeholder="Search contacts..." autoFocus
-            className="w-full pl-12 pr-4 py-3 rounded-lg whatsapp-input text-white placeholder-gray-400 focus:outline-none border-none" />
+            className="w-full pl-12 pr-4 py-3 rounded-lg pinglo-input text-white placeholder-gray-400 focus:outline-none border-none" />
         </div>
         <div className="space-y-1 max-h-80 overflow-y-auto scrollbar-thin">
           {filtered.length === 0 ? (
@@ -250,7 +250,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="whatsapp-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={(e) => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
+      <div className="pinglo-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={(e) => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-white">New Chat</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -265,7 +265,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search by name or email..."
-            className="w-full pl-12 pr-4 py-3 rounded-lg whatsapp-input text-white placeholder-gray-400 focus:outline-none border-none"
+            className="w-full pl-12 pr-4 py-3 rounded-lg pinglo-input text-white placeholder-gray-400 focus:outline-none border-none"
           />
         </div>
         
@@ -451,9 +451,9 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
   const displayConvs = showArchived ? archivedConvs : activeConvs;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
+    <div className="flex-1 flex flex-col min-h-0 pinglo-bg border-l border-gray-800">
       {/* Header */}
-      <div className="whatsapp-header p-5 flex items-center justify-between border-b border-gray-700 shadow-lg">
+      <div className="pinglo-header p-5 flex items-center justify-between border-b border-gray-700 shadow-lg">
         <div className="flex items-center gap-3">
           {showArchived ? (
             <button
@@ -493,7 +493,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
       </div>
 
       {/* Search Bar */}
-      <div className="whatsapp-header p-4 border-b border-gray-700">
+      <div className="pinglo-header p-4 border-b border-gray-700">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
@@ -501,13 +501,13 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full pl-12 pr-4 py-3 rounded-xl whatsapp-input text-white text-sm placeholder-gray-400 focus:outline-none border border-white/5 focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all touch-target"
+            className="w-full pl-12 pr-4 py-3 rounded-xl pinglo-input text-white text-sm placeholder-gray-400 focus:outline-none border border-white/5 focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all touch-target"
           />
         </div>
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar">
+      <div className="flex-1 overflow-y-auto scrollbar-thin pinglo-sidebar">
         {inboxLoading ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <div className="w-10 h-10 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -588,7 +588,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
   );
 };
 
-const WhatsAppMessenger = () => {
+const PingloMessenger = () => {
   const { logout, user, updateUser } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -1737,7 +1737,7 @@ const WhatsAppMessenger = () => {
   }, [inbox, searchQuery, onlineUsers]);
 
   return (
-    <div className="h-screen whatsapp-bg flex overflow-hidden min-h-0">
+    <div className="h-screen pinglo-bg flex overflow-hidden min-h-0">
       <style>{styles}</style>
       
       {/* Mobile Overlay */}
@@ -1752,7 +1752,7 @@ const WhatsAppMessenger = () => {
       <div className={`
         ${isMobile ? 'mobile-sidebar' : 'w-20'} 
         ${isMobile && showMobileSidebar ? 'active' : ''}
-        whatsapp-sidebar border-r border-gray-800 flex flex-col items-center py-6
+        pinglo-sidebar border-r border-gray-800 flex flex-col items-center py-6
         ${isMobile ? 'max-w-[85%]' : ''}
       `}>
         {/* User Profile */}
@@ -1867,7 +1867,7 @@ const WhatsAppMessenger = () => {
         ) : (
           <>
           {/* Chat Header */}
-          <div className="whatsapp-header p-3 flex items-center justify-between border-l border-gray-800">
+          <div className="pinglo-header p-3 flex items-center justify-between border-l border-gray-800">
             <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
               {isMobile && (
                 <button 
@@ -1938,7 +1938,7 @@ const WhatsAppMessenger = () => {
           </div>
           
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 whatsapp-chat-bg scrollbar-thin">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 pinglo-chat-bg scrollbar-thin">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -2072,7 +2072,7 @@ const WhatsAppMessenger = () => {
 
           {/* Accept/Decline for incoming requests */}
           {chatStatus === 'INCOMING_PENDING' && (
-            <div className="whatsapp-header px-4 py-3 border-l border-gray-800">
+            <div className="pinglo-header px-4 py-3 border-l border-gray-800">
               {!incomingRequest?.requestId && (
                 <p className="text-gray-400 text-xs text-center mb-2">Loading request…</p>
               )}
@@ -2125,7 +2125,7 @@ const WhatsAppMessenger = () => {
             </div>
           )}
 
-          <div className="whatsapp-header p-3 border-l border-gray-800 safe-area-bottom">
+          <div className="pinglo-header p-3 border-l border-gray-800 safe-area-bottom">
             {sendError && (
               <div className="mb-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs px-3 py-2">
                 {sendError}
@@ -2166,7 +2166,7 @@ const WhatsAppMessenger = () => {
                 <button onClick={cancelRecording} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors touch-target" title="Cancel">
                   <X className="w-5 h-5" />
                 </button>
-                <div className="flex-1 flex items-center gap-2 whatsapp-input rounded-lg px-4 py-2">
+                <div className="flex-1 flex items-center gap-2 pinglo-input rounded-lg px-4 py-2">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                   <span className="text-red-400 text-sm font-medium">
                     {String(Math.floor(recordingSeconds / 60)).padStart(2,'0')}:{String(recordingSeconds % 60).padStart(2,'0')}
@@ -2200,7 +2200,7 @@ const WhatsAppMessenger = () => {
                 ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 : <Film className="w-5 h-5" />}
             </button>
-            <div className="flex-1 whatsapp-input rounded-xl px-3 py-2 md:px-4 md:py-2 border border-white/5">
+            <div className="flex-1 pinglo-input rounded-xl px-3 py-2 md:px-4 md:py-2 border border-white/5">
               <input
                 type="text"
                 value={message}
@@ -2695,4 +2695,4 @@ const WhatsAppMessenger = () => {
   );
 };
 
-export default WhatsAppMessenger;
+export default PingloMessenger;

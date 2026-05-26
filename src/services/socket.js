@@ -242,12 +242,12 @@ class SocketService {
   onNewMessage(callback) {
     if (this.socket) {
       this.socket.on('new_message', callback);
-      // WhatsApp-style event (alias)
+      // Pinglo-style event (alias)
       this.socket.on('message:new', callback);
     }
   }
 
-  // WhatsApp-style: conversation list updates
+  // Pinglo-style: conversation list updates
   onConversationUpdate(callback) {
     if (this.socket) {
       this.socket.on('conversation:update', callback);
