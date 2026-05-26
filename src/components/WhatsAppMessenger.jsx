@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight, Film } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -611,6 +611,7 @@ const WhatsAppMessenger = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
+  const messageVideoInputRef = useRef(null);
   const avatarInputRef = useRef(null);
   const settingsButtonRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -631,6 +632,7 @@ const WhatsAppMessenger = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [uploadingVoice, setUploadingVoice] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
@@ -1230,6 +1232,68 @@ const WhatsAppMessenger = () => {
     } finally {
       setIsSending(false);
       if (messageImageInputRef.current) messageImageInputRef.current.value = '';
+    }
+  };
+
+  const handleSendVideo = async (file) => {
+    if (!file) return;
+    if (!selectedUser) { setSendError('Select a conversation before sending.'); return; }
+    if (file.size > 100 * 1024 * 1024) { setSendError('Video must be under 100 MB.'); return; }
+    try {
+      setUploadingVideo(true);
+      setSendError('');
+      await serverReady;
+      const token = await getAuthToken();
+      const formData = new FormData();
+      formData.append('video', file, file.name || 'video.mp4');
+      const upRes = await fetch(`${getBase()}/messages/upload-video`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      });
+      if (!upRes.ok) {
+        const err = await upRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Video upload failed');
+      }
+      const { url: videoUrl } = await upRes.json();
+
+      const doSend = () => fetch(`${getBase()}/messages/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          recipient_id: selectedUser.id || selectedUser._id,
+          content: videoUrl,
+          message_type: 'video',
+        }),
+      });
+      let sendRes;
+      try { sendRes = await doSend(); }
+      catch {
+        setSendError('Connecting to server…');
+        await new Promise(r => setTimeout(r, 4000));
+        sendRes = await doSend();
+        setSendError('');
+      }
+      if (sendRes.ok) {
+        const data = await sendRes.json();
+        setMessages(prev => [...prev, data.message]);
+        const rid = selectedUser.id || selectedUser._id;
+        const ts = new Date().toISOString();
+        setInbox(prev => prev.map(item =>
+          item.sender_id === rid
+            ? { ...item, last_message: '🎥 Video', last_message_time: ts, last_message_type: 'video' }
+            : item
+        ));
+        fetchInbox();
+      } else {
+        const err = await sendRes.json().catch(() => ({}));
+        setSendError(err.error || 'Failed to send video.');
+      }
+    } catch (error) {
+      setSendError(error.message || 'Video send failed.');
+    } finally {
+      setUploadingVideo(false);
+      if (messageVideoInputRef.current) messageVideoInputRef.current.value = '';
     }
   };
 
@@ -1864,8 +1928,14 @@ const WhatsAppMessenger = () => {
                           )}
                           {msg.message_type === 'image' && msg.image_url ? (
                             <img src={resolveMediaUrl(msg.image_url)} alt="Shared" className="rounded-md max-w-full h-auto" />
+                          ) : msg.message_type === 'image' && msg.content?.startsWith('/api/messages/image/') ? (
+                            <img src={resolveMediaUrl(msg.content)} alt="Shared" className="rounded-md max-w-full h-auto" />
+                          ) : msg.message_type === 'video' || msg.content?.startsWith('/api/messages/video/') ? (
+                            <video controls src={resolveMediaUrl(msg.content)} className="rounded-md max-w-full" style={{maxHeight: 280}} preload="metadata" onClick={e => e.stopPropagation()} />
                           ) : msg.message_type === 'voice' && msg.voice_url ? (
                             <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
+                          ) : msg.message_type === 'voice' && msg.content?.startsWith('/api/messages/voice/') ? (
+                            <audio controls src={resolveMediaUrl(msg.content)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
                           ) : (
                             <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
                           )}
@@ -2044,8 +2114,19 @@ const WhatsAppMessenger = () => {
               onClick={() => messageImageInputRef.current?.click()}
               className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
               title="Send image"
+              disabled={uploadingVideo}
             >
               <Paperclip className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => messageVideoInputRef.current?.click()}
+              className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
+              title="Send video"
+              disabled={uploadingVideo || uploadingVoice}
+            >
+              {uploadingVideo
+                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <Film className="w-5 h-5" />}
             </button>
             <div className="flex-1 whatsapp-input rounded-lg px-3 py-2 md:px-4 md:py-2">
               <input
@@ -2158,6 +2239,13 @@ const WhatsAppMessenger = () => {
         accept="image/*"
         className="hidden"
         onChange={(e) => handleSendImage(e.target.files?.[0])}
+      />
+      <input
+        ref={messageVideoInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={(e) => handleSendVideo(e.target.files?.[0])}
       />
       <input
         ref={avatarInputRef}
