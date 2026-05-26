@@ -991,6 +991,8 @@ const PingloMessenger = () => {
 
   const resolveMediaUrl = (url) => {
     if (!url) return '';
+    // Blob URLs (optimistic previews) must pass through untouched
+    if (url.startsWith('blob:')) return url;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     return `${getOrigin()}${url}`;
   };
@@ -2003,7 +2005,19 @@ const PingloMessenger = () => {
                           ) : msg.message_type === 'image' && msg.content?.startsWith('/api/messages/image/') ? (
                             <img src={resolveMediaUrl(msg.content)} alt="Shared" className="rounded-md max-w-full h-auto" />
                           ) : msg.message_type === 'video' || msg.content?.startsWith('/api/messages/video/') ? (
-                            <video controls src={resolveMediaUrl(msg.content)} className="rounded-md max-w-full" style={{maxHeight: 280}} preload="metadata" onClick={e => e.stopPropagation()} />
+                            <video
+                              controls
+                              playsInline
+                              preload="metadata"
+                              src={resolveMediaUrl(msg.content)}
+                              className="rounded-md max-w-full"
+                              style={{ maxHeight: 280, display: 'block' }}
+                              onClick={e => e.stopPropagation()}
+                              onError={e => {
+                                // Only log, don't hide — shows a broken player rather than nothing
+                                console.warn('Video load error:', e.target.src);
+                              }}
+                            />
                           ) : msg.message_type === 'voice' && msg.voice_url ? (
                             <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
                           ) : msg.message_type === 'voice' && msg.content?.startsWith('/api/messages/voice/') ? (
