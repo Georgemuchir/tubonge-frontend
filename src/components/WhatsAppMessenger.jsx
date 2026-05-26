@@ -65,7 +65,7 @@ const styles = `
   }
 
   .message-sent     { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%); color: #fff; box-shadow: 0 2px 12px rgba(124,58,237,0.35); }
-  .message-received { background: var(--wa-msg-received-bg); color: var(--wa-msg-received-txt); border: 1px solid rgba(255,255,255,0.06); }
+  .message-received { background: var(--pinglo-msg-received-bg); color: var(--pinglo-msg-received-txt); border: 1px solid rgba(255,255,255,0.06); }
 
   .hover-lift { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
   .hover-lift:hover {
@@ -74,39 +74,39 @@ const styles = `
   }
 
   .scrollbar-thin::-webkit-scrollbar       { width: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: var(--wa-scrollbar-track); }
+  .scrollbar-thin::-webkit-scrollbar-track { background: var(--pinglo-scrollbar-track); }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.45); border-radius: 99px; }
 
   /* ── Theme-aware messenger classes ── */
-  .whatsapp-bg      { background-color: var(--wa-bg); color: var(--wa-text); }
-  .whatsapp-header  { background-color: var(--wa-header); }
-  .whatsapp-sidebar { background-color: var(--wa-sidebar); }
+  .whatsapp-bg      { background-color: var(--pinglo-bg); color: var(--pinglo-text); }
+  .whatsapp-header  { background-color: var(--pinglo-header); }
+  .whatsapp-sidebar { background-color: var(--pinglo-sidebar); }
   .whatsapp-chat-bg {
-    background-color: var(--wa-chat-bg);
+    background-color: var(--pinglo-chat-bg);
     background-image: repeating-linear-gradient(
       45deg, transparent, transparent 35px,
       rgba(59,130,246,0.03) 35px, rgba(59,130,246,0.03) 70px
     );
   }
-  .whatsapp-input         { background-color: var(--wa-input-bg); color: var(--wa-text); }
-  .conversation-hover:hover { background-color: var(--wa-hover); }
-  .conversation-active    { background-color: var(--wa-active); }
+  .whatsapp-input         { background-color: var(--pinglo-input-bg); color: var(--pinglo-text); }
+  .conversation-hover:hover { background-color: var(--pinglo-hover); }
+  .conversation-active    { background-color: var(--pinglo-active); }
 
   /* Tailwind utility overrides for light mode */
-  [data-theme="light"] .text-white   { color: var(--wa-text) !important; }
-  [data-theme="light"] .text-gray-400 { color: var(--wa-text-muted) !important; }
-  [data-theme="light"] .text-gray-300 { color: var(--wa-text-muted) !important; }
-  [data-theme="light"] .text-gray-500 { color: var(--wa-text-muted) !important; }
-  [data-theme="light"] .border-gray-800 { border-color: var(--wa-border) !important; }
-  [data-theme="light"] .border-gray-700 { border-color: var(--wa-border) !important; }
-  [data-theme="light"] .bg-gray-800  { background-color: var(--wa-header) !important; }
-  [data-theme="light"] .bg-gray-900  { background-color: var(--wa-bg) !important; }
-  [data-theme="light"] .hover\:bg-gray-700:hover    { background-color: var(--wa-hover) !important; }
-  [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: var(--wa-hover) !important; }
-  [data-theme="light"] .bg-gray-700\/50 { background-color: var(--wa-active) !important; }
-  [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: var(--wa-hover) !important; }
-  [data-theme="light"] .border-gray-700\/50 { border-color: var(--wa-border) !important; }
-  [data-theme="light"] .ring-gray-700\/50 { --tw-ring-color: var(--wa-border) !important; }
+  [data-theme="light"] .text-white   { color: var(--pinglo-text) !important; }
+  [data-theme="light"] .text-gray-400 { color: var(--pinglo-text-muted) !important; }
+  [data-theme="light"] .text-gray-300 { color: var(--pinglo-text-muted) !important; }
+  [data-theme="light"] .text-gray-500 { color: var(--pinglo-text-muted) !important; }
+  [data-theme="light"] .border-gray-800 { border-color: var(--pinglo-border) !important; }
+  [data-theme="light"] .border-gray-700 { border-color: var(--pinglo-border) !important; }
+  [data-theme="light"] .bg-gray-800  { background-color: var(--pinglo-header) !important; }
+  [data-theme="light"] .bg-gray-900  { background-color: var(--pinglo-bg) !important; }
+  [data-theme="light"] .hover\:bg-gray-700:hover    { background-color: var(--pinglo-hover) !important; }
+  [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: var(--pinglo-hover) !important; }
+  [data-theme="light"] .bg-gray-700\/50 { background-color: var(--pinglo-active) !important; }
+  [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: var(--pinglo-hover) !important; }
+  [data-theme="light"] .border-gray-700\/50 { border-color: var(--pinglo-border) !important; }
+  [data-theme="light"] .ring-gray-700\/50 { --tw-ring-color: var(--pinglo-border) !important; }
 
   .blue-accent  { color: #3b82f6; }
   .blue-bg      { background-color: #3b82f6; }

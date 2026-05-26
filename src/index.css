@@ -8,19 +8,19 @@
 ───────────────────────────────────────── */
 :root {
   /* Messenger */
-  --wa-bg:              #07070f;
-  --wa-header:          rgba(16,16,32,0.72);
-  --wa-sidebar:         #0b0b18;
-  --wa-chat-bg:         #10101f;
-  --wa-input-bg:        #1d1d34;
-  --wa-border:          rgba(255,255,255,0.07);
-  --wa-text:            #e2e2f0;
-  --wa-text-muted:      #9898b8;
-  --wa-hover:           #222240;
-  --wa-active:          #1d1d34;
-  --wa-msg-received-bg: #161628;
-  --wa-msg-received-txt:#e2e2f0;
-  --wa-scrollbar-track: rgba(255,255,255,0.04);
+  --pinglo-bg:              #07070f;
+  --pinglo-header:          rgba(16,16,32,0.72);
+  --pinglo-sidebar:         #0b0b18;
+  --pinglo-chat-bg:         #10101f;
+  --pinglo-input-bg:        #1d1d34;
+  --pinglo-border:          rgba(255,255,255,0.07);
+  --pinglo-text:            #e2e2f0;
+  --pinglo-text-muted:      #9898b8;
+  --pinglo-hover:           #222240;
+  --pinglo-active:          #1d1d34;
+  --pinglo-msg-received-bg: #161628;
+  --pinglo-msg-received-txt:#e2e2f0;
+  --pinglo-scrollbar-track: rgba(255,255,255,0.04);
 
   /* Auth pages */
   --auth-bg-from:        #07070f;
@@ -51,19 +51,19 @@
 
 [data-theme="light"] {
   /* Messenger */
-  --wa-bg:              #f0f2f5;
-  --wa-header:          #ffffff;
-  --wa-sidebar:         #ffffff;
-  --wa-chat-bg:         #e5ddd5;
-  --wa-input-bg:        #ffffff;
-  --wa-border:          rgba(0,0,0,0.08);
-  --wa-text:            #1e293b;
-  --wa-text-muted:      #64748b;
-  --wa-hover:           #f0f2f5;
-  --wa-active:          #e2e8f0;
-  --wa-msg-received-bg: #ffffff;
-  --wa-msg-received-txt:#1e293b;
-  --wa-scrollbar-track: rgba(0,0,0,0.05);
+  --pinglo-bg:              #f0f2f5;
+  --pinglo-header:          #ffffff;
+  --pinglo-sidebar:         #ffffff;
+  --pinglo-chat-bg:         #e5ddd5;
+  --pinglo-input-bg:        #ffffff;
+  --pinglo-border:          rgba(0,0,0,0.08);
+  --pinglo-text:            #1e293b;
+  --pinglo-text-muted:      #64748b;
+  --pinglo-hover:           #f0f2f5;
+  --pinglo-active:          #e2e8f0;
+  --pinglo-msg-received-bg: #ffffff;
+  --pinglo-msg-received-txt:#1e293b;
+  --pinglo-scrollbar-track: rgba(0,0,0,0.05);
 
   /* Auth pages */
   --auth-bg-from:        #f8fafc;
@@ -153,11 +153,11 @@
 @layer components {
   .chat-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #3b82f6 var(--wa-scrollbar-track);
+    scrollbar-color: #3b82f6 var(--pinglo-scrollbar-track);
   }
   .chat-scrollbar::-webkit-scrollbar { width: 6px; }
   .chat-scrollbar::-webkit-scrollbar-track {
-    background: var(--wa-scrollbar-track);
+    background: var(--pinglo-scrollbar-track);
     border-radius: 3px;
   }
   .chat-scrollbar::-webkit-scrollbar-thumb {
