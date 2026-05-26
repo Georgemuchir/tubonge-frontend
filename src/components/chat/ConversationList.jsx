@@ -225,7 +225,15 @@ const ConversationList = () => {
                     {otherParticipant.name || 'Unknown User'}
                   </div>
                   <div className="nexus-conversation-preview">
-                    {conversation.lastMessage || conversation.last_message?.content || 'Say hello! 👋'}
+                    {(() => {
+                      const type = conversation.last_message?.message_type || conversation.lastMessageType;
+                      const content = conversation.lastMessage || conversation.last_message?.content || '';
+                      if (type === 'image' || content.startsWith?.('/api/messages/image/')) return '📷 Photo';
+                      if (type === 'video' || content.startsWith?.('/api/messages/video/')) return '🎥 Video';
+                      if (type === 'voice' || content.startsWith?.('/api/messages/voice/')) return '🎤 Voice note';
+                      if (type === 'missed_call') return '📵 Missed call';
+                      return content || 'Say hello! 👋';
+                    })()}
                   </div>
                 </div>
                 

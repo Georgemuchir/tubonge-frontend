@@ -380,7 +380,10 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
                   ? <span className="text-indigo-400">{conv.lastMessage}</span>
                   : conv.lastMessageType === 'missed_call'
                     ? <span className="text-red-400 flex items-center gap-1"><PhoneOff className="w-3.5 h-3.5 inline" />{conv.lastMessage || 'Missed call'}</span>
-                    : conv.lastMessageType === 'image' ? '📷 Photo' : (conv.lastMessage || 'No messages yet')}
+                    : conv.lastMessageType === 'image' ? '📷 Photo'
+                    : conv.lastMessageType === 'video' ? '🎥 Video'
+                    : conv.lastMessageType === 'voice' ? '🎤 Voice note'
+                    : (conv.lastMessage || 'No messages yet')}
               </p>
               {conv.lastMessageType === 'image' && conv.lastMessageImageUrl && (
                 <img src={resolveMediaUrl(conv.lastMessageImageUrl)} alt="" className="w-10 h-10 rounded-md object-cover border border-gray-700" />
