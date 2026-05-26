@@ -763,6 +763,23 @@ const WhatsAppMessenger = () => {
     }
   };
 
+  // Instantly update the inbox preview without a server round-trip.
+  // Call this whenever the current user sends any message.
+  const updateInboxPreview = (recipientId, lastMessage, lastMessageType, now = new Date().toISOString()) => {
+    setInbox(prev => {
+      const updated = prev.map(item =>
+        (item.sender_id === recipientId || item.id === recipientId)
+          ? { ...item, last_message: lastMessage, last_message_time: now, last_message_type: lastMessageType }
+          : item
+      );
+      try {
+        const raw = localStorage.getItem('pinglo_inbox_cache');
+        if (raw) { const c = JSON.parse(raw); c.merged = updated; localStorage.setItem('pinglo_inbox_cache', JSON.stringify(c)); }
+      } catch {}
+      return updated;
+    });
+  };
+
   // Socket.IO listeners
   useEffect(() => {
     const socket = socketService.socket;
@@ -770,16 +787,46 @@ const WhatsAppMessenger = () => {
 
     const handleNewMessage = (newMessage) => {
       const senderId = newMessage.sender_id;
-      const receiverId = newMessage.receiver_id;
+      const receiverId = newMessage.receiver_id || newMessage.recipient_id;
       const selectedId = selectedUser && (selectedUser.id || selectedUser._id);
 
-      // Show message if it's part of the current chat (sender or receiver)
+      // Show message if it's part of the current chat
       if (selectedUser && (senderId === selectedId || receiverId === selectedId)) {
-        setMessages(prevMessages => [...prevMessages, newMessage]);
+        setMessages(prev => {
+          // Deduplicate: replace matching optimistic bubble or skip if already present
+          const exists = prev.some(m => m.id === newMessage.id);
+          if (exists) return prev;
+          // Replace optimistic bubble that has the same content + type
+          const optIdx = prev.findIndex(m =>
+            m._optimistic &&
+            m.message_type === newMessage.message_type &&
+            m.sender_id === (newMessage.sender_id)
+          );
+          if (optIdx !== -1) {
+            const next = [...prev];
+            next[optIdx] = newMessage;
+            return next;
+          }
+          return [...prev, newMessage];
+        });
       }
-      if ('Notification' in window && Notification.permission === 'granted') {
+
+      // Update inbox preview immediately from socket data (no fetchInbox needed)
+      const partnerId = senderId === (user?.id || user?._id) ? receiverId : senderId;
+      if (partnerId) {
+        const mtype = newMessage.message_type || 'text';
+        const preview = mtype === 'image' ? '📷 Photo'
+          : mtype === 'video' ? '🎥 Video'
+          : mtype === 'voice' ? '🎤 Voice note'
+          : mtype === 'missed_call' ? '📵 Missed call'
+          : (newMessage.content || '');
+        updateInboxPreview(partnerId, preview, mtype, newMessage.timestamp);
+      }
+
+      if ('Notification' in window && Notification.permission === 'granted' &&
+          senderId !== (user?.id || user?._id)) {
         new Notification('New message from Pinglo', {
-          body: newMessage.content.substring(0, 50),
+          body: (newMessage.content || '').substring(0, 50),
           icon: '/favicon.ico'
         });
       }
@@ -818,7 +865,7 @@ const WhatsAppMessenger = () => {
     };
 
     socket.on('new_message', handleNewMessage);
-    socket.on('inbox_update', fetchInbox);
+    socket.on('inbox_update', () => {}); // inbox already updated inline via handleNewMessage
     socket.on('user_status', handleUserStatus);
     socket.on('user_typing', handleUserTyping);
     socket.on('message_deleted', handleMessageDeleted);
@@ -1131,14 +1178,13 @@ const WhatsAppMessenger = () => {
         setMessages(prev => prev.filter(m => m.id !== tempId));
         setChatStatus('OUTGOING_PENDING');
         setPendingText(sentText);
-        fetchInbox();
         return;
       }
     }
     if (response.ok) {
       const data = await response.json();
-      setMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
-      fetchInbox();
+      setMessages(prev => prev.map(m => m.id === tempId ? (data.message || data) : m));
+      updateInboxPreview(recipientId, sentText, 'text', now);
     } else {
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setMessage(sentText);
@@ -1179,6 +1225,16 @@ const WhatsAppMessenger = () => {
       setSendError('Select a conversation before sending.');
       return;
     }
+    const tempId = `temp_img_${Date.now()}`;
+    const blobUrl = URL.createObjectURL(file);
+    const now = new Date().toISOString();
+    const recipientId = selectedUser.id || selectedUser._id;
+    // Show optimistic bubble immediately
+    setMessages(prev => [...prev, {
+      id: tempId, sender_id: user?.id || user?._id, recipient_id: recipientId,
+      content: blobUrl, image_url: blobUrl, timestamp: now, message_type: 'image', _optimistic: true,
+    }]);
+    updateInboxPreview(recipientId, '📷 Photo', 'image', now);
     try {
       setIsSending(true);
       setSendError('');
@@ -1209,28 +1265,18 @@ const WhatsAppMessenger = () => {
       }
       if (response.ok) {
         const data = await response.json();
-        setMessages([...messages, data.message]);
-        const rid = selectedUser.id || selectedUser._id;
-        const ts = new Date().toISOString();
-        setInbox(prev => {
-          const updated = prev.map(item =>
-            item.sender_id === rid
-              ? { ...item, last_message: '📷 Photo', last_message_time: ts, last_message_type: 'image' }
-              : item
-          );
-          try {
-            const raw = localStorage.getItem('pinglo_inbox_cache');
-            if (raw) { const c = JSON.parse(raw); c.merged = updated; localStorage.setItem('pinglo_inbox_cache', JSON.stringify(c)); }
-          } catch {}
-          return updated;
-        });
-        fetchInbox();
+        // Swap optimistic bubble for real message
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...(data.message || data), message_type: 'image' } : m));
+        URL.revokeObjectURL(blobUrl);
       } else {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        URL.revokeObjectURL(blobUrl);
         const errorData = await response.json().catch(() => ({}));
         setSendError(errorData.error || 'Failed to send image.');
       }
     } catch (error) {
-      console.error('Image send error:', error);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      URL.revokeObjectURL(blobUrl);
       setSendError(error.message || 'Image send failed.');
     } finally {
       setIsSending(false);
@@ -1242,6 +1288,16 @@ const WhatsAppMessenger = () => {
     if (!file) return;
     if (!selectedUser) { setSendError('Select a conversation before sending.'); return; }
     if (file.size > 100 * 1024 * 1024) { setSendError('Video must be under 100 MB.'); return; }
+    const tempId = `temp_vid_${Date.now()}`;
+    const blobUrl = URL.createObjectURL(file);
+    const now = new Date().toISOString();
+    const recipientId = selectedUser.id || selectedUser._id;
+    // Show optimistic bubble immediately
+    setMessages(prev => [...prev, {
+      id: tempId, sender_id: user?.id || user?._id, recipient_id: recipientId,
+      content: blobUrl, timestamp: now, message_type: 'video', _optimistic: true,
+    }]);
+    updateInboxPreview(recipientId, '🎥 Video', 'video', now);
     try {
       setUploadingVideo(true);
       setSendError('');
@@ -1279,20 +1335,17 @@ const WhatsAppMessenger = () => {
       }
       if (sendRes.ok) {
         const data = await sendRes.json();
-        setMessages(prev => [...prev, data.message]);
-        const rid = selectedUser.id || selectedUser._id;
-        const ts = new Date().toISOString();
-        setInbox(prev => prev.map(item =>
-          item.sender_id === rid
-            ? { ...item, last_message: '🎥 Video', last_message_time: ts, last_message_type: 'video' }
-            : item
-        ));
-        fetchInbox();
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...(data.message || data), message_type: 'video' } : m));
+        URL.revokeObjectURL(blobUrl);
       } else {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        URL.revokeObjectURL(blobUrl);
         const err = await sendRes.json().catch(() => ({}));
         setSendError(err.error || 'Failed to send video.');
       }
     } catch (error) {
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      URL.revokeObjectURL(blobUrl);
       setSendError(error.message || 'Video send failed.');
     } finally {
       setUploadingVideo(false);
@@ -1353,6 +1406,18 @@ const WhatsAppMessenger = () => {
 
   const uploadVoiceNote = async (blob) => {
     if (!selectedUser) return;
+    const tempId = `temp_voice_${Date.now()}`;
+    const blobUrl = URL.createObjectURL(blob);
+    const now = new Date().toISOString();
+    const recipientId = selectedUser.id || selectedUser._id;
+    const capturedReplyTo = replyTo;
+    // Show optimistic audio bubble immediately
+    setMessages(prev => [...prev, {
+      id: tempId, sender_id: user?.id || user?._id, recipient_id: recipientId,
+      content: blobUrl, voice_url: blobUrl, timestamp: now, message_type: 'voice', _optimistic: true,
+    }]);
+    setReplyTo(null);
+    updateInboxPreview(recipientId, '🎤 Voice note', 'voice', now);
     setUploadingVoice(true);
     try {
       const formData = new FormData();
@@ -1371,26 +1436,29 @@ const WhatsAppMessenger = () => {
           'Authorization': `Bearer ${await getAuthToken()}`,
         },
         body: JSON.stringify({
-          recipient_id: selectedUser.id || selectedUser._id,
-          content: '🎤 Voice note',
+          recipient_id: recipientId,
+          content: url,
           message_type: 'voice',
           voice_url: url,
-          ...(replyTo && {
-            reply_to_id: replyTo.id || replyTo._id,
-            reply_to_content: replyTo.content,
-            reply_to_sender_name: replyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
+          ...(capturedReplyTo && {
+            reply_to_id: capturedReplyTo.id || capturedReplyTo._id,
+            reply_to_content: capturedReplyTo.content,
+            reply_to_sender_name: capturedReplyTo.sender_id === (user?.id || user?._id) ? (user?.name || 'You') : (selectedUser?.name || 'Them'),
           }),
         }),
       });
       if (sendRes.ok) {
         const data = await sendRes.json();
-        setMessages(prev => [...prev, data.message]);
-        setReplyTo(null);
-        fetchInbox();
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...(data.message || data), message_type: 'voice' } : m));
+        URL.revokeObjectURL(blobUrl);
       } else {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        URL.revokeObjectURL(blobUrl);
         setSendError('Failed to send voice note.');
       }
     } catch {
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      URL.revokeObjectURL(blobUrl);
       setSendError('Failed to send voice note.');
     } finally {
       setUploadingVoice(false);
