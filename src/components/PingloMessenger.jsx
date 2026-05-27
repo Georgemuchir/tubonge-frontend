@@ -159,6 +159,29 @@ const styles = `
   }
 `;
 
+const VideoMessage = ({ src, resolveUrl }) => {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div style={{ padding: '8px 12px', color: '#9ca3af', fontSize: 13, background: 'rgba(255,255,255,0.05)', borderRadius: 8 }}>
+        🎥 Video unavailable
+      </div>
+    );
+  }
+  return (
+    <video
+      controls
+      playsInline
+      preload="metadata"
+      src={resolveUrl(src)}
+      className="rounded-md max-w-full"
+      style={{ maxHeight: 280, display: 'block' }}
+      onClick={e => e.stopPropagation()}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
 const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
   const [query, setQuery] = useState('');
   const getAvatarColor = (name) => {
@@ -2003,19 +2026,7 @@ const PingloMessenger = () => {
                           ) : msg.message_type === 'image' && msg.content?.startsWith('/api/messages/image/') ? (
                             <img src={resolveMediaUrl(msg.content)} alt="Shared" className="rounded-md max-w-full h-auto" />
                           ) : msg.message_type === 'video' || msg.content?.startsWith('/api/messages/video/') ? (
-                            <video
-                              controls
-                              playsInline
-                              preload="metadata"
-                              src={resolveMediaUrl(msg.content)}
-                              className="rounded-md max-w-full"
-                              style={{ maxHeight: 280, display: 'block' }}
-                              onClick={e => e.stopPropagation()}
-                              onError={e => {
-                                // Only log, don't hide — shows a broken player rather than nothing
-                                console.warn('Video load error:', e.target.src);
-                              }}
-                            />
+                            <VideoMessage src={msg.content} resolveUrl={resolveMediaUrl} />
                           ) : msg.message_type === 'voice' && msg.voice_url ? (
                             <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
                           ) : msg.message_type === 'voice' && msg.content?.startsWith('/api/messages/voice/') ? (
