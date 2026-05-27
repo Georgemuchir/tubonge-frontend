@@ -1175,7 +1175,8 @@ const PingloMessenger = () => {
       }
     }
 
-    if (response.status === 201) {
+    if (response.ok) {
+      // Read the body exactly once — 201 is also ok, so checking status===201 AND ok was a double-read
       const data = await response.json();
       if (data.status === 'pending_request') {
         setMessages(prev => prev.filter(m => m.id !== tempId));
@@ -1183,9 +1184,6 @@ const PingloMessenger = () => {
         setPendingText(sentText);
         return;
       }
-    }
-    if (response.ok) {
-      const data = await response.json();
       setMessages(prev => prev.map(m => m.id === tempId ? (data.message || data) : m));
       updateInboxPreview(recipientId, sentText, 'text', now);
     } else {
