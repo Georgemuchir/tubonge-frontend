@@ -426,6 +426,47 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Add an optimistic video bubble immediately (shows local blob while uploading)
+  const addOptimisticVideoMessage = (blobUrl) => {
+    const tempId = `temp-vid-${Date.now()}`;
+    dispatch({
+      type: 'ADD_MESSAGE',
+      payload: {
+        id: tempId,
+        conversation_id: state.activeConversation?._id || state.activeConversation?.id,
+        content: blobUrl,
+        message_type: 'video',
+        sender_id: user?._id || user?.id,
+        timestamp: new Date().toISOString(),
+        status: 'sending',
+      },
+    });
+    return tempId;
+  };
+
+  // Persist video message to server then swap the temp bubble with the real server URL
+  const sendVideoMessage = async (tempId, videoUrl, replyToId = null, replyToContent = null, replyToSenderName = null) => {
+    const conversationId = state.activeConversation?._id || state.activeConversation?.id;
+    const receiverUsername = state.activeConversation?.participant?.username;
+    try {
+      const response = await messagesAPI.sendMessage(
+        receiverUsername, videoUrl, conversationId,
+        replyToId, replyToContent, replyToSenderName,
+        'video'
+      );
+      const realMessage = { ...(response.data?.message || response.data), message_type: 'video' };
+      dispatch({ type: 'REPLACE_TEMP_MESSAGE', payload: { tempId, realMessage } });
+      socketService.sendMessage({
+        conversation_id: conversationId,
+        text: videoUrl,
+        sender_id: user?._id || user?.id,
+        message_type: 'video',
+      });
+    } catch {
+      dispatch({ type: 'REMOVE_MESSAGE', payload: tempId });
+    }
+  };
+
   // Send typing indicator
   const sendTyping = (isTyping) => {
     if (state.activeConversation && user) {
@@ -505,6 +546,8 @@ export const ChatProvider = ({ children }) => {
     sendMessage,
     sendImageMessage,
     addOptimisticImageMessage,
+    addOptimisticVideoMessage,
+    sendVideoMessage,
     sendTyping,
     createConversation,
     loadConversations,
