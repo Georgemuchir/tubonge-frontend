@@ -106,6 +106,18 @@ export const messagesAPI = {
       });
     },
 
+    // Upload video for chat — onUploadProgress(event) for progress tracking
+    uploadVideo: (file, onUploadProgress) => {
+      const formData = new FormData();
+      formData.append('video', file, file.name || 'video.mp4');
+      return api.post('/messages/upload-video', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000,
+        ...(typeof onUploadProgress === 'function' && { onUploadProgress }),
+      });
+    },
+
+
   // Get all conversations (inbox)
   getConversations: () => api.get('/messages/inbox'),
 

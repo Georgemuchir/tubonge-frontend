@@ -315,23 +315,10 @@ export const ChatProvider = ({ children }) => {
 
   // Send message
   const sendMessage = async (content, messageType = 'text', replyToId = null, replyToContent = null, replyToSenderName = null) => {
-    console.log('sendMessage called with:', { content, messageType, activeConversation: state.activeConversation, user });
+    if (!state.activeConversation || !user) return;
 
-    if (!state.activeConversation) {
-      console.error('Cannot send message: No active conversation');
-      return;
-    }
-
-    if (!user) {
-      console.error('Cannot send message: No user');
-      return;
-    }
-
-    // For non-text messages (voice) the content is a URL — allow it even without spaces
-    if (!content || (!content.trim() && messageType === 'text')) {
-      console.error('Cannot send message: Empty content');
-      return;
-    }
+    // Media messages have URL content — only require non-empty, not trimmable space
+    if (!content || (messageType === 'text' && !content.trim())) return;
 
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
@@ -340,15 +327,12 @@ export const ChatProvider = ({ children }) => {
       message_type: messageType,
       sender_id: user._id || user.id,
       timestamp: new Date().toISOString(),
-      status: 'sending'
+      status: 'sending',
     };
 
     try {
-      console.log(`Sending ${messageType} message to conversation ${state.activeConversation._id || state.activeConversation.id}`);
-
       dispatch({ type: 'ADD_MESSAGE', payload: optimisticMessage });
 
-      // Send via NEW strict API
       const receiverUsername = state.activeConversation.participant?.username;
       const conversationId = state.activeConversation._id || state.activeConversation.id;
 
@@ -358,17 +342,14 @@ export const ChatProvider = ({ children }) => {
         messageType
       );
 
-      // First message became a request — remove optimistic bubble and signal caller
       if (response.status === 201 && response.data?.status === 'pending_request') {
         dispatch({ type: 'SET_MESSAGES', payload: state.messages.filter(m => m.id !== optimisticMessage.id) });
         return { pending: true, text: content.trim(), requestId: response.data.request_id };
       }
 
-      // Replace optimistic message with real one (keep message_type from our call)
-      const realMessage = { ...response.data?.message || response.data, message_type: messageType };
+      const realMessage = { ...(response.data?.message || response.data), message_type: messageType };
       dispatch({ type: 'UPDATE_MESSAGE', payload: { ...optimisticMessage, ...realMessage, status: 'sent' } });
 
-      // Send via socket for real-time delivery to other user
       socketService.sendMessage({
         conversation_id: conversationId,
         text: content.trim(),
@@ -409,9 +390,7 @@ export const ChatProvider = ({ children }) => {
     const receiverUsername = state.activeConversation?.participant?.username;
     try {
       const response = await messagesAPI.sendMessage(
-        receiverUsername, imageUrl, conversationId,
-        replyToId, replyToContent, replyToSenderName,
-        'image'
+        receiverUsername, imageUrl, conversationId, replyToId, replyToContent, replyToSenderName, 'image'
       );
       const realMessage = { ...(response.data?.message || response.data), message_type: 'image' };
       dispatch({ type: 'REPLACE_TEMP_MESSAGE', payload: { tempId, realMessage } });
@@ -420,6 +399,45 @@ export const ChatProvider = ({ children }) => {
         text: imageUrl,
         sender_id: user?._id || user?.id,
         message_type: 'image',
+      });
+    } catch {
+      dispatch({ type: 'REMOVE_MESSAGE', payload: tempId });
+    }
+  };
+
+  // Add an optimistic video bubble immediately (shows local blob while uploading)
+  const addOptimisticVideoMessage = (blobUrl) => {
+    const tempId = `temp-vid-${Date.now()}`;
+    dispatch({
+      type: 'ADD_MESSAGE',
+      payload: {
+        id: tempId,
+        conversation_id: state.activeConversation?._id || state.activeConversation?.id,
+        content: blobUrl,
+        message_type: 'video',
+        sender_id: user?._id || user?.id,
+        timestamp: new Date().toISOString(),
+        status: 'sending',
+      },
+    });
+    return tempId;
+  };
+
+  // Swap the optimistic video bubble with the real server URL
+  const sendVideoMessage = async (tempId, videoUrl, replyToId = null, replyToContent = null, replyToSenderName = null) => {
+    const conversationId = state.activeConversation?._id || state.activeConversation?.id;
+    const receiverUsername = state.activeConversation?.participant?.username;
+    try {
+      const response = await messagesAPI.sendMessage(
+        receiverUsername, videoUrl, conversationId, replyToId, replyToContent, replyToSenderName, 'video'
+      );
+      const realMessage = { ...(response.data?.message || response.data), message_type: 'video' };
+      dispatch({ type: 'REPLACE_TEMP_MESSAGE', payload: { tempId, realMessage } });
+      socketService.sendMessage({
+        conversation_id: conversationId,
+        text: videoUrl,
+        sender_id: user?._id || user?.id,
+        message_type: 'video',
       });
     } catch {
       dispatch({ type: 'REMOVE_MESSAGE', payload: tempId });
@@ -505,6 +523,8 @@ export const ChatProvider = ({ children }) => {
     sendMessage,
     sendImageMessage,
     addOptimisticImageMessage,
+    addOptimisticVideoMessage,
+    sendVideoMessage,
     sendTyping,
     createConversation,
     loadConversations,
