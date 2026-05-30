@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Film, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -170,6 +170,7 @@ const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
   });
   const preview = msg.message_type === 'image' ? '📷 Photo'
     : msg.message_type === 'voice' ? '🎤 Voice note'
+    : msg.message_type === 'video' ? '🎥 Video'
     : msg.content;
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
@@ -380,7 +381,9 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
                   ? <span className="text-indigo-400">{conv.lastMessage}</span>
                   : conv.lastMessageType === 'missed_call'
                     ? <span className="text-red-400 flex items-center gap-1"><PhoneOff className="w-3.5 h-3.5 inline" />{conv.lastMessage || 'Missed call'}</span>
-                    : conv.lastMessageType === 'image' ? '📷 Photo' : (conv.lastMessage || 'No messages yet')}
+                    : conv.lastMessageType === 'image' ? '📷 Photo'
+                    : conv.lastMessageType === 'video' ? '🎥 Video'
+                    : (conv.lastMessage || 'No messages yet')}
               </p>
               {conv.lastMessageType === 'image' && conv.lastMessageImageUrl && (
                 <img src={resolveMediaUrl(conv.lastMessageImageUrl)} alt="" className="w-10 h-10 rounded-md object-cover border border-gray-700" />
@@ -611,6 +614,7 @@ const WhatsAppMessenger = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
+  const messageVideoInputRef = useRef(null);
   const avatarInputRef = useRef(null);
   const settingsButtonRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -631,6 +635,8 @@ const WhatsAppMessenger = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [uploadingVoice, setUploadingVoice] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
@@ -1230,6 +1236,91 @@ const WhatsAppMessenger = () => {
     } finally {
       setIsSending(false);
       if (messageImageInputRef.current) messageImageInputRef.current.value = '';
+    }
+  };
+
+  const handleSendVideo = async (file) => {
+    if (!file) return;
+    if (!selectedUser) { setSendError('Select a conversation before sending.'); return; }
+    if (file.size > 100 * 1024 * 1024) { setSendError('Video must be under 100 MB.'); return; }
+
+    const tempId = `temp_vid_${Date.now()}`;
+    const blobUrl = URL.createObjectURL(file);
+    const now = new Date().toISOString();
+    const recipientId = selectedUser.id || selectedUser._id;
+
+    // Show optimistic blob preview immediately
+    setMessages(prev => [...prev, {
+      id: tempId,
+      sender_id: user?.id || user?._id,
+      recipient_id: recipientId,
+      content: blobUrl,
+      message_type: 'video',
+      timestamp: now,
+      _optimistic: true,
+    }]);
+    setInbox(prev => prev.map(item =>
+      (item.sender_id === recipientId || item.id === recipientId)
+        ? { ...item, last_message: '🎥 Video', last_message_time: now, last_message_type: 'video' }
+        : item
+    ));
+
+    setUploadingVideo(true);
+    setVideoUploadProgress(0);
+    setSendError('');
+
+    try {
+      await serverReady;
+      const token = await getAuthToken();
+      const formData = new FormData();
+      formData.append('video', file, file.name || 'video.mp4');
+
+      // XHR for upload progress tracking
+      const videoUrl = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (evt) => {
+          if (evt.total) setVideoUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try { resolve(JSON.parse(xhr.responseText).url); }
+            catch { reject(new Error('Invalid server response')); }
+          } else {
+            try { reject(new Error(JSON.parse(xhr.responseText).error || 'Upload failed')); }
+            catch { reject(new Error('Upload failed')); }
+          }
+        };
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.open('POST', `${getBase()}/messages/upload-video`);
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.send(formData);
+      });
+
+      const sendRes = await fetch(`${getBase()}/messages/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ recipient_id: recipientId, content: videoUrl, message_type: 'video' }),
+      });
+
+      if (sendRes.ok) {
+        const data = await sendRes.json();
+        const realMessage = { ...(data.message || data), message_type: 'video' };
+        setMessages(prev => prev.map(m => m.id === tempId ? realMessage : m));
+        URL.revokeObjectURL(blobUrl);
+      } else {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        URL.revokeObjectURL(blobUrl);
+        const err = await sendRes.json().catch(() => ({}));
+        setSendError(err.error || 'Failed to send video.');
+      }
+    } catch (error) {
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      URL.revokeObjectURL(blobUrl);
+      setSendError(error.message || 'Video send failed.');
+    } finally {
+      setUploadingVideo(false);
+      setVideoUploadProgress(0);
+      if (messageVideoInputRef.current) messageVideoInputRef.current.value = '';
     }
   };
 
@@ -1866,6 +1957,19 @@ const WhatsAppMessenger = () => {
                             <img src={resolveMediaUrl(msg.image_url)} alt="Shared" className="rounded-md max-w-full h-auto" />
                           ) : msg.message_type === 'voice' && msg.voice_url ? (
                             <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
+                          ) : msg.message_type === 'video' ? (
+                            msg.content?.startsWith('blob:') || msg.content?.startsWith('/api/') || msg.content?.startsWith('http') ? (
+                              <video
+                                controls
+                                playsInline
+                                src={msg.content.startsWith('blob:') ? msg.content : resolveMediaUrl(msg.content)}
+                                style={{ maxWidth: 280, maxHeight: 220, borderRadius: 8, display: 'block', background: '#000', opacity: msg._optimistic ? 0.75 : 1 }}
+                                preload="metadata"
+                                onClick={e => e.stopPropagation()}
+                              />
+                            ) : (
+                              <p className="text-white text-sm leading-relaxed break-words">{msg.content || '🎥 Video'}</p>
+                            )
                           ) : (
                             <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
                           )}
@@ -2047,6 +2151,21 @@ const WhatsAppMessenger = () => {
             >
               <Paperclip className="w-6 h-6" />
             </button>
+            <button
+              onClick={() => messageVideoInputRef.current?.click()}
+              disabled={uploadingVideo}
+              className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target disabled:opacity-50"
+              title="Send video"
+            >
+              {uploadingVideo
+                ? <div className="w-5 h-5 border-2 border-gray-400/30 border-t-gray-400 rounded-full animate-spin" />
+                : <Film className="w-5 h-5" />}
+            </button>
+            {uploadingVideo && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af', flexShrink: 0 }}>
+                <span>{videoUploadProgress}%</span>
+              </div>
+            )}
             <div className="flex-1 whatsapp-input rounded-lg px-3 py-2 md:px-4 md:py-2">
               <input
                 type="text"
@@ -2158,6 +2277,13 @@ const WhatsAppMessenger = () => {
         accept="image/*"
         className="hidden"
         onChange={(e) => handleSendImage(e.target.files?.[0])}
+      />
+      <input
+        ref={messageVideoInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={(e) => { handleSendVideo(e.target.files?.[0]); }}
       />
       <input
         ref={avatarInputRef}
