@@ -117,6 +117,21 @@ const styles = `
   .orange-bg    { background-color: #f97316; }
   .grey-bg      { background-color: #64748b; }
 
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+
+  /* Dynamic viewport height — fixes iOS Safari address-bar clipping */
+  .app-root {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Smooth inertia scroll + prevent body scroll bleed */
+  .messages-area {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Mobile optimizations */
   @media (max-width: 768px) {
     .mobile-sidebar {
@@ -128,12 +143,13 @@ const styles = `
       z-index: 50;
       transform: translateX(-100%);
       transition: transform 0.3s ease-out;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
-    
+
     .mobile-sidebar.active {
       transform: translateX(0);
     }
-    
+
     .mobile-chat {
       position: fixed;
       top: 0;
@@ -142,19 +158,16 @@ const styles = `
       bottom: 0;
       z-index: 40;
     }
-    
+
     .touch-target {
-      min-height: 48px;
-      min-width: 48px;
-    }
-    
-    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-    
+
     .safe-area-bottom {
-      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     }
   }
 `;
@@ -363,7 +376,7 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
           <div className="relative flex-shrink-0">
             <div className={`w-16 h-16 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-gray-700/50 overflow-hidden`}>
               {conv.avatar
-                ? <img src={resolveMediaUrl(conv.avatar)} alt={conv.name} className="w-full h-full object-cover" />
+                ? <img src={resolveMediaUrl(conv.avatar)} alt={conv.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 : conv.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             {conv.online && <div className="absolute bottom-0 right-0 w-4 h-4 green-bg rounded-full border-3 border-gray-900 shadow-lg animate-pulse" />}
@@ -453,7 +466,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
-      <div className="whatsapp-header p-5 flex items-center justify-between border-b border-gray-700 shadow-lg">
+      <div className="whatsapp-header p-3 md:p-5 flex items-center justify-between border-b border-gray-700 shadow-lg">
         <div className="flex items-center gap-3">
           {showArchived ? (
             <button
@@ -507,7 +520,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar">
+      <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar messages-area">
         {inboxLoading ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -1693,7 +1706,7 @@ const WhatsAppMessenger = () => {
   }, [inbox, searchQuery, onlineUsers]);
 
   return (
-    <div className="h-screen whatsapp-bg flex overflow-hidden min-h-0">
+    <div className="app-root whatsapp-bg flex overflow-hidden min-h-0">
       <style>{styles}</style>
       
       {/* Mobile Overlay */}
@@ -1894,7 +1907,7 @@ const WhatsAppMessenger = () => {
           </div>
           
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 whatsapp-chat-bg scrollbar-thin">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 whatsapp-chat-bg scrollbar-thin messages-area">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -1914,7 +1927,7 @@ const WhatsAppMessenger = () => {
                 // ── Missed call message ──
                 if (msg.message_type === 'missed_call') {
                   return (
-                    <div key={msg.id || msg._id} className="flex justify-center my-2" style={{animation: 'fadeIn 0.3s ease-out'}}>
+                    <div key={msg.id || msg._id} className="flex justify-center my-2">
                       <div className="flex items-center gap-2 bg-gray-800/70 border border-gray-700 rounded-full px-4 py-2 shadow">
                         <PhoneOff className={`w-4 h-4 ${isSent ? 'text-gray-400' : 'text-red-400'}`} />
                         <span className={`text-sm ${isSent ? 'text-gray-300' : 'text-red-300'}`}>
@@ -1930,7 +1943,7 @@ const WhatsAppMessenger = () => {
                 const isActive = activeMsg === msgId;
                 const isDeleted = msg._deleted || msg.deleted;
                 return (
-                  <div key={msgId} className={`flex flex-col ${isSent ? 'items-end' : 'items-start'}`} style={{animation: 'fadeIn 0.3s ease-out'}}>
+                  <div key={msgId} className={`flex flex-col ${isSent ? 'items-end' : 'items-start'} ${msg._optimistic ? 'animate-fade-in' : ''}`}>
                     <div
                       className={`max-w-[85%] md:max-w-md ${isSent ? 'message-sent' : 'message-received'} rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-md cursor-pointer`}
                       onClick={() => setActiveMsg(isActive ? null : msgId)}
@@ -1955,16 +1968,16 @@ const WhatsAppMessenger = () => {
                             </div>
                           )}
                           {msg.message_type === 'image' && msg.image_url ? (
-                            <img src={resolveMediaUrl(msg.image_url)} alt="Shared" className="rounded-md max-w-full h-auto" />
+                            <img src={resolveMediaUrl(msg.image_url)} alt="Shared" className="rounded-md max-w-full h-auto" loading="lazy" decoding="async" />
                           ) : msg.message_type === 'voice' && msg.voice_url ? (
-                            <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
+                            <audio controls src={resolveMediaUrl(msg.voice_url)} className="w-full" style={{height: '44px', minWidth: '180px'}} onClick={e => e.stopPropagation()} />
                           ) : msg.message_type === 'video' ? (
                             msg.content?.startsWith('blob:') || msg.content?.startsWith('/api/') || msg.content?.startsWith('http') ? (
                               <video
                                 controls
                                 playsInline
                                 src={msg.content.startsWith('blob:') ? msg.content : resolveMediaUrl(msg.content)}
-                                style={{ maxWidth: 280, maxHeight: 220, borderRadius: 8, display: 'block', background: '#000', opacity: msg._optimistic ? 0.75 : 1 }}
+                                style={{ maxWidth: 'min(280px, calc(85vw - 32px))', maxHeight: 220, borderRadius: 8, display: 'block', width: '100%', background: '#000', opacity: msg._optimistic ? 0.75 : 1 }}
                                 preload="metadata"
                                 onClick={e => e.stopPropagation()}
                               />
