@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { messagesAPI } from '../../services/api';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic, Square, X, Reply } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Film, Mic, Square, X, Reply } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import ContactProfilePanel from './ContactProfilePanel';
@@ -51,6 +51,7 @@ const formatLastSeen = (ts) => {
 
 const ChatWindow = () => {
   const imageInputRef = useRef(null);
+  const videoInputRef = useRef(null);
   const {
     activeConversation,
     messages,
@@ -540,6 +541,7 @@ const ChatWindow = () => {
                 <div style={{ fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {replyToMessage.message_type === 'voice' ? '🎤 Voice note' :
                    replyToMessage.message_type === 'image' ? '🖼 Image' :
+                   replyToMessage.message_type === 'video' ? '🎥 Video' :
                    replyToMessage.content}
                 </div>
               </div>
@@ -564,7 +566,7 @@ const ChatWindow = () => {
                 type="button"
                 aria-label="Attach photo"
                 onClick={() => { if (!canChat) return; imageInputRef.current?.click(); }}
-                disabled={uploadingImage || uploadingVoice || isRecording || !canChat}
+                disabled={uploadingImage || uploadingVideo || uploadingVoice || isRecording || !canChat}
                 style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 6, cursor: canChat ? 'pointer' : 'not-allowed', opacity: canChat ? 1 : 0.4 }}
                 title={canChat ? 'Attach photo' : 'You must be friends to send photos'}
               >
@@ -577,6 +579,26 @@ const ChatWindow = () => {
                 style={{ display: 'none' }}
                 onChange={handleImageChange}
                 disabled={uploadingImage || !canChat}
+              />
+
+              {/* Video button */}
+              <button
+                type="button"
+                aria-label="Attach video"
+                onClick={() => { if (!canChat) return; videoInputRef.current?.click(); }}
+                disabled={uploadingImage || uploadingVideo || uploadingVoice || isRecording || !canChat}
+                style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 8, cursor: canChat ? 'pointer' : 'not-allowed', opacity: canChat ? 1 : 0.4 }}
+                title={canChat ? 'Attach video' : 'You must be friends to send videos'}
+              >
+                <Film className="size-5 text-white/80" />
+              </button>
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                style={{ display: 'none' }}
+                onChange={handleVideoChange}
+                disabled={uploadingVideo || !canChat}
               />
 
               {(uploadingImage || uploadingVoice) && (
@@ -664,7 +686,7 @@ const ChatWindow = () => {
                   className="nexus-voice-btn"
                   aria-label="Record voice message"
                   onClick={startRecording}
-                  disabled={!canChat || uploadingVoice || uploadingImage}
+                  disabled={!canChat || uploadingVoice || uploadingImage || uploadingVideo}
                   title={!canChat ? 'You must be friends to send voice messages' : 'Hold to record voice note'}
                 >
                   <Mic className="size-5 text-white/80" />
