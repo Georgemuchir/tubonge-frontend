@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { messagesAPI } from '../../services/api';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Film, Mic, Square, X, Reply } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Mic, Square, X, Reply } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import ContactProfilePanel from './ContactProfilePanel';
@@ -51,7 +51,6 @@ const formatLastSeen = (ts) => {
 
 const ChatWindow = () => {
   const imageInputRef = useRef(null);
-  const videoInputRef = useRef(null);
   const {
     activeConversation,
     messages,
@@ -59,8 +58,6 @@ const ChatWindow = () => {
     sendMessage,
     sendImageMessage,
     addOptimisticImageMessage,
-    addOptimisticVideoMessage,
-    sendVideoMessage,
     sendTyping,
     typingUsers,
     setActiveConversation,
@@ -72,8 +69,6 @@ const ChatWindow = () => {
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -183,49 +178,6 @@ const ChatWindow = () => {
     } finally {
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
       setUploadingImage(false);
-    }
-  };
-
-  // Video upload — instant optimistic blob preview, then replace with server URL
-  const handleVideoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    e.target.value = '';
-    if (file.size > 100 * 1024 * 1024) {
-      alert('Video must be under 100 MB.');
-      return;
-    }
-
-    // Show the video immediately as a local blob (sender sees it right away)
-    const blobUrl = URL.createObjectURL(file);
-    const tempId = addOptimisticVideoMessage(blobUrl);
-    setUploadingVideo(true);
-    setVideoUploadProgress(0);
-
-    try {
-      const res = await messagesAPI.uploadVideo(file, (evt) => {
-        if (evt.total) {
-          setVideoUploadProgress(Math.round((evt.loaded / evt.total) * 100));
-        }
-      });
-      if (res.data?.url) {
-        // Swap the blob-URL bubble with the real server URL so receiver can play too
-        await sendVideoMessage(
-          tempId,
-          res.data.url,
-          replyToMessage?.id || null,
-          replyToMessage?.content || null,
-          replyToMessage?.senderName || null
-        );
-        setReplyToMessage(null);
-      }
-    } catch {
-      alert('Failed to upload video. Please try again.');
-    } finally {
-      // Keep blob alive a bit longer so the swap animation is smooth
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
-      setUploadingVideo(false);
-      setVideoUploadProgress(0);
     }
   };
 
@@ -547,7 +499,6 @@ const ChatWindow = () => {
                 <div style={{ fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {replyToMessage.message_type === 'voice' ? '🎤 Voice note' :
                    replyToMessage.message_type === 'image' ? '🖼 Image' :
-                   replyToMessage.message_type === 'video' ? '🎥 Video' :
                    replyToMessage.content}
                 </div>
               </div>
@@ -572,7 +523,7 @@ const ChatWindow = () => {
                 type="button"
                 aria-label="Attach photo"
                 onClick={() => { if (!canChat) return; imageInputRef.current?.click(); }}
-                disabled={uploadingImage || uploadingVideo || uploadingVoice || isRecording || !canChat}
+                disabled={uploadingImage || uploadingVoice || isRecording || !canChat}
                 style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 6, cursor: canChat ? 'pointer' : 'not-allowed', opacity: canChat ? 1 : 0.4 }}
                 title={canChat ? 'Attach photo' : 'You must be friends to send photos'}
               >
@@ -587,60 +538,8 @@ const ChatWindow = () => {
                 disabled={uploadingImage || !canChat}
               />
 
-              {/* Video button — accept="video/*" is the reliable iOS approach */}
-              <button
-                type="button"
-                aria-label="Attach video"
-                onClick={() => { if (!canChat) return; videoInputRef.current?.click(); }}
-                disabled={uploadingImage || uploadingVideo || uploadingVoice || isRecording || !canChat}
-                style={{ border: 'none', background: 'transparent', padding: 0, marginRight: 8, cursor: canChat ? 'pointer' : 'not-allowed', opacity: canChat ? 1 : 0.4 }}
-                title={canChat ? 'Attach video' : 'You must be friends to send videos'}
-              >
-                <Film className="size-5 text-white/80" />
-              </button>
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/*"
-                style={{ display: 'none' }}
-                onChange={handleVideoChange}
-                disabled={uploadingVideo || !canChat}
-              />
-
               {(uploadingImage || uploadingVoice) && (
                 <span className="text-xs text-gray-400 ml-2">Uploading...</span>
-              )}
-              {uploadingVideo && (
-                <span className="text-xs text-gray-400 ml-2 flex items-center gap-1">
-                  {videoUploadProgress > 0 && videoUploadProgress < 100 ? (
-                    <>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: 48,
-                          height: 4,
-                          background: 'rgba(255,255,255,0.12)',
-                          borderRadius: 99,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: 'block',
-                            height: '100%',
-                            width: `${videoUploadProgress}%`,
-                            background: '#10b981',
-                            borderRadius: 99,
-                            transition: 'width 0.2s ease',
-                          }}
-                        />
-                      </span>
-                      {videoUploadProgress}%
-                    </>
-                  ) : (
-                    'Uploading video...'
-                  )}
-                </span>
               )}
 
               {/* Recording indicator or text input */}
@@ -712,7 +611,7 @@ const ChatWindow = () => {
                   className="nexus-voice-btn"
                   aria-label="Record voice message"
                   onClick={startRecording}
-                  disabled={!canChat || uploadingVoice || uploadingImage || uploadingVideo}
+                  disabled={!canChat || uploadingVoice || uploadingImage}
                   title={!canChat ? 'You must be friends to send voice messages' : 'Hold to record voice note'}
                 >
                   <Mic className="size-5 text-white/80" />

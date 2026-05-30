@@ -60,7 +60,7 @@ const ConversationList = () => {
     const diffInHours = (now - date) / (1000 * 60 * 60);
     
     if (diffInHours < 24) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });i
     } else {
       return date.toLocaleDateString();
     }
@@ -229,7 +229,6 @@ const ConversationList = () => {
                       const type = conversation.last_message?.message_type || conversation.lastMessageType;
                       const content = conversation.lastMessage || conversation.last_message?.content || '';
                       if (type === 'image' || content.startsWith?.('/api/messages/image/')) return '📷 Photo';
-                      if (type === 'video' || content.startsWith?.('/api/messages/video/')) return '🎥 Video';
                       if (type === 'voice' || content.startsWith?.('/api/messages/voice/')) return '🎤 Voice note';
                       if (type === 'missed_call') return '📵 Missed call';
                       return content || 'Say hello! 👋';

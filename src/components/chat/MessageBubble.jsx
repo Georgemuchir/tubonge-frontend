@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Reply } from 'lucide-react';
 import { API_BASE_URL } from '../../services/api';
 
@@ -7,8 +7,6 @@ const SERVER_URL = API_BASE_URL.replace(/\/api$/, '');
 
 const MessageBubble = ({ message, isOwnMessage, _showAvatar, _otherParticipant, onReply }) => {
   const [hovered, setHovered] = useState(false);
-  const [videoError, setVideoError] = useState(false);
-  const videoRef = useRef(null);
 
   const formatTime = (timestamp) => {
     try {
@@ -25,17 +23,11 @@ const MessageBubble = ({ message, isOwnMessage, _showAvatar, _otherParticipant, 
     return `${SERVER_URL}${content}`;
   };
 
-  // Derive media type — message_type is the authoritative source; URL pattern is a fallback
-  const isVideo = message.message_type === 'video' ||
-    (typeof message.content === 'string' && message.content.startsWith('/api/messages/video/'));
-  // blob: URLs belong to whichever type the message was optimistically set to (image or video)
-  const isImage = !isVideo && (
-    message.message_type === 'image' ||
+  const isImage = message.message_type === 'image' ||
     (typeof message.content === 'string' && (
       message.content.startsWith('/api/messages/image/') ||
       (message.content.startsWith('blob:') && message.message_type === 'image')
-    ))
-  );
+    ));
   const isVoice = message.message_type === 'voice' ||
     (typeof message.content === 'string' && message.content.startsWith('/api/messages/voice/'));
   const hasReply = !!message.reply_to_id;
@@ -111,91 +103,6 @@ const MessageBubble = ({ message, isOwnMessage, _showAvatar, _otherParticipant, 
                   width: 28, height: 28, border: '3px solid rgba(255,255,255,0.7)',
                   borderTopColor: 'transparent', borderRadius: '50%',
                 }} />
-              </div>
-            )}
-          </div>
-        ) : isVideo ? (
-          <div style={{ position: 'relative', display: 'inline-block', marginBottom: 4 }}>
-            {videoError ? (
-              /* Error fallback — shown when video fails to load */
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 240,
-                height: 120,
-                background: 'rgba(255,255,255,0.05)',
-                borderRadius: 8,
-                color: '#9ca3af',
-                fontSize: 13,
-                gap: 6,
-              }}>
-                <span style={{ fontSize: 24 }}>🎥</span>
-                <span>Video unavailable</span>
-                <button
-                  type="button"
-                  style={{
-                    fontSize: 11,
-                    color: '#10b981',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                  onClick={() => {
-                    setVideoError(false);
-                    // Force re-load by bumping the src
-                    if (videoRef.current) {
-                      videoRef.current.load();
-                    }
-                  }}
-                >
-                  Retry
-                </button>
-              </div>
-            ) : (
-              <video
-                ref={videoRef}
-                key={message.content}       /* Re-mount when src changes */
-                controls
-                playsInline                  /* iOS inline playback */
-                src={mediaUrl(message.content)}
-                style={{
-                  maxWidth: 280,
-                  maxHeight: 220,
-                  borderRadius: 8,
-                  display: 'block',
-                  opacity: message.status === 'sending' ? 0.75 : 1,
-                  background: '#000',
-                }}
-                preload="metadata"
-                onError={() => setVideoError(true)}
-              />
-            )}
-
-            {/* Spinner overlay while the message is still being uploaded */}
-            {message.status === 'sending' && !videoError && (
-              <div style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 8,
-                background: 'rgba(0,0,0,0.35)',
-                pointerEvents: 'none',
-              }}>
-                <div
-                  className="animate-spin"
-                  style={{
-                    width: 30,
-                    height: 30,
-                    border: '3px solid rgba(255,255,255,0.7)',
-                    borderTopColor: 'transparent',
-                    borderRadius: '50%',
-                  }}
-                />
               </div>
             )}
           </div>

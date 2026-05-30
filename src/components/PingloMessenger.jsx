@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight, Film } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -159,28 +159,6 @@ const styles = `
   }
 `;
 
-const VideoMessage = ({ src, resolveUrl }) => {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
-    return (
-      <div style={{ padding: '8px 12px', color: '#9ca3af', fontSize: 13, background: 'rgba(255,255,255,0.05)', borderRadius: 8 }}>
-        🎥 Video unavailable
-      </div>
-    );
-  }
-  return (
-    <video
-      controls
-      playsInline
-      preload="metadata"
-      src={resolveUrl(src)}
-      className="rounded-md max-w-full"
-      style={{ maxHeight: 280, display: 'block' }}
-      onClick={e => e.stopPropagation()}
-      onError={() => setFailed(true)}
-    />
-  );
-};
 
 const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
   const [query, setQuery] = useState('');
@@ -405,7 +383,6 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
                   : conv.lastMessageType === 'missed_call'
                     ? <span className="text-red-400 flex items-center gap-1"><PhoneOff className="w-3.5 h-3.5 inline" />{conv.lastMessage || 'Missed call'}</span>
                     : conv.lastMessageType === 'image' ? '📷 Photo'
-                    : conv.lastMessageType === 'video' ? '🎥 Video'
                     : conv.lastMessageType === 'voice' ? '🎤 Voice note'
                     : (conv.lastMessage || 'No messages yet')}
               </p>
@@ -638,7 +615,6 @@ const PingloMessenger = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
-  const messageVideoInputRef = useRef(null);
   const avatarInputRef = useRef(null);
   const settingsButtonRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -659,7 +635,6 @@ const PingloMessenger = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [uploadingVoice, setUploadingVoice] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
@@ -840,7 +815,6 @@ const PingloMessenger = () => {
       if (partnerId) {
         const mtype = newMessage.message_type || 'text';
         const preview = mtype === 'image' ? '📷 Photo'
-          : mtype === 'video' ? '🎥 Video'
           : mtype === 'voice' ? '🎤 Voice note'
           : mtype === 'missed_call' ? '📵 Missed call'
           : (newMessage.content || '');
@@ -1305,75 +1279,6 @@ const PingloMessenger = () => {
     } finally {
       setIsSending(false);
       if (messageImageInputRef.current) messageImageInputRef.current.value = '';
-    }
-  };
-
-  const handleSendVideo = async (file) => {
-    if (!file) return;
-    if (!selectedUser) { setSendError('Select a conversation before sending.'); return; }
-    if (file.size > 100 * 1024 * 1024) { setSendError('Video must be under 100 MB.'); return; }
-    const tempId = `temp_vid_${Date.now()}`;
-    const blobUrl = URL.createObjectURL(file);
-    const now = new Date().toISOString();
-    const recipientId = selectedUser.id || selectedUser._id;
-    // Show optimistic bubble immediately
-    setMessages(prev => [...prev, {
-      id: tempId, sender_id: user?.id || user?._id, recipient_id: recipientId,
-      content: blobUrl, timestamp: now, message_type: 'video', _optimistic: true,
-    }]);
-    updateInboxPreview(recipientId, '🎥 Video', 'video', now);
-    try {
-      setUploadingVideo(true);
-      setSendError('');
-      await serverReady;
-      const token = await getAuthToken();
-      const formData = new FormData();
-      formData.append('video', file, file.name || 'video.mp4');
-      const upRes = await fetch(`${getBase()}/messages/upload-video`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
-      });
-      if (!upRes.ok) {
-        const err = await upRes.json().catch(() => ({}));
-        throw new Error(err.error || 'Video upload failed');
-      }
-      const { url: videoUrl } = await upRes.json();
-
-      const doSend = () => fetch(`${getBase()}/messages/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          recipient_id: selectedUser.id || selectedUser._id,
-          content: videoUrl,
-          message_type: 'video',
-        }),
-      });
-      let sendRes;
-      try { sendRes = await doSend(); }
-      catch {
-        setSendError('Connecting to server…');
-        await new Promise(r => setTimeout(r, 4000));
-        sendRes = await doSend();
-        setSendError('');
-      }
-      if (sendRes.ok) {
-        const data = await sendRes.json();
-        setMessages(prev => prev.map(m => m.id === tempId ? { ...(data.message || data), message_type: 'video' } : m));
-        URL.revokeObjectURL(blobUrl);
-      } else {
-        setMessages(prev => prev.filter(m => m.id !== tempId));
-        URL.revokeObjectURL(blobUrl);
-        const err = await sendRes.json().catch(() => ({}));
-        setSendError(err.error || 'Failed to send video.');
-      }
-    } catch (error) {
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      URL.revokeObjectURL(blobUrl);
-      setSendError(error.message || 'Video send failed.');
-    } finally {
-      setUploadingVideo(false);
-      if (messageVideoInputRef.current) messageVideoInputRef.current.value = '';
     }
   };
 
@@ -2025,8 +1930,6 @@ const PingloMessenger = () => {
                             <img src={resolveMediaUrl(msg.image_url)} alt="Shared" className="rounded-md max-w-full h-auto" />
                           ) : msg.message_type === 'image' && msg.content?.startsWith('/api/messages/image/') ? (
                             <img src={resolveMediaUrl(msg.content)} alt="Shared" className="rounded-md max-w-full h-auto" />
-                          ) : msg.message_type === 'video' || msg.content?.startsWith('/api/messages/video/') ? (
-                            <VideoMessage src={msg.content} resolveUrl={resolveMediaUrl} />
                           ) : msg.message_type === 'voice' && msg.voice_url ? (
                             <audio controls src={resolveMediaUrl(msg.voice_url)} className="max-w-full" style={{height: '36px'}} onClick={e => e.stopPropagation()} />
                           ) : msg.message_type === 'voice' && msg.content?.startsWith('/api/messages/voice/') ? (
@@ -2209,19 +2112,8 @@ const PingloMessenger = () => {
               onClick={() => messageImageInputRef.current?.click()}
               className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
               title="Send image"
-              disabled={uploadingVideo}
             >
               <Paperclip className="w-6 h-6" />
-            </button>
-            <button
-              onClick={() => messageVideoInputRef.current?.click()}
-              className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
-              title="Send video"
-              disabled={uploadingVideo || uploadingVoice}
-            >
-              {uploadingVideo
-                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <Film className="w-5 h-5" />}
             </button>
             <div className="flex-1 pinglo-input rounded-xl px-3 py-2 md:px-4 md:py-2 border border-white/5">
               <input
@@ -2334,13 +2226,6 @@ const PingloMessenger = () => {
         accept="image/*"
         className="hidden"
         onChange={(e) => handleSendImage(e.target.files?.[0])}
-      />
-      <input
-        ref={messageVideoInputRef}
-        type="file"
-        accept="video/*"
-        className="hidden"
-        onChange={(e) => handleSendVideo(e.target.files?.[0])}
       />
       <input
         ref={avatarInputRef}
