@@ -2554,7 +2554,7 @@ const WhatsAppMessenger = () => {
                       if (usernameEdit.length < 3) { setUsernameError('At least 3 characters'); return; }
                       setUsernameSaving(true);
                       try {
-                        const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+                        const token = await auth.currentUser?.getIdToken();
                         const res = await fetch(`${getBase()}/users/profile`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -2607,7 +2607,7 @@ const WhatsAppMessenger = () => {
                   const next = !showLastSeen;
                   setShowLastSeen(next);
                   try {
-                    const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+                    const token = await auth.currentUser?.getIdToken();
                     await fetch(`${getBase()}/users/profile`, {
                       method: 'PUT',
                       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
