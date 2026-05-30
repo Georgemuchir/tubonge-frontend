@@ -59,6 +59,8 @@ const ChatWindow = () => {
     sendMessage,
     sendImageMessage,
     addOptimisticImageMessage,
+    addOptimisticVideoMessage,
+    sendVideoMessage,
     sendTyping,
     typingUsers,
     setActiveConversation,
@@ -71,6 +73,7 @@ const ChatWindow = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -183,7 +186,7 @@ const ChatWindow = () => {
     }
   };
 
-  // Video upload — stream to server, then send URL as message content
+  // Video upload — show optimistic blob preview immediately, then swap with server URL
   const handleVideoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -192,13 +195,18 @@ const ChatWindow = () => {
       alert('Video must be under 100 MB.');
       return;
     }
+    const blobUrl = URL.createObjectURL(file);
+    const tempId = addOptimisticVideoMessage(blobUrl);
     setUploadingVideo(true);
+    setVideoUploadProgress(0);
     try {
-      const res = await messagesAPI.uploadVideo(file);
+      const res = await messagesAPI.uploadVideo(file, (evt) => {
+        if (evt.total) setVideoUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+      });
       if (res.data?.url) {
-        sendMessage(
+        await sendVideoMessage(
+          tempId,
           res.data.url,
-          'video',
           replyToMessage?.id || null,
           replyToMessage?.content || null,
           replyToMessage?.senderName || null
@@ -206,9 +214,11 @@ const ChatWindow = () => {
         setReplyToMessage(null);
       }
     } catch {
-      alert('Failed to upload video.');
+      alert('Failed to upload video. Please try again.');
     } finally {
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
       setUploadingVideo(false);
+      setVideoUploadProgress(0);
     }
   };
 
@@ -594,7 +604,16 @@ const ChatWindow = () => {
                 <span className="text-xs text-gray-400 ml-2">Uploading...</span>
               )}
               {uploadingVideo && (
-                <span className="text-xs text-gray-400 ml-2">Uploading video...</span>
+                <span className="text-xs text-gray-400 ml-2 flex items-center gap-1">
+                  {videoUploadProgress > 0 && videoUploadProgress < 100 ? (
+                    <>
+                      <span style={{ display: 'inline-block', width: 48, height: 4, background: 'rgba(255,255,255,0.12)', borderRadius: 99, overflow: 'hidden' }}>
+                        <span style={{ display: 'block', height: '100%', width: `${videoUploadProgress}%`, background: '#10b981', borderRadius: 99, transition: 'width 0.2s ease' }} />
+                      </span>
+                      {videoUploadProgress}%
+                    </>
+                  ) : 'Uploading video...'}
+                </span>
               )}
 
               {/* Recording indicator or text input */}
