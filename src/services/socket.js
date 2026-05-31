@@ -191,6 +191,38 @@ class SocketService {
     }
   }
 
+  // ── Group Call ──
+  createGroupCall(roomId, inviteeIds, callType, callerId, callerName, callerAvatar) {
+    if (this.socket?.connected) {
+      this.socket.emit('group_call_create', {
+        room_id: roomId, invitee_ids: inviteeIds, call_type: callType,
+        caller_id: callerId, caller_name: callerName, caller_avatar: callerAvatar,
+      });
+    }
+  }
+
+  joinGroupCall(roomId, userId, userName, userAvatar) {
+    if (this.socket?.connected) {
+      this.socket.emit('group_call_join', {
+        room_id: roomId, user_id: userId, user_name: userName, user_avatar: userAvatar,
+      });
+    }
+  }
+
+  leaveGroupCall(roomId, userId) {
+    if (this.socket?.connected) {
+      this.socket.emit('group_call_leave', { room_id: roomId, user_id: userId });
+    }
+  }
+
+  sendGroupSignal(roomId, targetId, fromId, signal) {
+    if (this.socket?.connected) {
+      this.socket.emit('group_call_signal', {
+        room_id: roomId, target_id: targetId, from_id: fromId, signal,
+      });
+    }
+  }
+
   missedCall(callerId, calleeId, callType = 'video') {
     console.log('[SOCKET] missedCall:', { callerId, calleeId, callType });
     if (this.socket?.connected) {

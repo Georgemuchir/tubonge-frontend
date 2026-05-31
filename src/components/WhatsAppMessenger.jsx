@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Film, Smile, Sparkles, Mail, Lock, User, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Film, Smile, Sparkles, Mail, Lock, User, Users, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +10,7 @@ import '../services/api';
 import socketService from '../services/socket';
 import { getActiveApiUrl, serverReady } from '../services/serverConfig';
 import CallManager from './call/CallManager';
+import GroupCallManager from './call/GroupCallManager';
 import CallLogs from './call/CallLogs';
 import ContactProfilePanel from './chat/ContactProfilePanel';
 
@@ -633,6 +634,7 @@ const WhatsAppMessenger = () => {
   const settingsButtonRef = useRef(null);
   const messagesEndRef = useRef(null);
   const callManagerRef = useRef(null);
+  const groupCallManagerRef = useRef(null);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -1893,6 +1895,13 @@ const WhatsAppMessenger = () => {
               >
                 <Video className="w-5 h-5" />
               </button>
+              <button
+                onClick={() => groupCallManagerRef.current?.openInvite()}
+                className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target"
+                title="Group call"
+              >
+                <Users className="w-5 h-5" />
+              </button>
               <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target hidden md:block">
                 <Search className="w-5 h-5" />
               </button>
@@ -2670,6 +2679,15 @@ const WhatsAppMessenger = () => {
         ref={callManagerRef}
         currentUser={user}
         selectedUser={selectedUser}
+      />
+
+      {/* Group / conference call manager */}
+      <GroupCallManager
+        ref={groupCallManagerRef}
+        currentUser={user}
+        contacts={inbox
+          .filter(c => c.sender_id && c.sender_id !== 'None' && c.sender_id !== 'null')
+          .map(c => ({ id: c.sender_id, name: c.sender_name, avatar: c.sender_avatar || '', username: c.sender_username }))}
       />
     </div>
   );
