@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { PhoneOff, Mic, MicOff, Video, VideoOff, Users, Phone, X, Check } from 'lucide-react';
+import { PhoneOff, Mic, MicOff, Video, VideoOff, Users, Phone, X, Check, ScreenShare, ScreenShareOff } from 'lucide-react';
 import Peer from 'simple-peer/simplepeer.min.js';
 import socketService from '../../services/socket';
 
@@ -18,7 +18,7 @@ const getAvatarColor = (name = '') => {
 };
 
 // ── Single participant tile ──────────────────────────────────────────────────
-const Tile = ({ participant, localVideoRef, isLocal }) => {
+const Tile = ({ participant, localVideoRef, isLocal, isScreenSharing }) => {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ const Tile = ({ participant, localVideoRef, isLocal }) => {
     <div className="relative rounded-xl overflow-hidden bg-gray-900 flex items-center justify-center min-h-[120px]">
       {participant.stream && participant.callType === 'video' ? (
         isLocal
-          ? <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+          ? <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={isScreenSharing ? {} : { transform: 'scaleX(-1)' }} />
           : <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
       ) : (
         <div className={`w-16 h-16 rounded-full ${color} flex items-center justify-center text-white text-2xl font-bold`}>
@@ -149,11 +149,13 @@ const GroupCallManager = forwardRef(({ currentUser, contacts = [] }, ref) => {
   const [participants, setParticipants] = useState([]);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [duration, setDuration] = useState(0);
 
   const localStreamRef = useRef(null);
   const localVideoRef = useRef(null);
   const peersRef = useRef(new Map());
+  const screenTrackRef = useRef(null);
   const roomIdRef = useRef('');
   const phaseRef = useRef('idle');
   const timerRef = useRef(null);
@@ -168,6 +170,7 @@ const GroupCallManager = forwardRef(({ currentUser, contacts = [] }, ref) => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     peersRef.current.forEach(p => { try { p.destroy(); } catch {} });
     peersRef.current.clear();
+    if (screenTrackRef.current) { screenTrackRef.current.stop(); screenTrackRef.current = null; }
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
@@ -176,6 +179,7 @@ const GroupCallManager = forwardRef(({ currentUser, contacts = [] }, ref) => {
     setDuration(0);
     setIsMuted(false);
     setIsVideoOff(false);
+    setIsScreenSharing(false);
     setPhase('idle');
     setRoomId('');
   }, []);
@@ -356,6 +360,44 @@ const GroupCallManager = forwardRef(({ currentUser, contacts = [] }, ref) => {
     if (t) { t.enabled = !t.enabled; setIsVideoOff(!t.enabled); }
   }, []);
 
+  const stopScreenShare = useCallback(async () => {
+    if (screenTrackRef.current) { screenTrackRef.current.stop(); screenTrackRef.current = null; }
+    setIsScreenSharing(false);
+    if (!localStreamRef.current) return;
+    try {
+      const camStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+      const camTrack = camStream.getVideoTracks()[0];
+      peersRef.current.forEach(peer => {
+        const sender = peer._pc?.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(camTrack).catch(() => {});
+      });
+      localStreamRef.current.getVideoTracks().forEach(t => { localStreamRef.current.removeTrack(t); t.stop(); });
+      localStreamRef.current.addTrack(camTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+    } catch {}
+  }, []);
+
+  const toggleScreenShare = useCallback(async () => {
+    if (!localStreamRef.current) return;
+    if (isScreenSharing) { stopScreenShare(); return; }
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      screenTrackRef.current = screenTrack;
+      peersRef.current.forEach(peer => {
+        const sender = peer._pc?.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(screenTrack).catch(() => {});
+      });
+      localStreamRef.current.getVideoTracks().forEach(t => { localStreamRef.current.removeTrack(t); });
+      localStreamRef.current.addTrack(screenTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+      setIsScreenSharing(true);
+      screenTrack.addEventListener('ended', stopScreenShare, { once: true });
+    } catch (e) {
+      if (e.name !== 'NotAllowedError') console.error('[GROUP CALL] Screen share failed:', e.message);
+    }
+  }, [isScreenSharing, stopScreenShare]);
+
   // Expose startGroupCall + open invite
   useImperativeHandle(ref, () => ({
     startGroupCall,
@@ -436,6 +478,7 @@ const GroupCallManager = forwardRef(({ currentUser, contacts = [] }, ref) => {
               participant={{ ...localParticipant, callType }}
               localVideoRef={localVideoRef}
               isLocal
+              isScreenSharing={isScreenSharing}
             />
           )}
           {/* Remote tiles */}
@@ -458,6 +501,15 @@ const GroupCallManager = forwardRef(({ currentUser, contacts = [] }, ref) => {
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-95 ${isVideoOff ? 'bg-white text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
             >
               {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
+            </button>
+          )}
+          {callType === 'video' && (
+            <button
+              onClick={toggleScreenShare}
+              title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-95 ${isScreenSharing ? 'bg-teal-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+            >
+              {isScreenSharing ? <ScreenShareOff className="w-6 h-6" /> : <ScreenShare className="w-6 h-6" />}
             </button>
           )}
           <button

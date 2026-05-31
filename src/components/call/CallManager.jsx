@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { PhoneOff, Video, VideoOff, Mic, MicOff, PhoneIncoming, RefreshCw } from 'lucide-react';
+import { PhoneOff, Video, VideoOff, Mic, MicOff, PhoneIncoming, RefreshCw, ScreenShare, ScreenShareOff } from 'lucide-react';
 import Peer from 'simple-peer/simplepeer.min.js';
 import socketService from '../../services/socket';
 
@@ -62,6 +62,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const [incomingCallData, setIncomingCallData] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [error, setError] = useState('');
   const [connectionQuality, setConnectionQuality] = useState('good');
@@ -71,6 +72,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
+  const screenTrackRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
@@ -129,6 +131,10 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       try { peerRef.current.destroy(); } catch {}
       peerRef.current = null;
     }
+    if (screenTrackRef.current) {
+      screenTrackRef.current.stop();
+      screenTrackRef.current = null;
+    }
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
@@ -151,6 +157,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     setCallDuration(0);
     setIsMuted(false);
     setIsVideoOff(false);
+    setIsScreenSharing(false);
     setShowControls(true);
   }, [stopRingtone]);
 
@@ -393,6 +400,44 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     }
   }, []);
 
+  // Revert to camera after screen share ends (called by button or browser "Stop sharing")
+  const stopScreenShare = useCallback(async () => {
+    if (screenTrackRef.current) {
+      screenTrackRef.current.stop();
+      screenTrackRef.current = null;
+    }
+    setIsScreenSharing(false);
+    if (!peerRef.current || !localStreamRef.current) return;
+    try {
+      const camStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+      const camTrack = camStream.getVideoTracks()[0];
+      const sender = peerRef.current._pc?.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) await sender.replaceTrack(camTrack);
+      localStreamRef.current.getVideoTracks().forEach(t => { localStreamRef.current.removeTrack(t); t.stop(); });
+      localStreamRef.current.addTrack(camTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+    } catch {}
+  }, []);
+
+  const toggleScreenShare = useCallback(async () => {
+    if (!peerRef.current || !localStreamRef.current) return;
+    if (isScreenSharing) { stopScreenShare(); return; }
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      screenTrackRef.current = screenTrack;
+      const sender = peerRef.current._pc?.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) await sender.replaceTrack(screenTrack);
+      localStreamRef.current.getVideoTracks().forEach(t => { localStreamRef.current.removeTrack(t); });
+      localStreamRef.current.addTrack(screenTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+      setIsScreenSharing(true);
+      screenTrack.addEventListener('ended', stopScreenShare, { once: true });
+    } catch (e) {
+      if (e.name !== 'NotAllowedError') console.error('[CALL] Screen share failed:', e.message);
+    }
+  }, [isScreenSharing, stopScreenShare]);
+
   // ── Re-attach streams after UI mounts ──
   useEffect(() => {
     if ((callState === CALL_STATE.CALLING || callState === CALL_STATE.CONNECTED) && localStreamRef.current && localVideoRef.current && !localVideoRef.current.srcObject) {
@@ -580,7 +625,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
             {/* Local PiP */}
             <div className="absolute top-16 right-3 w-24 h-36 rounded-xl overflow-hidden border border-gray-600 shadow-lg">
-              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={isScreenSharing ? {} : { transform: 'scaleX(-1)' }} />
             </div>
 
             {/* Bottom fade */}
@@ -600,6 +645,10 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
             <Btn onClick={flipCamera} title="Flip camera"
               className="w-14 h-14 bg-gray-700 hover:bg-gray-600 text-white">
               <RefreshCw className="w-6 h-6" />
+            </Btn>
+            <Btn onClick={toggleScreenShare} title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
+              className={`w-14 h-14 ${isScreenSharing ? 'bg-teal-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
+              {isScreenSharing ? <ScreenShareOff className="w-6 h-6" /> : <ScreenShare className="w-6 h-6" />}
             </Btn>
             <Btn onClick={endCall} title="End call"
               className="w-16 h-16 bg-red-600 hover:bg-red-700 text-white">
