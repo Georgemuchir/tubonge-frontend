@@ -3,7 +3,7 @@ import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Search, Plus, MessageCircle } from 'lucide-react';
 import UserSearchModal from './UserSearchModal';
-import { messageRequestsAPI } from '../../services/api';
+import { messageRequestsAPI, resolveMediaUrl } from '../../services/api';
 
 const ConversationList = () => {
   const { conversations, activeConversation, setActiveConversation, acceptMessageRequest, declineMessageRequest } = useChat();
@@ -151,7 +151,7 @@ const ConversationList = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
                   <div className="nexus-conversation-avatar">
                     {req.sender_avatar ? (
-                      <img src={req.sender_avatar} alt={req.sender_name} className="w-full h-full rounded-[16px] object-cover" />
+                      <img src={resolveMediaUrl(req.sender_avatar)} alt={req.sender_name} className="w-full h-full rounded-[16px] object-cover" />
                     ) : (
                       <span className="text-white font-semibold text-lg">
                         {req.sender_name?.charAt(0)?.toUpperCase() || '?'}
@@ -206,8 +206,8 @@ const ConversationList = () => {
                 {/* Avatar */}
                 <div className="nexus-conversation-avatar">
                   {otherParticipant.avatar ? (
-                    <img 
-                      src={otherParticipant.avatar} 
+                    <img
+                      src={resolveMediaUrl(otherParticipant.avatar)}
                       alt={otherParticipant.name}
                       className="w-full h-full rounded-[16px] object-cover"
                     />

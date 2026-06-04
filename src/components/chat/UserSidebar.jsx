@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Settings, LogOut, User, MessageCircle } from 'lucide-react';
+import { resolveMediaUrl } from '../../services/api';
 import EditProfileModal from './EditProfileModal';
 
 const UserSidebar = () => {
@@ -32,7 +33,7 @@ const UserSidebar = () => {
         >
           {user?.avatar ? (
             <img 
-              src={user.avatar} 
+              src={resolveMediaUrl(user.avatar)}
               alt={user.name}
               className="w-10 h-10 rounded-full object-cover"
             />

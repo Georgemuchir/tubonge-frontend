@@ -11,6 +11,14 @@ const normalizeApiBaseUrl = (url) => {
 // Kept for external consumers that import API_BASE_URL directly
 export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
 
+// Resolves a relative media path (e.g. /api/users/avatar/x.jpg) against the
+// currently active backend, so avatars/images follow the primary→fallback switch.
+export const resolveMediaUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${getActiveApiUrl().replace(/\/api\/?$/, '')}${url}`;
+};
+
 // Create axios instance without a fixed baseURL — set dynamically per request
 const api = axios.create({
   headers: {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { PhoneOff, Mic, MicOff, Video, VideoOff, Users, Phone, X, Check, ScreenShare, ScreenShareOff } from 'lucide-react';
 import Peer from 'simple-peer/simplepeer.min.js';
 import socketService from '../../services/socket';
+import { resolveMediaUrl } from '../../services/api';
 
 const ICE = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -113,7 +114,7 @@ const InviteModal = ({ contacts, onStart, onClose }) => {
               >
                 <div className={`w-10 h-10 rounded-full ${getAvatarColor(c.name)} flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 overflow-hidden`}>
                   {c.avatar
-                    ? <img src={c.avatar} alt={c.name} className="w-full h-full object-cover" />
+                    ? <img src={resolveMediaUrl(c.avatar)} alt={c.name} className="w-full h-full object-cover" />
                     : c.name?.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0 text-left">

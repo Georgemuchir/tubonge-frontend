@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, ArrowLeft, PhoneCall } from 'lucide-react';
-import api from '../../services/api';
+import api, { resolveMediaUrl } from '../../services/api';
 import socketService from '../../services/socket';
 
 const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
@@ -117,7 +117,7 @@ const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
                 >
                   <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-lg flex-shrink-0`}>
                     {call.other_user_avatar
-                      ? <img src={call.other_user_avatar} alt="" className="w-full h-full object-cover rounded-full" />
+                      ? <img src={resolveMediaUrl(call.other_user_avatar)} alt="" className="w-full h-full object-cover rounded-full" />
                       : call.other_user_name?.charAt(0)?.toUpperCase() || '?'
                     }
                   </div>

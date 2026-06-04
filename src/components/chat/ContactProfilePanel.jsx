@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
 import { X, ImageIcon, Mic, Link, ShieldOff, ShieldCheck, Phone, Trash2 } from 'lucide-react';
-import { messagesAPI, usersAPI, API_BASE_URL } from '../../services/api';
+import { messagesAPI, usersAPI, resolveMediaUrl } from '../../services/api';
 
-const SERVER_URL = API_BASE_URL.replace(/\/api$/, '');
-
-const resolveUrl = (content) => {
-  if (!content) return '';
-  if (content.startsWith('http://') || content.startsWith('https://') || content.startsWith('blob:')) return content;
-  return `${SERVER_URL}${content}`;
-};
+const resolveUrl = resolveMediaUrl;
 
 const TABS = [
   { key: 'Photos', icon: ImageIcon },

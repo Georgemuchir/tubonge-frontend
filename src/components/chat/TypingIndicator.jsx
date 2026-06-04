@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from '../../services/api';
+
 const TypingIndicator = ({ user }) => {
   return (
     <div className="flex items-end mb-4">
@@ -6,7 +8,7 @@ const TypingIndicator = ({ user }) => {
         <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
           {user.avatar ? (
             <img 
-              src={user.avatar} 
+              src={resolveMediaUrl(user.avatar)}
               alt={user.name}
               className="w-8 h-8 rounded-full object-cover"
             />

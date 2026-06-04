@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { messagesAPI } from '../../services/api';
+import { messagesAPI, resolveMediaUrl } from '../../services/api';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Send, Phone, Video, MoreVertical, ArrowLeft, ImageIcon, Film, Mic, Square, X, Reply } from 'lucide-react';
@@ -396,7 +396,7 @@ const ChatWindow = () => {
           <div className="nexus-avatar-modern">
             {otherParticipant.avatar ? (
               <img
-                src={otherParticipant.avatar}
+                src={resolveMediaUrl(otherParticipant.avatar)}
                 alt={otherParticipant.name}
                 className="w-full h-full rounded-full object-cover"
               />

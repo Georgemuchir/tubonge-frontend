@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
-import { usersAPI } from '../../services/api';
+import { usersAPI, resolveMediaUrl } from '../../services/api';
 import { useChat } from '../../contexts/ChatContext';
 
 const UserSearchModal = ({ onClose, onSelectUser }) => {
@@ -134,7 +134,7 @@ const UserSearchModal = ({ onClose, onSelectUser }) => {
                     <div className="w-12 h-12 bg-gradient-to-br from-purple-400 via-pink-400 to-red-400 rounded-full flex items-center justify-center">
                       {user.avatar ? (
                         <img 
-                          src={user.avatar} 
+                          src={resolveMediaUrl(user.avatar)}
                           alt={user.name}
                           className="w-10 h-10 rounded-full object-cover"
                         />
