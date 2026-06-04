@@ -80,3 +80,15 @@ export const onServerSwitch = (fn) => {
 
 // True only when a separate local server is configured — used by socket to decide reconnection strategy
 export const hasLocalServer = HAS_LOCAL;
+
+// Called by api.js when a live request fails on the primary (e.g. CORS, network drop).
+// Switches immediately to fallback and starts the retry loop.
+export const triggerFallback = () => {
+  if (_usingFallback || !HAS_LOCAL) return;
+  console.warn('[server] Live request failed on primary — switching to Render fallback');
+  _apiUrl        = FALLBACK_API_FULL;
+  _socketUrl     = FALLBACK_SOCKET_URL;
+  _usingFallback = true;
+  _notify();
+  _scheduleRetry();
+};

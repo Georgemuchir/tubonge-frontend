@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { auth } from '../firebase';
-import { serverReady, getActiveApiUrl } from './serverConfig';
+import { serverReady, getActiveApiUrl, isUsingFallback, triggerFallback, hasLocalServer } from './serverConfig';
 
 const normalizeApiBaseUrl = (url) => {
   const trimmed = (url || '').trim().replace(/\/+$/, '');
@@ -30,15 +30,24 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Handle auth errors
+// Handle auth errors and primary-server failures
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       // Do not redirect; let the UI handle the error
     }
+
+    // Network error (includes CORS failures) on the primary server → switch to
+    // fallback immediately and retry this request once on the new URL.
+    if (!error.response && hasLocalServer && !isUsingFallback() && !error.config?._fallbackRetry) {
+      triggerFallback();
+      const retryConfig = { ...error.config, baseURL: getActiveApiUrl(), _fallbackRetry: true };
+      return api(retryConfig);
+    }
+
     return Promise.reject(error);
   }
 );
