@@ -66,8 +66,8 @@ const styles = `
     box-shadow: 0 12px 40px rgba(124,58,237,0.2);
   }
 
-  .message-sent     { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%); color: #fff; box-shadow: 0 2px 12px rgba(124,58,237,0.35); }
-  .message-received { background: var(--pinglo-msg-received-bg); color: var(--pinglo-msg-received-txt); border: 1px solid rgba(255,255,255,0.06); }
+  .message-sent     { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: #fff; box-shadow: 0 4px 15px rgba(124,58,237,0.35); border-radius: 18px 18px 4px 18px !important; }
+  .message-received { background: var(--pinglo-msg-received-bg); color: var(--pinglo-msg-received-txt); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 18px 18px 18px 4px !important; }
 
   .hover-lift { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
   .hover-lift:hover {
@@ -85,14 +85,13 @@ const styles = `
   .whatsapp-sidebar { background-color: var(--pinglo-sidebar); }
   .whatsapp-chat-bg {
     background-color: var(--pinglo-chat-bg);
-    background-image: repeating-linear-gradient(
-      45deg, transparent, transparent 35px,
-      rgba(59,130,246,0.03) 35px, rgba(59,130,246,0.03) 70px
-    );
+    background-image:
+      radial-gradient(ellipse at 80% 10%, rgba(124,58,237,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse at 10% 80%, rgba(236,72,153,0.05) 0%, transparent 50%);
   }
   .whatsapp-input         { background-color: var(--pinglo-input-bg); color: var(--pinglo-text); }
-  .conversation-hover:hover { background-color: var(--pinglo-hover); }
-  .conversation-active    { background-color: var(--pinglo-active); }
+  .conversation-hover:hover { background-color: var(--pinglo-hover); border-radius: 14px; }
+  .conversation-active    { background-color: var(--pinglo-active); border: 1px solid rgba(168,85,247,0.3); border-radius: 14px; }
 
   /* Tailwind utility overrides for light mode */
   [data-theme="light"] .text-white   { color: var(--pinglo-text) !important; }
@@ -364,49 +363,64 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
   };
 
   return (
-    <div style={{ position: 'relative' }} className="border-b border-gray-700/50">
+    <div style={{ position: 'relative', padding: '0 10px' }}>
       <div
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onContextMenu={onContextMenu}
         onClick={handleClick}
-        style={{ userSelect: 'none', animationDelay: `${index * 0.02}s` }}
-        className="p-4 cursor-pointer hover:bg-gray-800/50 slide-up"
+        style={{ userSelect: 'none', animationDelay: `${index * 0.02}s`, borderRadius: 14, marginBottom: 2, transition: 'background 0.15s' }}
+        className="p-3 cursor-pointer conversation-hover slide-up"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="relative flex-shrink-0">
-            <div className={`w-16 h-16 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-gray-700/50 overflow-hidden`}>
+            <div className={`w-12 h-12 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-base shadow-lg overflow-hidden`}
+              style={{ boxShadow: '0 0 0 2px rgba(255,255,255,0.06)' }}>
               {conv.avatar
                 ? <img src={resolveMediaUrl(conv.avatar)} alt={conv.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 : conv.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            {conv.online && <div className="absolute bottom-0 right-0 w-4 h-4 green-bg rounded-full border-3 border-gray-900 shadow-lg animate-pulse" />}
+            {conv.online && (
+              <div style={{
+                position: 'absolute', bottom: 1, right: 1,
+                width: 11, height: 11, borderRadius: '50%',
+                background: '#22d3a5', border: '2px solid #0d0b1a',
+                boxShadow: '0 0 6px #22d3a5aa',
+              }} />
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-white font-semibold text-lg truncate flex items-center gap-2">
+            <div className="flex items-center justify-between mb-0.5">
+              <h3 style={{ color: '#f0eaff', fontWeight: 600, fontSize: 14 }} className="truncate flex items-center gap-1.5">
                 {conv.name}
-                {isMuted && <BellOff style={{ width: 13, height: 13, color: '#6b7280', flexShrink: 0 }} />}
+                {isMuted && <BellOff style={{ width: 11, height: 11, color: 'rgba(240,234,255,0.3)', flexShrink: 0 }} />}
               </h3>
-              <span className="text-xs text-gray-500 font-medium ml-2 flex-shrink-0">{conv.time}</span>
+              <span style={{ fontSize: 11, color: 'rgba(240,234,255,0.3)', fontWeight: 500 }} className="ml-2 flex-shrink-0">{conv.time}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-gray-400 text-sm truncate flex-1">
+              <p style={{ fontSize: 12, color: 'rgba(240,234,255,0.45)' }} className="truncate flex-1">
                 {conv._isRequest
-                  ? <span className="text-indigo-400">{conv.lastMessage}</span>
+                  ? <span style={{ color: '#a78bfa' }}>{conv.lastMessage}</span>
                   : conv.lastMessageType === 'missed_call'
-                    ? <span className="text-red-400 flex items-center gap-1"><PhoneOff className="w-3.5 h-3.5 inline" />{conv.lastMessage || 'Missed call'}</span>
+                    ? <span style={{ color: '#f87171', display: 'flex', alignItems: 'center', gap: 4 }}><PhoneOff style={{ width: 12, height: 12 }} />{conv.lastMessage || 'Missed call'}</span>
                     : conv.lastMessageType === 'image' ? '📷 Photo'
                     : conv.lastMessageType === 'video' ? '🎥 Video'
                     : (conv.lastMessage || 'No messages yet')}
               </p>
               {conv.lastMessageType === 'image' && conv.lastMessageImageUrl && (
-                <img src={resolveMediaUrl(conv.lastMessageImageUrl)} alt="" className="w-10 h-10 rounded-md object-cover border border-gray-700" />
+                <img src={resolveMediaUrl(conv.lastMessageImageUrl)} alt="" className="w-9 h-9 rounded-lg object-cover" style={{ border: '1px solid rgba(255,255,255,0.08)' }} />
               )}
               {conv._isRequest
-                ? <span className="flex-shrink-0 px-2 py-1 rounded-full bg-indigo-600/80 text-white text-xs font-bold shadow-lg">Request</span>
-                : conv.unread > 0 && <span className="flex-shrink-0 px-2 py-1 rounded-full bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-bold shadow-lg">{conv.unread}</span>}
+                ? <span style={{ flexShrink: 0, padding: '2px 8px', borderRadius: 10, background: 'rgba(99,102,241,0.3)', color: '#a5b4fc', fontSize: 10, fontWeight: 700, border: '1px solid rgba(99,102,241,0.4)' }}>Request</span>
+                : conv.unread > 0 && (
+                  <span style={{
+                    flexShrink: 0, padding: '2px 7px', borderRadius: 10,
+                    background: 'linear-gradient(135deg, #ec4899, #a855f7)',
+                    color: '#fff', fontSize: 10, fontWeight: 700,
+                    boxShadow: '0 0 8px rgba(236,72,153,0.5)',
+                  }}>{conv.unread}</span>
+                )}
             </div>
           </div>
         </div>
@@ -460,69 +474,90 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
 
 const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user, onDelete, onMute, onArchive, mutedIds, archivedIds }) => {
   const [showArchived, setShowArchived] = useState(false);
+  const [activeTab, setActiveTab] = useState('All');
 
   const activeConvs = conversations.filter(c => !archivedIds.has(c.id));
   const archivedConvs = conversations.filter(c => archivedIds.has(c.id));
-  const displayConvs = showArchived ? archivedConvs : activeConvs;
+  const tabFiltered = activeTab === 'Unread'
+    ? activeConvs.filter(c => c.unread > 0)
+    : activeConvs;
+  const displayConvs = showArchived ? archivedConvs : tabFiltered;
 
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
       {/* Header */}
-      <div className="whatsapp-header p-3 md:p-5 flex items-center justify-between border-b border-gray-700 shadow-lg">
-        <div className="flex items-center gap-3">
-          {showArchived ? (
-            <button
-              onClick={() => setShowArchived(false)}
-              className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-all touch-target"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          ) : isMobile && (
-            <button
-              onClick={onOpenSidebar}
-              className="p-2 rounded-lg hover:bg-gray-700 text-white transition-all touch-target"
-            >
-              <Menu className="w-6 h-6" />
+      <div style={{ padding: '20px 20px 0', background: 'var(--pinglo-header)', borderBottom: '1px solid var(--pinglo-border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {showArchived ? (
+              <button onClick={() => setShowArchived(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'rgba(240,234,255,0.45)', display: 'flex' }}>
+                <ArrowLeft style={{ width: 20, height: 20 }} />
+              </button>
+            ) : isMobile && (
+              <button onClick={onOpenSidebar} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: '#f0eaff', display: 'flex' }}>
+                <Menu style={{ width: 22, height: 22 }} />
+              </button>
+            )}
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 16px rgba(168,85,247,0.4)', flexShrink: 0,
+            }}>
+              <MessageCircle style={{ width: 16, height: 16, color: '#fff' }} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f0eaff', letterSpacing: '-0.3px', margin: 0 }}>
+                {showArchived ? 'Archived' : (user?.username ? `@${user.username}` : user?.name || 'Messages')}
+              </h2>
+              <p style={{ fontSize: 12, color: 'rgba(240,234,255,0.4)', margin: 0 }}>
+                {inboxLoading ? 'Loading…' : showArchived ? `${archivedConvs.length} archived` : `${activeConvs.length} active chats`}
+              </p>
+            </div>
+          </div>
+          {!showArchived && (
+            <button onClick={onNewMessage} style={{
+              width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
+              background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', boxShadow: '0 0 14px rgba(168,85,247,0.45)',
+            }}>
+              <Plus style={{ width: 18, height: 18 }} />
             </button>
           )}
-          <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              {showArchived
-                ? <><Archive className="w-6 h-6 text-sky-400" /> Archived</>
-                : <><MessageCircle className="w-6 h-6 text-teal-400" />{user?.username ? `@${user.username}` : user?.name || 'Conversations'}</>
-              }
-            </h2>
-            <p className="text-sm text-gray-400 mt-0.5">
-              {inboxLoading ? 'Loading chats…' : showArchived ? `${archivedConvs.length} archived` : `${activeConvs.length} active chats`}
-            </p>
-          </div>
         </div>
-        {!showArchived && (
-          <button
-            onClick={onNewMessage}
-            className="p-3 rounded-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white transition-all shadow-lg hover:shadow-xl touch-target"
-          >
-            <Plus className="w-6 h-6" />
-          </button>
-        )}
-      </div>
 
-      {/* Search Bar */}
-      <div className="whatsapp-header p-4 border-b border-gray-700">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        {/* Search */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 14px', marginBottom: 12 }}>
+          <Search style={{ width: 14, height: 14, color: 'rgba(240,234,255,0.3)', flexShrink: 0 }} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full pl-12 pr-4 py-3 rounded-xl whatsapp-input text-white text-sm placeholder-gray-400 focus:outline-none border border-gray-700 focus:border-teal-500 transition-colors touch-target"
+            style={{ background: 'none', border: 'none', outline: 'none', color: '#f0eaff', fontSize: 13, flex: 1, fontFamily: 'inherit' }}
           />
         </div>
+
+        {/* Tabs */}
+        {!showArchived && (
+          <div style={{ display: 'flex', gap: 6, paddingBottom: 14 }}>
+            {['All', 'Unread'].map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)} style={{
+                padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                background: activeTab === tab ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'rgba(255,255,255,0.06)',
+                color: activeTab === tab ? '#fff' : 'rgba(240,234,255,0.45)',
+                boxShadow: activeTab === tab ? '0 0 12px rgba(168,85,247,0.4)' : 'none',
+                transition: 'all 0.15s',
+              }}>{tab}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar messages-area">
+      <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar messages-area" style={{ paddingTop: 6 }}>
         {inboxLoading ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -1855,7 +1890,7 @@ const WhatsAppMessenger = () => {
         ) : (
           <>
           {/* Chat Header */}
-          <div className="whatsapp-header p-3 flex items-center justify-between border-l border-gray-800">
+          <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', background: 'rgba(13,11,26,0.88)', position: 'relative', zIndex: 10, borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
               {isMobile && (
                 <button 
@@ -1878,19 +1913,19 @@ const WhatsAppMessenger = () => {
                   )}
                 </div>
                 {(onlineUsers[selectedUser.id] || onlineUsers[selectedUser._id] || selectedUser.online) && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 green-bg rounded-full border-2 border-gray-900 animate-pulse"></div>
+                  <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#22d3a5', border: '2px solid #0d0b1a', boxShadow: '0 0 6px #22d3a5aa' }} />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-medium truncate">{selectedUser.name}</p>
-                <p className="text-xs">
+                <p style={{ color: '#f0eaff', fontWeight: 700, fontSize: 15 }} className="truncate">{selectedUser.name}</p>
+                <p style={{ fontSize: 11, margin: 0 }}>
                   {(selectedUser?.isTyping || typingUsers[(selectedUser?.id || selectedUser?._id)]) ? (
-                    <span className="italic text-sm green-accent">typing...</span>
+                    <span style={{ color: '#22d3a5', fontStyle: 'italic' }}>typing...</span>
                   ) : (
                     (onlineUsers[selectedUser?.id] || onlineUsers[selectedUser?._id] || selectedUser?.online) ? (
-                      <span className="green-accent">online</span>
+                      <span style={{ color: '#22d3a5' }}>● Active now</span>
                     ) : (
-                      <span className="text-gray-400">{showLastSeen ? formatLastSeen(selectedUser?.last_seen) : 'Offline'}</span>
+                      <span style={{ color: 'rgba(240,234,255,0.4)' }}>{showLastSeen ? formatLastSeen(selectedUser?.last_seen) : 'Offline'}</span>
                     )
                   )}
                 </p>
@@ -2206,7 +2241,7 @@ const WhatsAppMessenger = () => {
                 <span>{videoUploadProgress}%</span>
               </div>
             )}
-            <div className="flex-1 whatsapp-input rounded-lg px-3 py-2 md:px-4 md:py-2">
+            <div className="flex-1" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, padding: '10px 16px', backdropFilter: 'blur(10px)' }}>
               <input
                 type="text"
                 value={message}
