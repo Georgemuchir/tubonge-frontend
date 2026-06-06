@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Film, Smile, Sparkles, Mail, Lock, User, Users, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Film, Smile, Sparkles, Mail, Lock, User, Users, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight, Rss } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +13,7 @@ import CallManager from './call/CallManager';
 import GroupCallManager from './call/GroupCallManager';
 import CallLogs from './call/CallLogs';
 import ContactProfilePanel from './chat/ContactProfilePanel';
+import NewsFeed from './NewsFeed';
 
 const getAuthToken = async () => {
   const firebaseUser = auth.currentUser;
@@ -626,6 +627,7 @@ const WhatsAppMessenger = () => {
   const [typingUsers, setTypingUsers] = useState({});
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showCallLogs, setShowCallLogs] = useState(false);
+  const [showFeed, setShowFeed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
@@ -1762,8 +1764,21 @@ const WhatsAppMessenger = () => {
               New Chat
             </span>
           </button>
-          
-          
+
+          <button
+            onClick={() => { setShowFeed(v => !v); setSelectedUser(null); setShowCallLogs(false); }}
+            className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showFeed ? 'bg-gray-700/50 text-purple-400' : 'text-gray-400 hover:text-purple-400'}`}
+            title="News Feed"
+          >
+            <Rss className="w-6 h-6" />
+            {!showFeed && (
+              <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                News Feed
+              </span>
+            )}
+          </button>
+
+
           <div data-settings-panel>
             <button
               ref={settingsButtonRef}
@@ -1797,7 +1812,9 @@ const WhatsAppMessenger = () => {
       
       {/* Chat Area */}
       <div className={`flex-1 flex flex-col min-h-0 ${isMobile && selectedUser ? 'mobile-chat' : ''}`} style={{ position: 'relative' }}>
-        {showCallLogs && !selectedUser ? (
+        {showFeed && !selectedUser ? (
+          <NewsFeed onBack={() => setShowFeed(false)} />
+        ) : showCallLogs && !selectedUser ? (
           <CallLogs
             onBack={() => setShowCallLogs(false)}
             onCallback={(call) => {
