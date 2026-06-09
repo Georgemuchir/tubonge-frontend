@@ -10,18 +10,18 @@
 ───────────────────────────────────────── */
 :root {
   /* Messenger */
-  --pinglo-bg:              #0d0b1a;
-  --pinglo-header:          rgba(13,11,26,0.92);
-  --pinglo-sidebar:         #0d0b1a;
-  --pinglo-chat-bg:         #0d0b1a;
+  --pinglo-bg:              #0f0f17;
+  --pinglo-header:          #13131e;
+  --pinglo-sidebar:         #13131e;
+  --pinglo-chat-bg:         #0f0f17;
   --pinglo-input-bg:        rgba(255,255,255,0.06);
-  --pinglo-border:          rgba(255,255,255,0.08);
-  --pinglo-text:            #f0eaff;
-  --pinglo-text-muted:      rgba(240,234,255,0.45);
-  --pinglo-hover:           rgba(255,255,255,0.07);
-  --pinglo-active:          rgba(168,85,247,0.18);
-  --pinglo-msg-received-bg: rgba(255,255,255,0.09);
-  --pinglo-msg-received-txt:#f0eaff;
+  --pinglo-border:          rgba(255,255,255,0.07);
+  --pinglo-text:            #e8e6f0;
+  --pinglo-text-muted:      rgba(232,230,240,0.45);
+  --pinglo-hover:           rgba(255,255,255,0.05);
+  --pinglo-active:          rgba(139,92,246,0.15);
+  --pinglo-msg-received-bg: rgba(255,255,255,0.07);
+  --pinglo-msg-received-txt:#e8e6f0;
   --pinglo-scrollbar-track: transparent;
 
   /* Auth pages */

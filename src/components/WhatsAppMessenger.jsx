@@ -660,9 +660,7 @@ const WhatsAppMessenger = () => {
   const [totalUnread, setTotalUnread] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState({});
   const [typingUsers, setTypingUsers] = useState({});
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
-  const [showCallLogs, setShowCallLogs] = useState(false);
-  const [showFeed, setShowFeed] = useState(false);
+  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'chats' | 'calls' | 'profile'
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
