@@ -136,6 +136,16 @@ function ArticleCard({ article, onLike, onShare, onSave }) {
         boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
       }}
     >
+      {article.image_url && (
+        <div className="w-full h-40 overflow-hidden" onClick={openArticle}>
+          <img
+            src={article.image_url}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={e => { e.currentTarget.style.display = 'none'; }}
+          />
+        </div>
+      )}
       <div className="p-4" onClick={openArticle}>
         {/* Category + Source row */}
         <div className="flex items-center gap-2 mb-3">

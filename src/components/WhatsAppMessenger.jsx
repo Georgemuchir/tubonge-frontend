@@ -664,6 +664,15 @@ const WhatsAppMessenger = () => {
   const [showCallLogs, setShowCallLogs] = useState(false);
   const [showFeed, setShowFeed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [navTab, setNavTab] = useState('chat');
+
+  const switchTab = (tab) => {
+    setNavTab(tab);
+    setShowFeed(tab === 'feed');
+    setShowCallLogs(tab === 'calls');
+    setShowSettings(false);
+    if (tab !== 'chat') setSelectedUser(null);
+  };
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
   const messageVideoInputRef = useRef(null);
