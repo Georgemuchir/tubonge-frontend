@@ -10,21 +10,21 @@
 ───────────────────────────────────────── */
 :root {
   /* Messenger */
-  --pinglo-bg:              #0a0a12;
-  --pinglo-header:          rgba(255,255,255,0.025);
-  --pinglo-sidebar:         rgba(255,255,255,0.025);
-  --pinglo-chat-bg:         #0a0a12;
-  --pinglo-input-bg:        rgba(255,255,255,0.05);
-  --pinglo-border:          rgba(255,255,255,0.06);
-  --pinglo-text:            #e2e8f0;
-  --pinglo-text-muted:      #64748b;
-  --pinglo-hover:           rgba(255,255,255,0.05);
+  --pinglo-bg:              #0d0b1a;
+  --pinglo-header:          rgba(13,11,26,0.9);
+  --pinglo-sidebar:         #0d0b1a;
+  --pinglo-chat-bg:         #0d0b1a;
+  --pinglo-input-bg:        rgba(255,255,255,0.06);
+  --pinglo-border:          rgba(255,255,255,0.08);
+  --pinglo-text:            #f0eaff;
+  --pinglo-text-muted:      rgba(240,234,255,0.45);
+  --pinglo-hover:           rgba(255,255,255,0.07);
   --pinglo-active:          rgba(168,85,247,0.18);
-  --pinglo-msg-received-bg: rgba(255,255,255,0.06);
-  --pinglo-msg-received-txt:#e2e8f0;
+  --pinglo-msg-received-bg: rgba(255,255,255,0.09);
+  --pinglo-msg-received-txt:#f0eaff;
   --pinglo-scrollbar-track: transparent;
-  --pinglo-gradient:        linear-gradient(135deg,#9333ea,#ec4899);
-  --pinglo-gradient-soft:   linear-gradient(135deg,#a855f7,#ec4899);
+  --pinglo-gradient:        linear-gradient(135deg,#7c3aed,#a855f7);
+  --pinglo-gradient-soft:   linear-gradient(135deg,#7c3aed,#ec4899);
 
   /* Auth pages */
   --auth-bg-from:        #07070f;

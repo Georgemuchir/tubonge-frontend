@@ -211,7 +211,7 @@ const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
             return (
             <div key={contact.sender_id || contact.id} onClick={() => onForward(contact)}
               className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer">
-              <div className={`w-11 h-11 rounded-full ${getAvatarColor(name)} flex items-center justify-center text-white font-semibold text-base overflow-hidden flex-shrink-0`}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg, ${getAvatarColor(name)}cc, ${getAvatarColor(name)}55)`, border: `1.5px solid ${getAvatarColor(name)}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, boxShadow: `0 0 10px ${getAvatarColor(name)}33` }}>
                 {contact.avatar ? <img src={resolveMediaUrl(contact.avatar)} alt={name} className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
               </div>
               <p className="text-white font-medium">{name}</p>
@@ -258,7 +258,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
   };
 
   const getAvatarColor = (name) => {
-    const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500'];
+    const colors = ['#ec4899', '#7c3aed', '#06b6d4', '#f59e0b', '#10b981', '#818cf8'];
     const index = (name?.charCodeAt(0) || 0) % colors.length;
     return colors[index];
   };
@@ -304,7 +304,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
                 }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
               >
-                <div className={`w-12 h-12 rounded-full ${getAvatarColor(user.name)} flex items-center justify-center text-white font-semibold text-lg overflow-hidden`}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: `linear-gradient(135deg, ${getAvatarColor(user.name)}cc, ${getAvatarColor(user.name)}55)`, border: `1.5px solid ${getAvatarColor(user.name)}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', overflow: 'hidden', boxShadow: `0 0 10px ${getAvatarColor(user.name)}33` }}>
                   {user.avatar ? (
                     <img
                       src={resolveMediaUrl(user.avatar)}
@@ -375,8 +375,7 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
       >
         <div className="flex items-center gap-3">
           <div className="relative flex-shrink-0">
-            <div className={`w-12 h-12 rounded-full ${conv.color} flex items-center justify-center text-white font-bold text-base shadow-lg overflow-hidden`}
-              style={{ boxShadow: '0 0 0 2px rgba(255,255,255,0.06)' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: `linear-gradient(135deg, ${conv.color}cc, ${conv.color}55)`, border: `1.5px solid ${conv.color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff', overflow: 'hidden', boxShadow: `0 0 10px ${conv.color}33` }}>
               {conv.avatar
                 ? <img src={resolveMediaUrl(conv.avatar)} alt={conv.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 : conv.name?.charAt(0).toUpperCase() || 'U'}
@@ -982,7 +981,7 @@ const WhatsAppMessenger = () => {
   };
 
   const getAvatarColor = (name) => {
-    const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500'];
+    const colors = ['#ec4899', '#7c3aed', '#06b6d4', '#f59e0b', '#10b981', '#818cf8'];
     const index = (name?.charCodeAt(0) || 0) % colors.length;
     return colors[index];
   };
@@ -1910,7 +1909,7 @@ const WhatsAppMessenger = () => {
                 </button>
               )}
               <div className="relative flex-shrink-0">
-                <div className={`w-10 h-10 rounded-full ${getAvatarColor(selectedUser.name)} flex items-center justify-center text-white font-semibold overflow-hidden`}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg, ${getAvatarColor(selectedUser.name)}cc, ${getAvatarColor(selectedUser.name)}55)`, border: `1.5px solid ${getAvatarColor(selectedUser.name)}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', overflow: 'hidden', boxShadow: `0 0 10px ${getAvatarColor(selectedUser.name)}33` }}>
                   {selectedUser.avatar ? (
                     <img
                       src={resolveMediaUrl(selectedUser.avatar)}
@@ -2292,7 +2291,7 @@ const WhatsAppMessenger = () => {
               <button
                 onClick={handleSend}
                 disabled={isSending}
-                className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
+                className="p-2 rounded-full text-white transition-colors touch-target disabled:opacity-50" style={{background:'linear-gradient(135deg,#7c3aed,#ec4899)',boxShadow:'0 0 14px rgba(168,85,247,0.45)'}}
               >
                 {isSending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
               </button>
@@ -2300,7 +2299,7 @@ const WhatsAppMessenger = () => {
               <button
                 onClick={startRecording}
                 disabled={uploadingVoice}
-                className="p-2 rounded-full blue-bg blue-bg-hover text-white transition-colors touch-target disabled:opacity-50"
+                className="p-2 rounded-full text-white transition-colors touch-target disabled:opacity-50" style={{background:'linear-gradient(135deg,#7c3aed,#ec4899)',boxShadow:'0 0 14px rgba(168,85,247,0.45)'}}
                 title="Record voice note"
               >
                 {uploadingVoice ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mic className="w-5 h-5" />}
