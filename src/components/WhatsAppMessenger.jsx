@@ -81,13 +81,13 @@ const styles = `
 
   /* ── Theme-aware messenger classes ── */
   .whatsapp-bg      { background-color: var(--pinglo-bg); color: var(--pinglo-text); }
-  .whatsapp-header  { background-color: var(--pinglo-header); }
-  .whatsapp-sidebar { background-color: var(--pinglo-sidebar); }
+  .whatsapp-header  { background: var(--pinglo-header); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  .whatsapp-sidebar { background: var(--pinglo-sidebar); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
   .whatsapp-chat-bg {
     background-color: var(--pinglo-chat-bg);
     background-image:
-      radial-gradient(ellipse at 80% 10%, rgba(124,58,237,0.07) 0%, transparent 55%),
-      radial-gradient(ellipse at 10% 80%, rgba(236,72,153,0.05) 0%, transparent 50%);
+      radial-gradient(circle at 80% 5%, rgba(168,85,247,0.07) 0%, transparent 50%),
+      radial-gradient(circle at 10% 80%, rgba(236,72,153,0.04) 0%, transparent 50%);
   }
   .whatsapp-input         { background-color: var(--pinglo-input-bg); color: var(--pinglo-text); }
   .conversation-hover:hover { background-color: var(--pinglo-hover); border-radius: 14px; }
@@ -1776,7 +1776,7 @@ const WhatsAppMessenger = () => {
         <div className="mb-8 relative">
           <button
             onClick={() => avatarInputRef.current?.click()}
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-2 ring-teal-400/40 hover:ring-teal-400/80 cursor-pointer hover:scale-105 transition-all duration-200 overflow-hidden relative border-2 border-white/10"
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-2 ring-purple-400/40 hover:ring-purple-400/80 cursor-pointer hover:scale-105 transition-all duration-200 overflow-hidden relative border-2 border-white/10"
             title="Change profile photo"
           >
             {user?.avatar ? (
@@ -1790,7 +1790,7 @@ const WhatsAppMessenger = () => {
             )}
           </button>
           {totalUnread > 0 && (
-            <div className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md border-2 border-gray-900">
+            <div className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center shadow-md border-2 border-gray-900" style={{background:'linear-gradient(135deg,#9333ea,#ec4899)'}}>
               {totalUnread > 99 ? '99+' : totalUnread}
             </div>
           )}
@@ -1800,7 +1800,7 @@ const WhatsAppMessenger = () => {
         <div className="flex-1 flex flex-col gap-4 items-center">
           <button
             onClick={() => setShowUserSearch(true)}
-            className="p-4 rounded-xl hover:bg-gray-700/50 text-gray-400 hover:text-teal-400 transition-all touch-target group relative"
+            className="p-4 rounded-xl hover:bg-purple-500/15 text-gray-400 hover:text-purple-400 transition-all touch-target group relative"
             title="New Chat"
           >
             <MessageCircle className="w-6 h-6" />
@@ -1811,7 +1811,7 @@ const WhatsAppMessenger = () => {
 
           <button
             onClick={() => { setShowFeed(v => !v); setSelectedUser(null); setShowCallLogs(false); }}
-            className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showFeed ? 'bg-gray-700/50 text-purple-400' : 'text-gray-400 hover:text-purple-400'}`}
+            className={`p-4 rounded-xl hover:bg-purple-500/15 transition-all touch-target group relative ${showFeed ? 'bg-purple-500/18 text-purple-400' : 'text-gray-400 hover:text-purple-400'}`}
             title="News Feed"
           >
             <Rss className="w-6 h-6" />
@@ -1827,7 +1827,7 @@ const WhatsAppMessenger = () => {
             <button
               ref={settingsButtonRef}
               onClick={() => setShowSettings(v => !v)}
-              className={`p-4 rounded-xl hover:bg-gray-700/50 transition-all touch-target group relative ${showSettings ? 'bg-gray-700/50 text-blue-400' : 'text-gray-400 hover:text-blue-400'}`}
+              className={`p-4 rounded-xl hover:bg-purple-500/15 transition-all touch-target group relative ${showSettings ? 'bg-purple-500/18 text-purple-400' : 'text-gray-400 hover:text-purple-400'}`}
               title="Settings"
             >
               <Settings className="w-6 h-6" />

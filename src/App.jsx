@@ -113,7 +113,7 @@ const router = createBrowserRouter(
           path: "/",
           element: (
             <ProtectedRoute>
-              <PingloApp />
+              <WhatsAppMessenger />
             </ProtectedRoute>
           ),
         },
