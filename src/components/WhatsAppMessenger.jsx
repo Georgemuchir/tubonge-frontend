@@ -485,47 +485,38 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
   const displayConvs = showArchived ? archivedConvs : tabFiltered;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 whatsapp-bg border-l border-gray-800">
+    <div className="flex-1 flex flex-col min-h-0 whatsapp-bg">
       {/* Header */}
       <div style={{ padding: '20px 20px 0', background: 'var(--pinglo-header)', borderBottom: '1px solid var(--pinglo-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {showArchived ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {showArchived && (
               <button onClick={() => setShowArchived(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'rgba(240,234,255,0.45)', display: 'flex' }}>
                 <ArrowLeft style={{ width: 20, height: 20 }} />
               </button>
-            ) : isMobile && (
-              <button onClick={onOpenSidebar} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: '#f0eaff', display: 'flex' }}>
-                <Menu style={{ width: 22, height: 22 }} />
-              </button>
             )}
             <div style={{
-              width: 34, height: 34, borderRadius: 10,
+              width: 32, height: 32, borderRadius: 9,
               background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 16px rgba(168,85,247,0.4)', flexShrink: 0,
+              boxShadow: '0 0 14px rgba(168,85,247,0.5)', flexShrink: 0,
             }}>
-              <MessageCircle style={{ width: 16, height: 16, color: '#fff' }} />
+              <MessageCircle style={{ width: 15, height: 15, color: '#fff' }} />
             </div>
-            <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f0eaff', letterSpacing: '-0.3px', margin: 0 }}>
-                {showArchived ? 'Archived' : (user?.username ? `@${user.username}` : user?.name || 'Messages')}
-              </h2>
-              <p style={{ fontSize: 12, color: 'rgba(240,234,255,0.4)', margin: 0 }}>
-                {inboxLoading ? 'Loading…' : showArchived ? `${archivedConvs.length} archived` : `${activeConvs.length} active chats`}
-              </p>
-            </div>
+            <span style={{ fontSize: 17, fontWeight: 700, color: '#f0eaff' }}>
+              {showArchived ? 'Archived' : 'Pinglo'}
+            </span>
           </div>
-          {!showArchived && (
-            <button onClick={onNewMessage} style={{
-              width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', boxShadow: '0 0 14px rgba(168,85,247,0.45)',
-            }}>
-              <Plus style={{ width: 18, height: 18 }} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
+              <Search style={{ width: 13, height: 13 }} />
             </button>
-          )}
+            {!showArchived && (
+              <button onClick={onNewMessage} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Search */}
@@ -1758,124 +1749,22 @@ const WhatsAppMessenger = () => {
   }, [inbox, searchQuery, onlineUsers]);
 
   return (
-    <div className="app-root whatsapp-bg flex overflow-hidden min-h-0">
+    <div className="app-root whatsapp-bg flex flex-col overflow-hidden min-h-0">
       <style>{styles}</style>
-      
-      {/* Mobile Overlay */}
-      {isMobile && showMobileSidebar && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setShowMobileSidebar(false)}
-        />
-      )}
-      
-      {/* Minimal Sidebar */}
-      <div className={`
-        ${isMobile ? 'mobile-sidebar' : 'w-20'} 
-        ${isMobile && showMobileSidebar ? 'active' : ''}
-        whatsapp-sidebar border-r border-gray-800 flex flex-col items-center py-6
-        ${isMobile ? 'max-w-[85%]' : ''}
-      `}>
-        {/* User Profile */}
-        <div className="mb-8 relative">
-          <button
-            onClick={() => avatarInputRef.current?.click()}
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-2xl shadow-xl ring-2 ring-purple-400/40 hover:ring-purple-400/80 cursor-pointer hover:scale-105 transition-all duration-200 overflow-hidden relative border-2 border-white/10"
-            title="Change profile photo"
-          >
-            {user?.avatar ? (
-              <img
-                src={resolveMediaUrl(user.avatar)}
-                alt="Profile"
-                className="absolute inset-0 w-full h-full object-cover object-center"
-              />
-            ) : (
-              user?.name?.charAt(0).toUpperCase() || 'P'
-            )}
-          </button>
-          {totalUnread > 0 && (
-            <div className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center shadow-md border-2 border-gray-900" style={{background:'linear-gradient(135deg,#9333ea,#ec4899)'}}>
-              {totalUnread > 99 ? '99+' : totalUnread}
-            </div>
-          )}
-        </div>
-        
-        {/* Navigation Icons */}
-        <div className="flex-1 flex flex-col gap-1 items-center w-full px-2">
-          {[
-            { tab: 'chat',     label: 'Chat',     icon: <MessageCircle className="w-5 h-5" /> },
-            { tab: 'calls',    label: 'Call',     icon: <Phone className="w-5 h-5" /> },
-            { tab: 'feed',     label: 'Feeds',    icon: <Rss className="w-5 h-5" /> },
-            { tab: 'contacts', label: 'Contacts', icon: <Users className="w-5 h-5" /> },
-            { tab: 'profile',  label: 'Profile',  icon: <User className="w-5 h-5" /> },
-          ].map(({ tab, label, icon }) => {
-            const isActive = navTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => {
-                  if (tab === 'contacts') { setShowUserSearch(true); return; }
-                  if (tab === 'profile') { setShowProfileModal(true); return; }
-                  switchTab(tab);
-                }}
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                  background: isActive ? 'rgba(168,85,247,0.18)' : 'none',
-                  border: 'none', cursor: 'pointer', padding: '8px 12px', borderRadius: 10,
-                  color: isActive ? '#a855f7' : 'rgba(240,234,255,0.45)',
-                  transition: 'all 0.15s', width: '100%',
-                }}
-                className="hover:bg-purple-500/10"
-              >
-                {icon}
-                <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 400 }}>{label}</span>
-              </button>
-            );
-          })}
-        </div>
 
-        {/* Settings + Logout at Bottom */}
-        <div className="flex flex-col gap-1 items-center w-full px-2">
-          <div data-settings-panel>
-            <button
-              ref={settingsButtonRef}
-              onClick={() => setShowSettings(v => !v)}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                background: showSettings ? 'rgba(168,85,247,0.18)' : 'none',
-                border: 'none', cursor: 'pointer', padding: '8px 12px', borderRadius: 10,
-                color: showSettings ? '#a855f7' : 'rgba(240,234,255,0.45)',
-                transition: 'all 0.15s', width: '100%',
-              }}
-              className="hover:bg-purple-500/10"
-            >
-              <Settings className="w-5 h-5" />
-              <span style={{ fontSize: 10 }}>Settings</span>
-            </button>
-          </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '8px 12px', borderRadius: 10,
-              color: 'rgba(240,234,255,0.35)', transition: 'all 0.15s', width: '100%',
-            }}
-            className="hover:bg-red-900/20 hover:!text-red-400"
-          >
-            <LogOut className="w-5 h-5" />
-            <span style={{ fontSize: 10 }}>Logout</span>
-          </button>
-        </div>
+      {/* Hidden sentinel: keeps click-outside handler for settings working */}
+      <div data-settings-panel style={{ display: 'none' }}>
+        <button ref={settingsButtonRef} />
       </div>
       
-      {/* Chat Area */}
-      <div className={`flex-1 flex flex-col min-h-0 ${isMobile && selectedUser ? 'mobile-chat' : ''}`} style={{ position: 'relative' }}>
+      
+      {/* Content Area */}
+      <div className="flex-1 flex flex-col min-h-0" style={{ position: 'relative' }}>
         {showFeed && !selectedUser ? (
-          <NewsFeed onBack={() => setShowFeed(false)} />
+          <NewsFeed onBack={() => switchTab('chat')} />
         ) : showCallLogs && !selectedUser ? (
           <CallLogs
-            onBack={() => setShowCallLogs(false)}
+            onBack={() => switchTab('chat')}
             onCallback={(call) => {
               // Find or create user object to start a call back
               const callbackUser = {
@@ -2353,6 +2242,53 @@ const WhatsAppMessenger = () => {
           </>
         )}
       </div>
+
+      {/* Bottom Nav — hidden while in an active chat */}
+      {!selectedUser && (
+        <div style={{
+          display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+          padding: '10px 8px 22px',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          background: '#0d0b1a',
+          flexShrink: 0,
+        }}>
+          {[
+            { tab: 'chat',     label: 'Chat',     icon: <MessageCircle style={{ width: 22, height: 22 }} /> },
+            { tab: 'calls',    label: 'Call',     icon: <Phone style={{ width: 22, height: 22 }} /> },
+            { tab: 'feed',     label: 'Feeds',    icon: <Rss style={{ width: 22, height: 22 }} /> },
+            { tab: 'contacts', label: 'Contacts', icon: <Users style={{ width: 22, height: 22 }} /> },
+            { tab: 'profile',  label: 'Profile',  icon: <User style={{ width: 22, height: 22 }} /> },
+          ].map(({ tab, label, icon }) => {
+            const isActive = navTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => {
+                  if (tab === 'contacts') { setShowUserSearch(true); return; }
+                  if (tab === 'profile') { setShowProfileModal(true); return; }
+                  switchTab(tab);
+                }}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '6px 14px', borderRadius: 10,
+                  color: isActive ? '#a855f7' : 'rgba(240,234,255,0.4)',
+                  transition: 'all 0.15s', flex: 1,
+                }}
+              >
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  background: isActive ? 'rgba(168,85,247,0.18)' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {icon}
+                </div>
+                <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 400 }}>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {showUserSearch && (
         <UserSearch
