@@ -86,8 +86,8 @@ const styles = `
   .whatsapp-chat-bg {
     background-color: var(--pinglo-chat-bg);
     background-image:
-      radial-gradient(circle at 80% 5%, rgba(168,85,247,0.07) 0%, transparent 50%),
-      radial-gradient(circle at 10% 80%, rgba(236,72,153,0.04) 0%, transparent 50%);
+      radial-gradient(circle at 85% 8%, rgba(124,58,237,0.1) 0%, transparent 70%),
+      radial-gradient(circle at 10% 85%, rgba(236,72,153,0.07) 0%, transparent 70%);
   }
   .whatsapp-input         { background-color: var(--pinglo-input-bg); color: var(--pinglo-text); }
   .conversation-hover:hover { background-color: var(--pinglo-hover); border-radius: 14px; }
@@ -479,6 +479,8 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
   const archivedConvs = conversations.filter(c => archivedIds.has(c.id));
   const tabFiltered = activeTab === 'Unread'
     ? activeConvs.filter(c => c.unread > 0)
+    : activeTab === 'Groups'
+    ? activeConvs.filter(c => c.is_group)
     : activeConvs;
   const displayConvs = showArchived ? archivedConvs : tabFiltered;
 
@@ -541,13 +543,13 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
         {/* Tabs */}
         {!showArchived && (
           <div style={{ display: 'flex', gap: 6, paddingBottom: 14 }}>
-            {['All', 'Unread'].map(tab => (
+            {['All', 'Unread', 'Groups'].map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
                 fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
                 background: activeTab === tab ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'rgba(255,255,255,0.06)',
                 color: activeTab === tab ? '#fff' : 'rgba(240,234,255,0.45)',
-                boxShadow: activeTab === tab ? '0 0 12px rgba(168,85,247,0.4)' : 'none',
+                boxShadow: activeTab === tab ? '0 0 10px rgba(168,85,247,0.4)' : 'none',
                 transition: 'all 0.15s',
               }}>{tab}</button>
             ))}
@@ -1045,6 +1047,9 @@ const WhatsAppMessenger = () => {
     const userId = user.id || user._id;
     if (!userId || userId === 'None' || userId === 'null') return;
     setSelectedUser(user);
+    setNavTab('chat');
+    setShowFeed(false);
+    setShowCallLogs(false);
     setLoading(true);
     setShowMobileSidebar(false);
     // If this is an incoming request, set status immediately
@@ -1796,61 +1801,72 @@ const WhatsAppMessenger = () => {
         </div>
         
         {/* Navigation Icons */}
-        <div className="flex-1 flex flex-col gap-4 items-center">
-          <button
-            onClick={() => setShowUserSearch(true)}
-            className="p-4 rounded-xl hover:bg-purple-500/15 text-gray-400 hover:text-purple-400 transition-all touch-target group relative"
-            title="New Chat"
-          >
-            <MessageCircle className="w-6 h-6" />
-            <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              New Chat
-            </span>
-          </button>
+        <div className="flex-1 flex flex-col gap-1 items-center w-full px-2">
+          {[
+            { tab: 'chat',     label: 'Chat',     icon: <MessageCircle className="w-5 h-5" /> },
+            { tab: 'calls',    label: 'Call',     icon: <Phone className="w-5 h-5" /> },
+            { tab: 'feed',     label: 'Feeds',    icon: <Rss className="w-5 h-5" /> },
+            { tab: 'contacts', label: 'Contacts', icon: <Users className="w-5 h-5" /> },
+            { tab: 'profile',  label: 'Profile',  icon: <User className="w-5 h-5" /> },
+          ].map(({ tab, label, icon }) => {
+            const isActive = navTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => {
+                  if (tab === 'contacts') { setShowUserSearch(true); return; }
+                  if (tab === 'profile') { setShowProfileModal(true); return; }
+                  switchTab(tab);
+                }}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                  background: isActive ? 'rgba(168,85,247,0.18)' : 'none',
+                  border: 'none', cursor: 'pointer', padding: '8px 12px', borderRadius: 10,
+                  color: isActive ? '#a855f7' : 'rgba(240,234,255,0.45)',
+                  transition: 'all 0.15s', width: '100%',
+                }}
+                className="hover:bg-purple-500/10"
+              >
+                {icon}
+                <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 400 }}>{label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-          <button
-            onClick={() => { setShowFeed(v => !v); setSelectedUser(null); setShowCallLogs(false); }}
-            className={`p-4 rounded-xl hover:bg-purple-500/15 transition-all touch-target group relative ${showFeed ? 'bg-purple-500/18 text-purple-400' : 'text-gray-400 hover:text-purple-400'}`}
-            title="News Feed"
-          >
-            <Rss className="w-6 h-6" />
-            {!showFeed && (
-              <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                News Feed
-              </span>
-            )}
-          </button>
-
-
+        {/* Settings + Logout at Bottom */}
+        <div className="flex flex-col gap-1 items-center w-full px-2">
           <div data-settings-panel>
             <button
               ref={settingsButtonRef}
               onClick={() => setShowSettings(v => !v)}
-              className={`p-4 rounded-xl hover:bg-purple-500/15 transition-all touch-target group relative ${showSettings ? 'bg-purple-500/18 text-purple-400' : 'text-gray-400 hover:text-purple-400'}`}
-              title="Settings"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                background: showSettings ? 'rgba(168,85,247,0.18)' : 'none',
+                border: 'none', cursor: 'pointer', padding: '8px 12px', borderRadius: 10,
+                color: showSettings ? '#a855f7' : 'rgba(240,234,255,0.45)',
+                transition: 'all 0.15s', width: '100%',
+              }}
+              className="hover:bg-purple-500/10"
             >
-              <Settings className="w-6 h-6" />
-              {!showSettings && (
-                <span className="absolute left-full ml-4 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                  Settings
-                </span>
-              )}
+              <Settings className="w-5 h-5" />
+              <span style={{ fontSize: 10 }}>Settings</span>
             </button>
           </div>
-
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '8px 12px', borderRadius: 10,
+              color: 'rgba(240,234,255,0.35)', transition: 'all 0.15s', width: '100%',
+            }}
+            className="hover:bg-red-900/20 hover:!text-red-400"
+          >
+            <LogOut className="w-5 h-5" />
+            <span style={{ fontSize: 10 }}>Logout</span>
+          </button>
         </div>
-        
-        {/* Logout at Bottom */}
-        <button
-          onClick={handleLogout}
-          className="p-4 rounded-xl hover:bg-red-900/20 text-gray-400 hover:text-red-400 transition-all touch-target group relative"
-          title="Logout"
-        >
-          <LogOut className="w-6 h-6" />
-          <span className="absolute left-full ml-4 px-3 py-1 bg-red-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            Logout
-          </span>
-        </button>
       </div>
       
       {/* Chat Area */}
@@ -2249,7 +2265,7 @@ const WhatsAppMessenger = () => {
                 <span>{videoUploadProgress}%</span>
               </div>
             )}
-            <div className="flex-1" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, padding: '10px 16px', backdropFilter: 'blur(10px)' }}>
+            <div className="flex-1" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 22, padding: '10px 16px', backdropFilter: 'blur(10px)' }}>
               <input
                 type="text"
                 value={message}
@@ -2291,18 +2307,20 @@ const WhatsAppMessenger = () => {
               <button
                 onClick={handleSend}
                 disabled={isSending}
-                className="p-2 rounded-full text-white transition-colors touch-target disabled:opacity-50" style={{background:'linear-gradient(135deg,#7c3aed,#ec4899)',boxShadow:'0 0 14px rgba(168,85,247,0.45)'}}
+                className="text-white transition-colors touch-target disabled:opacity-50"
+                style={{ width: 38, height: 38, borderRadius: 12, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#7c3aed,#ec4899)', boxShadow: '0 0 14px rgba(168,85,247,0.5)', cursor: 'pointer' }}
               >
-                {isSending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
+                {isSending ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             ) : (
               <button
                 onClick={startRecording}
                 disabled={uploadingVoice}
-                className="p-2 rounded-full text-white transition-colors touch-target disabled:opacity-50" style={{background:'linear-gradient(135deg,#7c3aed,#ec4899)',boxShadow:'0 0 14px rgba(168,85,247,0.45)'}}
+                className="text-white transition-colors touch-target disabled:opacity-50"
+                style={{ width: 38, height: 38, borderRadius: 12, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#7c3aed,#ec4899)', boxShadow: '0 0 14px rgba(168,85,247,0.5)', cursor: 'pointer' }}
                 title="Record voice note"
               >
-                {uploadingVoice ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mic className="w-5 h-5" />}
+                {uploadingVoice ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mic className="w-4 h-4" />}
               </button>
             )}
             </div>
