@@ -7,6 +7,7 @@ import ForgotPassword from './components/auth/ForgotPassword';
 import ResetPassword from './components/auth/ResetPassword';
 import ConfirmEmailChange from './components/auth/ConfirmEmailChange';
 import WhatsAppMessenger from './components/WhatsAppMessenger';
+import PingloApp from './components/PingloApp';
 import './App.css';
 
 const PasswordResetBanner = () => {
@@ -112,7 +113,7 @@ const router = createBrowserRouter(
           path: "/",
           element: (
             <ProtectedRoute>
-              <WhatsAppMessenger />
+              <PingloApp />
             </ProtectedRoute>
           ),
         },
