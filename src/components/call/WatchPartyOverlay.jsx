@@ -180,10 +180,23 @@ function YouTubeInput({ onConfirm, onBack }) {
 
 // ─── Gate Overlay ────────────────────────────────────────────────────────────
 
-function GateOverlay({ gateState, myUserId, onReady, partnerName, service }) {
-  const iAmReady   = !!gateState[myUserId];
+function GateOverlay({ gateState, myUserId, onReady, partnerName, service, onBothReady }) {
+  const iAmReady     = !!gateState[myUserId];
   const partnerReady = Object.entries(gateState).some(([id, v]) => id !== myUserId && v);
-  const bothReady  = iAmReady && partnerReady;
+  const bothReady    = iAmReady && partnerReady;
+  const [countdown,  setCountdown] = useState(null);
+
+  useEffect(() => {
+    if (!bothReady) { setCountdown(null); return; }
+    setCountdown(3);
+    const iv = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) { clearInterval(iv); onBothReady?.(); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [bothReady]);
 
   return (
     <div style={{
@@ -205,12 +218,12 @@ function GateOverlay({ gateState, myUserId, onReady, partnerName, service }) {
         </div>
 
         <p style={{ margin: '0 0 5px', fontWeight: 700, fontSize: 19, color: C.text }}>
-          {bothReady ? 'Starting now…' : `${service?.name ?? 'App'} opened in a new tab`}
+          {bothReady ? (countdown > 0 ? `Starting in ${countdown}…` : 'Go!') : `${service?.name ?? 'App'} opened in a new tab`}
         </p>
         <p style={{ margin: '0 0 22px', fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
           {bothReady
             ? 'Both ready — enjoy!'
-            : `Log in, find what you want to watch, pause at the opening scene, then tap Ready`}
+            : 'Log in, find your show, pause at the opening scene, then tap Ready'}
         </p>
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
@@ -482,6 +495,7 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
                 gateState={gateState} myUserId={currentUserId}
                 onReady={handleReady} partnerName={partnerName}
                 service={service}
+                onBothReady={() => setShowGate(false)}
               />
             </div>
           )}
