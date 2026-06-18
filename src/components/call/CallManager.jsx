@@ -520,12 +520,15 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       }
     };
 
+    const handleWatchInvited = () => setWatchPartyOpen(true);
+
     socket.on('incoming_call',    handleIncomingCall);
     socket.on('call_accepted',    handleCallAccepted);
     socket.on('call_rejected',    handleCallRejected);
     socket.on('call_ended',       handleCallEnded);
     socket.on('call_unavailable', handleCallUnavailable);
     socket.on('ice_candidate',    handleIceCandidate);
+    socket.on('watch:invited',    handleWatchInvited);
 
     return () => {
       socket.off('incoming_call',    handleIncomingCall);
@@ -534,6 +537,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       socket.off('call_ended',       handleCallEnded);
       socket.off('call_unavailable', handleCallUnavailable);
       socket.off('ice_candidate',    handleIceCandidate);
+      socket.off('watch:invited',    handleWatchInvited);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
@@ -669,7 +673,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
             isOpen={watchPartyOpen}
             onClose={() => setWatchPartyOpen(false)}
             currentUserId={currentUserId}
-            partnerId={selectedUserRef.current?.id || selectedUserRef.current?._id}
+            partnerId={targetIdRef.current || incomingCallData?.caller_id}
             partnerName={remoteName}
             onStartScreenShare={toggleScreenShare}
           />

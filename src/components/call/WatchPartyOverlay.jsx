@@ -437,7 +437,7 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
     if (!isOpen) return;
     const socket = socketService.socket;
     if (!socket) return;
-    socket.emit('watch:join', { room_id: roomId, user_id: currentUserId });
+    socket.emit('watch:join', { room_id: roomId, user_id: currentUserId, partner_id: partnerId });
 
     const handleGateUpdate = ({ gate }) => setGateState(gate);
     const handlePartnerLeft = () => { setMode(null); setVideoId(null); setGateState({}); };
@@ -449,7 +449,7 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
       socket.off('watch:partner_left', handlePartnerLeft);
       socket.emit('watch:leave', { room_id: roomId, user_id: currentUserId });
     };
-  }, [isOpen, roomId, currentUserId]);
+  }, [isOpen, roomId, currentUserId, partnerId]);
 
   const handleReady = useCallback(() => {
     const socket = socketService.socket;
