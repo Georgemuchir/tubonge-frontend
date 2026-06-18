@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { PhoneOff, Video, VideoOff, Mic, MicOff, PhoneIncoming, RefreshCw, ScreenShare, ScreenShareOff } from 'lucide-react';
+import { PhoneOff, Video, VideoOff, Mic, MicOff, PhoneIncoming, RefreshCw, ScreenShare, ScreenShareOff, Tv2 } from 'lucide-react';
 import Peer from 'simple-peer/simplepeer.min.js';
 import socketService from '../../services/socket';
+import WatchPartyOverlay from './WatchPartyOverlay';
 
 const CALL_STATE = {
   IDLE: 'idle',
@@ -69,6 +70,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const [facingMode, setFacingMode] = useState('user');
   const [isOutgoing, setIsOutgoing] = useState(true);
   const [showControls, setShowControls] = useState(true);
+  const [watchPartyOpen, setWatchPartyOpen] = useState(false);
 
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -595,6 +597,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     // ── VIDEO CALL ──
     if (callType === 'video') {
       return (
+        <>
         <div className="fixed inset-0 z-[100] bg-black flex flex-col overflow-hidden">
           <style>{CALL_CSS}</style>
 
@@ -650,12 +653,27 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
               className={`w-14 h-14 ${isScreenSharing ? 'bg-teal-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
               {isScreenSharing ? <ScreenShareOff className="w-6 h-6" /> : <ScreenShare className="w-6 h-6" />}
             </Btn>
+            <Btn onClick={() => setWatchPartyOpen(true)} title="Watch Together"
+              className={`w-14 h-14 ${watchPartyOpen ? 'bg-purple-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
+              <Tv2 className="w-6 h-6" />
+            </Btn>
             <Btn onClick={endCall} title="End call"
               className="w-16 h-16 bg-red-600 hover:bg-red-700 text-white">
               <PhoneOff className="w-7 h-7" />
             </Btn>
           </div>
         </div>
+
+        {watchPartyOpen && (
+          <WatchPartyOverlay
+            isOpen={watchPartyOpen}
+            onClose={() => setWatchPartyOpen(false)}
+            currentUserId={currentUserId}
+            partnerId={selectedUserRef.current?.id || selectedUserRef.current?._id}
+            partnerName={remoteName}
+          />
+        )}
+      </>
       );
     }
 
