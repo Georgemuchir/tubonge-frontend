@@ -508,17 +508,16 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
             </span>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <button title="Search" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
-              <Search style={{ width: 13, height: 13 }} />
-            </button>
-            {!showArchived && (
-              <button onClick={onNewMessage} title="New message" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
-                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            {[
+              { icon: <Search style={{ width: 16, height: 16 }} />, label: 'Search', onClick: null },
+              ...(!showArchived ? [{ icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>, label: 'New', onClick: onNewMessage }] : []),
+              { icon: <LogOut style={{ width: 16, height: 16 }} />, label: 'Logout', onClick: onLogout },
+            ].map(({ icon, label, onClick }) => (
+              <button key={label} onClick={onClick} style={{ minWidth: 44, height: 44, borderRadius: 10, border: '1px solid rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.08)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, color: '#c084fc', padding: '0 6px' }}>
+                {icon}
+                <span style={{ fontSize: 9, fontWeight: 600, color: '#c084fc', letterSpacing: '0.03em', lineHeight: 1 }}>{label}</span>
               </button>
-            )}
-            <button onClick={onLogout} title="Log out" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
-              <LogOut style={{ width: 13, height: 13 }} />
-            </button>
+            ))}
           </div>
         </div>
 
