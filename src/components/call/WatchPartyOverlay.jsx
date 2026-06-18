@@ -16,15 +16,15 @@ const C = {
 };
 
 const SERVICES = [
-  { id: 'netflix',     name: 'Netflix',      color: '#E50914', label: 'N',  screen: true  },
-  { id: 'youtube',     name: 'YouTube',      color: '#FF0000', label: '▶',  screen: false },
-  { id: 'prime',       name: 'Prime Video',  color: '#00A8E1', label: '▶',  screen: true  },
-  { id: 'disney',      name: 'Disney+',      color: '#113CCF', label: '✦',  screen: true  },
-  { id: 'hulu',        name: 'Hulu',         color: '#1CE783', label: 'h',  screen: true  },
-  { id: 'max',         name: 'Max',          color: '#5A2BE2', label: 'M',  screen: true  },
-  { id: 'appletv',     name: 'Apple TV+',    color: '#d0d0d0', label: '⌘',  screen: true  },
-  { id: 'crunchyroll', name: 'Crunchyroll',  color: '#FF6B00', label: 'C',  screen: true  },
-  { id: 'other',       name: 'Other',        color: '#a855f7', label: '⬡',  screen: true  },
+  { id: 'netflix',     name: 'Netflix',      color: '#E50914', label: 'N',  screen: true,  url: 'https://www.netflix.com'                         },
+  { id: 'youtube',     name: 'YouTube',      color: '#FF0000', label: '▶',  screen: false, url: null                                              },
+  { id: 'prime',       name: 'Prime Video',  color: '#00A8E1', label: '▶',  screen: true,  url: 'https://www.amazon.com/gp/video/storefront'      },
+  { id: 'disney',      name: 'Disney+',      color: '#113CCF', label: '✦',  screen: true,  url: 'https://www.disneyplus.com'                      },
+  { id: 'hulu',        name: 'Hulu',         color: '#1CE783', label: 'h',  screen: true,  url: 'https://www.hulu.com'                            },
+  { id: 'max',         name: 'Max',          color: '#5A2BE2', label: 'M',  screen: true,  url: 'https://www.max.com'                             },
+  { id: 'appletv',     name: 'Apple TV+',    color: '#d0d0d0', label: '⌘',  screen: true,  url: 'https://tv.apple.com'                            },
+  { id: 'crunchyroll', name: 'Crunchyroll',  color: '#FF6B00', label: 'C',  screen: true,  url: 'https://www.crunchyroll.com'                     },
+  { id: 'other',       name: 'Other',        color: '#a855f7', label: '⬡',  screen: true,  url: null                                              },
 ];
 
 function watchRoomId(a, b) {
@@ -205,12 +205,12 @@ function GateOverlay({ gateState, myUserId, onReady, partnerName, service }) {
         </div>
 
         <p style={{ margin: '0 0 5px', fontWeight: 700, fontSize: 19, color: C.text }}>
-          {bothReady ? 'Starting now…' : `Open ${service?.name ?? 'the app'} and find your scene`}
+          {bothReady ? 'Starting now…' : `${service?.name ?? 'App'} opened in a new tab`}
         </p>
         <p style={{ margin: '0 0 22px', fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
           {bothReady
             ? 'Both ready — enjoy!'
-            : 'Tap Ready when you\'re paused at the right moment'}
+            : `Log in, find what you want to watch, pause at the opening scene, then tap Ready`}
         </p>
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
@@ -383,7 +383,9 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
     const socket = socketService.socket;
     setService(svc);
     if (svc.id === 'youtube') return; // show URL input next, don't emit yet
-    // Screen share services: notify both + start sharing
+    // Open the service in a new window so the user can log in
+    if (svc.url) window.open(svc.url, '_blank', 'noopener');
+    // Notify both users of the service choice + start screen share
     socket?.emit('watch:service_select', { room_id: roomId, user_id: currentUserId, service_id: svc.id });
     onStartScreenShare?.();
     setShowGate(true);
