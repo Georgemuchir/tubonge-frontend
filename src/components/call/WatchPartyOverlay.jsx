@@ -425,7 +425,7 @@ const WP_CSS = `
   }
 `;
 
-export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, partnerId, partnerName }) {
+export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, partnerId, partnerName, onStartScreenShare }) {
   const [mode, setMode] = useState(null);           // null | 'youtube' | 'screenshare'
   const [videoId, setVideoId] = useState(null);
   const [gateState, setGateState] = useState({});   // { userId: bool }
@@ -466,6 +466,7 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
   const handleModeSelect = (m) => {
     setMode(m);
     setGateState({});
+    if (m === 'screenshare') onStartScreenShare?.();
   };
 
   const handleYouTubeConfirm = (id) => {
@@ -574,7 +575,7 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
           {showScreenShareGate && (
             <div style={{ padding: '24px' }}>
               <button
-                onClick={() => setMode(null)}
+                onClick={() => { setMode(null); onStartScreenShare?.(); }}
                 style={{
                   background: 'none', border: 'none', color: C.muted, cursor: 'pointer',
                   fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 16,
@@ -583,11 +584,8 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
               >
                 ← Back
               </button>
-              <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 18, color: C.text }}>
-                Screen Share Sync
-              </p>
-              <p style={{ margin: '0 0 20px', fontSize: 13, color: C.muted, lineHeight: 1.5 }}>
-                Start screen sharing using the button in your call controls, open Netflix, then tap Ready when you're on the right scene.
+              <p style={{ margin: '0 0 20px', fontWeight: 700, fontSize: 18, color: C.text }}>
+                Screen sharing started — tap Ready when you're on the right scene
               </p>
               <GateOverlay
                 gateState={gateState}

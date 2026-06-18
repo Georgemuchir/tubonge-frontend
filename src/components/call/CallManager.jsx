@@ -671,6 +671,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
             currentUserId={currentUserId}
             partnerId={selectedUserRef.current?.id || selectedUserRef.current?._id}
             partnerName={remoteName}
+            onStartScreenShare={toggleScreenShare}
           />
         )}
       </>
