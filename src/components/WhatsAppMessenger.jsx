@@ -471,7 +471,7 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
   );
 };
 
-const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user, onDelete, onMute, onArchive, mutedIds, archivedIds }) => {
+const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user, onDelete, onMute, onArchive, mutedIds, archivedIds, onLogout }) => {
   const [showArchived, setShowArchived] = useState(false);
   const [activeTab, setActiveTab] = useState('All');
 
@@ -516,7 +516,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               </button>
             )}
-            <button onClick={handleLogout} title="Log out" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
+            <button onClick={onLogout} title="Log out" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
               <LogOut style={{ width: 13, height: 13 }} />
             </button>
           </div>
@@ -1802,6 +1802,7 @@ const WhatsAppMessenger = () => {
             onArchive={handleArchiveConversation}
             mutedIds={mutedIds}
             archivedIds={archivedIds}
+            onLogout={handleLogout}
           />
         ) : (
           <>
