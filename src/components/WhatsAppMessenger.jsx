@@ -507,15 +507,18 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
               {showArchived ? 'Archived' : 'Pinglo'}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button title="Search" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
               <Search style={{ width: 13, height: 13 }} />
             </button>
             {!showArchived && (
-              <button onClick={onNewMessage} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
+              <button onClick={onNewMessage} title="New message" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               </button>
             )}
+            <button onClick={handleLogout} title="Log out" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,234,255,0.45)' }}>
+              <LogOut style={{ width: 13, height: 13 }} />
+            </button>
           </div>
         </div>
 
