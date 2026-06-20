@@ -463,6 +463,11 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     }
   }, [callState]);
 
+  // Only starts screen share — never stops an active one (safe to call from watch party)
+  const startScreenShareOnly = useCallback(() => {
+    if (!isScreenSharing) toggleScreenShare();
+  }, [isScreenSharing, toggleScreenShare]);
+
   // ── Expose startCall via ref ──
   useImperativeHandle(ref, () => ({ startCall }), [startCall]);
 
@@ -675,7 +680,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
             currentUserId={currentUserId}
             partnerId={targetIdRef.current || incomingCallData?.caller_id}
             partnerName={remoteName}
-            onStartScreenShare={toggleScreenShare}
+            onStartScreenShare={startScreenShareOnly}
           />
         )}
       </>

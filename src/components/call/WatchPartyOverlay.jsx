@@ -43,9 +43,9 @@ function extractYouTubeId(input) {
   return null;
 }
 
-function GlassCard({ children, style = {} }) {
+function GlassCard({ children, style = {}, className = '' }) {
   return (
-    <div style={{
+    <div className={className} style={{
       background: 'rgba(13,11,26,0.92)',
       border: `1px solid ${C.border}`,
       borderRadius: 22,
@@ -326,8 +326,8 @@ function YouTubePlayer({ videoId, roomId, myUserId, gateState, onReady, partnerN
   }, [onPause]);
 
   return (
-    <div style={{ flex: 1, position: 'relative', background: '#000' }}>
-      <div id="wp-yt-player" style={{ width: '100%', height: '100%' }} />
+    <div className="wp-yt-player-wrap">
+      <div id="wp-yt-player" />
       {showGate && (
         <GateOverlay
           gateState={gateState} myUserId={myUserId}
@@ -345,6 +345,83 @@ const WP_CSS = `
   @keyframes wp-ring {
     0%   { transform: scale(1);   opacity: 0.8; }
     100% { transform: scale(2.4); opacity: 0; }
+  }
+
+  .wp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5,3,12,0.78);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  /* ── YouTube fullscreen ── */
+  .wp-yt-fullscreen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+  }
+
+  .wp-yt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: rgba(13,11,26,0.92);
+    border-bottom: 1px solid rgba(168,85,247,0.25);
+    flex-shrink: 0;
+  }
+
+  .wp-yt-player-wrap {
+    flex: 1;
+    position: relative;
+    background: #000;
+    min-height: 0; /* required for flex children in Safari */
+  }
+
+  #wp-yt-player {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  #wp-yt-player iframe {
+    width: 100% !important;
+    height: 100% !important;
+    border: none;
+  }
+
+  /* ── Service picker card ── */
+  .wp-card {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 16px;
+    position: relative;
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  @media (max-width: 600px) {
+    .wp-card {
+      max-width: 100% !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      max-height: 100dvh !important;
+    }
+  }
+
+  /* Compact header in landscape-phone */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .wp-yt-header {
+      padding: 5px 12px;
+    }
   }
 `;
 
@@ -368,7 +445,7 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
       const svc = SERVICES.find(s => s.id === service_id);
       if (!svc) return;
       setService(svc);
-      if (svc.screen) { onStartScreenShare?.(); setShowGate(true); }
+      if (svc.screen) setShowGate(true); // partner only shows gate, doesn't start sharing
     };
     const onYTStart = ({ video_id }) => {
       setVideoId(video_id);
@@ -427,20 +504,13 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
   const isScreenShareMode = service && service.screen;
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(5,3,12,0.78)', backdropFilter: 'blur(10px)',
-    }}>
+    <div className="wp-overlay">
       <style>{WP_CSS}</style>
 
       {/* ── Full-screen YouTube player ── */}
       {isYouTubePlaying ? (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#000' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 16px', background: 'rgba(13,11,26,0.92)', borderBottom: `1px solid ${C.border}`,
-          }}>
+        <div className="wp-yt-fullscreen">
+          <div className="wp-yt-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 16, fontWeight: 900, color: '#FF0000' }}>▶</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>YouTube · Watching together</span>
@@ -459,7 +529,7 @@ export default function WatchPartyOverlay({ isOpen, onClose, currentUserId, part
 
       ) : (
         // ── Card UI ──
-        <GlassCard style={{ width: '100%', maxWidth: 400, margin: '0 16px', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+        <GlassCard className="wp-card" style={{ position: 'relative' }}>
           <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, zIndex: 2, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: 'pointer', padding: 6, display: 'flex' }}>
             <X size={16} />
           </button>
