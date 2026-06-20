@@ -101,12 +101,12 @@ const styles = `
   [data-theme="light"] .border-gray-700 { border-color: var(--pinglo-border) !important; }
   [data-theme="light"] .bg-gray-800  { background-color: var(--pinglo-header) !important; }
   [data-theme="light"] .bg-gray-900  { background-color: var(--pinglo-bg) !important; }
-  [data-theme="light"] .hover\:bg-gray-700:hover    { background-color: var(--pinglo-hover) !important; }
-  [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: var(--pinglo-hover) !important; }
-  [data-theme="light"] .bg-gray-700\/50 { background-color: var(--pinglo-active) !important; }
-  [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: var(--pinglo-hover) !important; }
-  [data-theme="light"] .border-gray-700\/50 { border-color: var(--pinglo-border) !important; }
-  [data-theme="light"] .ring-gray-700\/50 { --tw-ring-color: var(--pinglo-border) !important; }
+  [data-theme="light"] .hover\\:bg-gray-700:hover    { background-color: var(--pinglo-hover) !important; }
+  [data-theme="light"] .hover\\:bg-gray-800\\/50:hover { background-color: var(--pinglo-hover) !important; }
+  [data-theme="light"] .bg-gray-700\\/50 { background-color: var(--pinglo-active) !important; }
+  [data-theme="light"] .hover\\:bg-gray-700\\/50:hover { background-color: var(--pinglo-hover) !important; }
+  [data-theme="light"] .border-gray-700\\/50 { border-color: var(--pinglo-border) !important; }
+  [data-theme="light"] .ring-gray-700\\/50 { --tw-ring-color: var(--pinglo-border) !important; }
 
   .blue-accent  { color: #3b82f6; }
   .blue-bg      { background-color: #3b82f6; }

@@ -471,7 +471,7 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
   );
 };
 
-const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar, isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user, onDelete, onMute, onArchive, mutedIds, archivedIds, onLogout }) => {
+const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMessage, onOpenSidebar: _onOpenSidebar, isMobile: _isMobile, searchQuery, setSearchQuery, resolveMediaUrl, user: _user, onDelete, onMute, onArchive, mutedIds, archivedIds, onLogout }) => {
   const [showArchived, setShowArchived] = useState(false);
   const [activeTab, setActiveTab] = useState('All');
 
@@ -651,10 +651,10 @@ const WhatsAppMessenger = () => {
   const [archivedIds, setArchivedIds] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('pinglo_archived') || '[]')); } catch { return new Set(); }
   });
-  const [totalUnread, setTotalUnread] = useState(0);
+  const [, setTotalUnread] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState({});
   const [typingUsers, setTypingUsers] = useState({});
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [, setShowMobileSidebar] = useState(false);
   const [showCallLogs, setShowCallLogs] = useState(false);
   const [showFeed, setShowFeed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
