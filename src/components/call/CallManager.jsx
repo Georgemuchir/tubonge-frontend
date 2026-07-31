@@ -75,6 +75,8 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const screenTrackRef = useRef(null);
+  const micTrackRef = useRef(null);       // saved mic track while screen-sharing system audio
+  const facingModeRef = useRef('user');   // stable ref so stopScreenShare can read it without dep
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);

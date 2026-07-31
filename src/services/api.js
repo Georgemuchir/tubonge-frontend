@@ -86,53 +86,53 @@ export const usersAPI = {
 export const friendsAPI = {
   // Search user by exact username
   searchUser: (username) => api.get(`/users/search?q=${username}`),
-  
+
   // Send friend request
   sendRequest: (username) => api.post('/friends/send', { username }),
-  
+
   // Get incoming friend requests
   getIncomingRequests: () => api.get('/friends/incoming'),
-  
+
   // Accept friend request
   acceptRequest: (requestId) => api.post('/friends/accept', { requestId }),
-  
+
   // Get relationship status with a user
   getRelationshipStatus: (username) => api.get(`/friends/status?username=${username}`),
-  
+
   // Get all friends
   getFriends: () => api.get('/friends/list'),
 };
 
 // Messages API (UPDATED - STRICT PERMISSION MODEL)
 export const messagesAPI = {
-    // Upload image for chat
-    uploadImage: (file) => {
-      const formData = new FormData();
-      formData.append('image', file);
-      return api.post('/messages/upload-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-    },
+  // Upload image for chat
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/messages/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 
-    // Upload voice note for chat
-    uploadVoice: (blob) => {
-      const formData = new FormData();
-      formData.append('voice', blob, 'voice.webm');
-      return api.post('/messages/upload-voice', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-    },
+  // Upload voice note for chat
+  uploadVoice: (blob) => {
+    const formData = new FormData();
+    formData.append('voice', blob, 'voice.webm');
+    return api.post('/messages/upload-voice', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 
-    // Upload video for chat — onUploadProgress(event) for progress tracking
-    uploadVideo: (file, onUploadProgress) => {
-      const formData = new FormData();
-      formData.append('video', file, file.name || 'video.mp4');
-      return api.post('/messages/upload-video', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 120000,
-        ...(typeof onUploadProgress === 'function' && { onUploadProgress }),
-      });
-    },
+  // Upload video for chat — onUploadProgress(event) for progress tracking
+  uploadVideo: (file, onUploadProgress) => {
+    const formData = new FormData();
+    formData.append('video', file, file.name || 'video.mp4');
+    return api.post('/messages/upload-video', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+      ...(typeof onUploadProgress === 'function' && { onUploadProgress }),
+    });
+  },
 
 
   // Get all conversations (inbox)

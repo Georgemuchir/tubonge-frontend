@@ -191,6 +191,16 @@ class SocketService {
     }
   }
 
+  sendScreenShareState(targetId, fromId, isSharing) {
+    if (this.socket?.connected) {
+      this.socket.emit('screen_share_state', {
+        target_id: targetId,
+        from_id: fromId,
+        is_sharing: isSharing,
+      });
+    }
+  }
+
   // ── Group Call ──
   createGroupCall(roomId, inviteeIds, callType, callerId, callerName, callerAvatar) {
     if (this.socket?.connected) {
