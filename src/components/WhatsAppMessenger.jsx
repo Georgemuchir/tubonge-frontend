@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Film, Smile, Sparkles, Mail, Lock, User, Users, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight, Rss } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Film, Smile, Sparkles, Mail, Lock, User, Users, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight, Rss, Camera } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -2364,6 +2364,34 @@ const WhatsAppMessenger = () => {
 
             {/* Form */}
             <div className="px-6 py-5 flex flex-col gap-4">
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  title="Change profile photo"
+                  style={{
+                    position: 'relative', width: 84, height: 84, borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${getAvatarColor(user?.name)}cc, ${getAvatarColor(user?.name)}55)`,
+                    border: `1.5px solid ${getAvatarColor(user?.name)}55`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 700, fontSize: 28, color: '#fff', overflow: 'hidden',
+                    cursor: 'pointer', flexShrink: 0, padding: 0,
+                  }}
+                >
+                  {user?.avatar ? (
+                    <img src={resolveMediaUrl(user.avatar)} alt={user?.name} className="w-full h-full object-cover" />
+                  ) : (
+                    user?.name?.charAt(0)?.toUpperCase() || 'U'
+                  )}
+                  <div style={{
+                    position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: '50%',
+                    background: '#0f172a', border: '2px solid ' + (theme === 'light' ? '#ffffff' : '#1e293b'),
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Camera style={{ width: 14, height: 14, color: '#fff' }} />
+                  </div>
+                </button>
+              </div>
               <div>
                 <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
                   Display Name
