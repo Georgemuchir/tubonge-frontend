@@ -14,6 +14,7 @@ import GroupCallManager from './call/GroupCallManager';
 import CallLogs from './call/CallLogs';
 import ContactProfilePanel from './chat/ContactProfilePanel';
 import NewsFeed from './NewsFeed';
+import Avatar, { getAvatarColor } from './Avatar';
 
 const getAuthToken = async () => {
   const firebaseUser = auth.currentUser;
@@ -175,10 +176,6 @@ const styles = `
 
 const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
   const [query, setQuery] = useState('');
-  const getAvatarColor = (name) => {
-    const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500'];
-    return colors[(name?.charCodeAt(0) || 0) % colors.length];
-  };
   const filtered = inbox.filter(c => {
     const name = c.sender_name || c.name || '';
     return !query || name.toLowerCase().includes(query.toLowerCase());
@@ -211,9 +208,7 @@ const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
             return (
             <div key={contact.sender_id || contact.id} onClick={() => onForward(contact)}
               className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer">
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg, ${getAvatarColor(name)}cc, ${getAvatarColor(name)}55)`, border: `1.5px solid ${getAvatarColor(name)}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, boxShadow: `0 0 10px ${getAvatarColor(name)}33` }}>
-                {contact.avatar ? <img src={resolveMediaUrl(contact.avatar)} alt={name} className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
-              </div>
+              <Avatar name={name} avatarUrl={contact.avatar ? resolveMediaUrl(contact.avatar) : null} size={44} />
               <p className="text-white font-medium">{name}</p>
             </div>
           )})}
@@ -257,12 +252,6 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
     loadUsers(query);
   };
 
-  const getAvatarColor = (name) => {
-    const colors = ['#ec4899', '#7c3aed', '#06b6d4', '#f59e0b', '#10b981', '#818cf8'];
-    const index = (name?.charCodeAt(0) || 0) % colors.length;
-    return colors[index];
-  };
-
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
       <div className="whatsapp-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={(e) => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
@@ -304,17 +293,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
                 }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
               >
-                <div style={{ width: 48, height: 48, borderRadius: '50%', background: `linear-gradient(135deg, ${getAvatarColor(user.name)}cc, ${getAvatarColor(user.name)}55)`, border: `1.5px solid ${getAvatarColor(user.name)}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', overflow: 'hidden', boxShadow: `0 0 10px ${getAvatarColor(user.name)}33` }}>
-                  {user.avatar ? (
-                    <img
-                      src={resolveMediaUrl(user.avatar)}
-                      alt={user.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    user.name?.charAt(0).toUpperCase() || 'U'
-                  )}
-                </div>
+                <Avatar name={user.name} avatarUrl={user.avatar ? resolveMediaUrl(user.avatar) : null} size={48} />
                 <div className="flex-1">
                   <p className="text-white font-medium">{user.name}</p>
                   <p className="text-gray-400 text-sm">{user.email}</p>
@@ -375,11 +354,7 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
       >
         <div className="flex items-center gap-3">
           <div className="relative flex-shrink-0">
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: `linear-gradient(135deg, ${conv.color}cc, ${conv.color}55)`, border: `1.5px solid ${conv.color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff', overflow: 'hidden', boxShadow: `0 0 10px ${conv.color}33` }}>
-              {conv.avatar
-                ? <img src={resolveMediaUrl(conv.avatar)} alt={conv.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                : conv.name?.charAt(0).toUpperCase() || 'U'}
-            </div>
+            <Avatar name={conv.name} avatarUrl={conv.avatar ? resolveMediaUrl(conv.avatar) : null} size={48} color={conv.color} fontSize={16} />
             {conv.online && (
               <div style={{
                 position: 'absolute', bottom: 1, right: 1,
@@ -631,6 +606,28 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
     </div>
   );
 };
+
+const profileInputStyle = (theme) => ({
+  background: theme === 'light' ? '#f8fafc' : 'rgba(255,255,255,0.04)',
+  border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)',
+  color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+});
+
+const ProfileField = ({ label, icon, theme, children }) => (
+  <div>
+    <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+      {label}
+    </label>
+    <div className="relative flex items-center">
+      {icon && (
+        <span className="absolute left-3 pointer-events-none" style={{ color: theme === 'light' ? '#94a3b8' : '#64748b' }}>
+          {icon}
+        </span>
+      )}
+      {children}
+    </div>
+  </div>
+);
 
 const WhatsAppMessenger = () => {
   const { logout, user, updateUser } = useAuth();
@@ -973,12 +970,6 @@ const WhatsAppMessenger = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const getAvatarColor = (name) => {
-    const colors = ['#ec4899', '#7c3aed', '#06b6d4', '#f59e0b', '#10b981', '#818cf8'];
-    const index = (name?.charCodeAt(0) || 0) % colors.length;
-    return colors[index];
   };
 
   const formatTime = (timestamp) => {
@@ -1782,7 +1773,6 @@ const WhatsAppMessenger = () => {
                 callManagerRef.current?.startCall(call.call_type || 'audio');
               }, 500);
             }}
-            getAvatarColor={getAvatarColor}
           />
         ) : !selectedUser ? (
           <ConversationsView
@@ -1817,17 +1807,7 @@ const WhatsAppMessenger = () => {
                 </button>
               )}
               <div className="relative flex-shrink-0">
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg, ${getAvatarColor(selectedUser.name)}cc, ${getAvatarColor(selectedUser.name)}55)`, border: `1.5px solid ${getAvatarColor(selectedUser.name)}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', overflow: 'hidden', boxShadow: `0 0 10px ${getAvatarColor(selectedUser.name)}33` }}>
-                  {selectedUser.avatar ? (
-                    <img
-                      src={resolveMediaUrl(selectedUser.avatar)}
-                      alt={selectedUser.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    selectedUser.name?.charAt(0).toUpperCase() || 'U'
-                  )}
-                </div>
+                <Avatar name={selectedUser.name} avatarUrl={selectedUser.avatar ? resolveMediaUrl(selectedUser.avatar) : null} size={40} />
                 {(onlineUsers[selectedUser.id] || onlineUsers[selectedUser._id] || selectedUser.online) && (
                   <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#22d3a5', border: '2px solid #0d0b1a', boxShadow: '0 0 6px #22d3a5aa' }} />
                 )}
@@ -2335,142 +2315,150 @@ const WhatsAppMessenger = () => {
 
       {/* Profile Edit Modal */}
       {showProfileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div
-            className="w-full max-w-md mx-4 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden"
-            style={{ background: theme === 'light' ? '#ffffff' : '#1e293b' }}
+            className="w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
+            style={{
+              background: theme === 'light' ? '#ffffff' : '#161228',
+              border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid rgba(168,85,247,0.25)',
+              boxShadow: theme === 'light'
+                ? '0 24px 60px rgba(15,23,42,0.18)'
+                : '0 24px 60px rgba(0,0,0,0.55), 0 0 50px rgba(124,58,237,0.18)',
+              animation: 'scaleUp 0.2s ease-out',
+            }}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-              <div>
-                <h2 className="text-lg font-semibold" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
-                  {!user?.phone_number ? 'Complete Your Profile' : 'Edit Profile'}
-                </h2>
-                {!user?.phone_number && (
-                  <p className="text-xs mt-0.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
-                    A phone number is required to use Pinglo.
-                  </p>
-                )}
-              </div>
+            {/* Cover banner + avatar */}
+            <div style={{ position: 'relative', height: 96, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', flexShrink: 0 }}>
               {user?.phone_number && (
                 <button
                   onClick={() => setShowProfileModal(false)}
-                  className="p-1 rounded-lg hover:bg-gray-700/50 transition-colors"
+                  className="absolute top-3 right-3 flex items-center justify-center rounded-full transition-colors"
+                  style={{ width: 30, height: 30, background: 'rgba(0,0,0,0.25)' }}
                 >
-                  <X className="w-5 h-5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }} />
+                  <X className="w-4 h-4 text-white" />
                 </button>
+              )}
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                title="Change profile photo"
+                style={{
+                  position: 'absolute', left: '50%', bottom: -44, transform: 'translateX(-50%)',
+                  padding: 0, border: 'none', background: 'none', cursor: 'pointer',
+                }}
+              >
+                <Avatar
+                  name={user?.name}
+                  avatarUrl={user?.avatar ? resolveMediaUrl(user.avatar) : null}
+                  size={96}
+                  fontSize={32}
+                  style={{
+                    border: `4px solid ${theme === 'light' ? '#ffffff' : '#161228'}`,
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
+                  }}
+                />
+                <div style={{
+                  position: 'absolute', bottom: 0, right: 0, width: 30, height: 30, borderRadius: '50%',
+                  background: 'linear-gradient(135deg,#7c3aed,#ec4899)',
+                  border: '2px solid ' + (theme === 'light' ? '#ffffff' : '#161228'),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 0 10px rgba(168,85,247,0.6)',
+                }}>
+                  <Camera style={{ width: 14, height: 14, color: '#fff' }} />
+                </div>
+              </button>
+            </div>
+
+            {/* Name header */}
+            <div className="pt-14 pb-3 px-6 text-center">
+              <h2 className="text-lg font-semibold" style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>
+                {user?.name || 'Your Profile'}
+              </h2>
+              {user?.username && (
+                <p className="text-sm mt-0.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                  @{user.username}
+                </p>
+              )}
+              {!user?.phone_number && (
+                <p
+                  className="text-xs mt-2 px-3 py-1 inline-block rounded-full font-medium"
+                  style={{ background: 'rgba(236,72,153,0.14)', color: '#ec4899' }}
+                >
+                  A phone number is required to use Pinglo
+                </p>
               )}
             </div>
 
             {/* Form */}
-            <div className="px-6 py-5 flex flex-col gap-4">
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => avatarInputRef.current?.click()}
-                  title="Change profile photo"
-                  style={{
-                    position: 'relative', width: 84, height: 84, borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${getAvatarColor(user?.name)}cc, ${getAvatarColor(user?.name)}55)`,
-                    border: `1.5px solid ${getAvatarColor(user?.name)}55`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 700, fontSize: 28, color: '#fff', overflow: 'hidden',
-                    cursor: 'pointer', flexShrink: 0, padding: 0,
-                  }}
-                >
-                  {user?.avatar ? (
-                    <img src={resolveMediaUrl(user.avatar)} alt={user?.name} className="w-full h-full object-cover" />
-                  ) : (
-                    user?.name?.charAt(0)?.toUpperCase() || 'U'
-                  )}
-                  <div style={{
-                    position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: '50%',
-                    background: '#0f172a', border: '2px solid ' + (theme === 'light' ? '#ffffff' : '#1e293b'),
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Camera style={{ width: 14, height: 14, color: '#fff' }} />
-                  </div>
-                </button>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
-                  Display Name
-                </label>
+            <div className="px-6 pb-5 flex flex-col gap-4">
+              <ProfileField label="Display Name" theme={theme} icon={<User className="w-4 h-4" />}>
                 <input
                   type="text"
                   value={profileForm.name}
                   onChange={(e) => setProfileForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="Your name"
-                  className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                  style={profileInputStyle(theme)}
+                />
+              </ProfileField>
+
+              <ProfileField label="Username" theme={theme}>
+                <span
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-sm select-none"
+                  style={{ color: theme === 'light' ? '#94a3b8' : '#64748b' }}
+                >@</span>
+                <input
+                  type="text"
+                  value={profileForm.username}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
+                  placeholder="yourhandle"
+                  className="w-full pl-7 pr-16 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
                   style={{
-                    background: theme === 'light' ? '#f8fafc' : '#0f172a',
-                    border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
-                    color: theme === 'light' ? '#1e293b' : '#f1f5f9',
+                    ...profileInputStyle(theme),
+                    border: usernameAvailable === true
+                      ? '1px solid #10b981'
+                      : usernameAvailable === false
+                      ? '1px solid #ef4444'
+                      : profileInputStyle(theme).border,
                   }}
                 />
-              </div>
+                {usernameChecking && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">checking…</span>
+                )}
+                {!usernameChecking && usernameAvailable === true && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-400">Available</span>
+                )}
+                {!usernameChecking && usernameAvailable === false && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-400">Taken</span>
+                )}
+              </ProfileField>
 
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
-                  Username
-                </label>
-                <div className="relative">
-                  <span
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-sm select-none"
-                    style={{ color: theme === 'light' ? '#94a3b8' : '#64748b' }}
-                  >@</span>
-                  <input
-                    type="text"
-                    value={profileForm.username}
-                    onChange={(e) => handleUsernameChange(e.target.value)}
-                    placeholder="yourhandle"
-                    className="w-full pl-7 pr-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
-                    style={{
-                      background: theme === 'light' ? '#f8fafc' : '#0f172a',
-                      border: usernameAvailable === true
-                        ? '1px solid #10b981'
-                        : usernameAvailable === false
-                        ? '1px solid #ef4444'
-                        : theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
-                      color: theme === 'light' ? '#1e293b' : '#f1f5f9',
-                    }}
-                  />
-                  {usernameChecking && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">checking…</span>
-                  )}
-                  {!usernameChecking && usernameAvailable === true && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-400">Available</span>
-                  )}
-                  {!usernameChecking && usernameAvailable === false && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-400">Taken</span>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
-                  Phone Number <span className="text-red-400">*</span>
-                </label>
+              <ProfileField label={<>Phone Number <span className="text-pink-400">*</span></>} theme={theme} icon={<Phone className="w-4 h-4" />}>
                 <input
                   type="tel"
                   value={profileForm.phone_number}
                   onChange={(e) => setProfileForm(f => ({ ...f, phone_number: e.target.value }))}
                   placeholder="+1 234 567 8900"
                   autoFocus={!user?.phone_number}
-                  className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
-                  style={{
-                    background: theme === 'light' ? '#f8fafc' : '#0f172a',
-                    border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
-                    color: theme === 'light' ? '#1e293b' : '#f1f5f9',
-                  }}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                  style={profileInputStyle(theme)}
                 />
-              </div>
+              </ProfileField>
 
               {/* Email Change */}
-              <div className="border-t border-gray-700 pt-4">
-                <label className="block text-xs font-medium mb-1" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
-                  Change Email
-                </label>
+              <div
+                className="rounded-2xl p-4"
+                style={{
+                  background: theme === 'light' ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                  border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)',
+                }}
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Mail className="w-3.5 h-3.5" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }} />
+                  <label className="text-xs font-medium" style={{ color: theme === 'light' ? '#64748b' : '#94a3b8' }}>
+                    Change Email
+                  </label>
+                </div>
                 <p className="text-xs mb-2" style={{ color: theme === 'light' ? '#94a3b8' : '#64748b' }}>
                   Current: <span style={{ color: theme === 'light' ? '#1e293b' : '#f1f5f9' }}>{user?.email}</span>
                 </p>
@@ -2480,18 +2468,15 @@ const WhatsAppMessenger = () => {
                     value={emailChangeInput}
                     onChange={(e) => { setEmailChangeInput(e.target.value); setEmailChangeError(''); setEmailChangeMsg(''); setEmailChangeNeedsReauth(false); }}
                     placeholder="new@email.com"
-                    className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
-                    style={{
-                      background: theme === 'light' ? '#f8fafc' : '#0f172a',
-                      border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
-                      color: theme === 'light' ? '#1e293b' : '#f1f5f9',
-                    }}
+                    className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                    style={profileInputStyle(theme)}
                   />
                   {!emailChangeNeedsReauth && (
                     <button
                       onClick={() => handleSendEmailChangeLink()}
                       disabled={emailChangeSending || !emailChangeInput.trim()}
-                      className="px-3 py-2 text-xs font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
+                      className="px-3 py-2 text-xs font-medium rounded-xl text-white transition-all disabled:opacity-50 whitespace-nowrap"
+                      style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)' }}
                     >
                       {emailChangeSending ? 'Sending…' : 'Send link'}
                     </button>
@@ -2504,18 +2489,15 @@ const WhatsAppMessenger = () => {
                       value={reauthPassword}
                       onChange={(e) => setReauthPassword(e.target.value)}
                       placeholder="Enter your password to confirm"
-                      className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
-                      style={{
-                        background: theme === 'light' ? '#f8fafc' : '#0f172a',
-                        border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid #334155',
-                        color: theme === 'light' ? '#1e293b' : '#f1f5f9',
-                      }}
+                      className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                      style={profileInputStyle(theme)}
                       onKeyDown={(e) => e.key === 'Enter' && reauthPassword && handleSendEmailChangeLink(reauthPassword)}
                     />
                     <button
                       onClick={() => handleSendEmailChangeLink(reauthPassword)}
                       disabled={emailChangeSending || !reauthPassword}
-                      className="px-3 py-2 text-xs font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50 whitespace-nowrap"
+                      className="px-3 py-2 text-xs font-medium rounded-xl text-white transition-all disabled:opacity-50 whitespace-nowrap"
+                      style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)' }}
                     >
                       {emailChangeSending ? 'Sending…' : 'Confirm'}
                     </button>
@@ -2531,7 +2513,10 @@ const WhatsAppMessenger = () => {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-700">
+            <div
+              className="flex items-center justify-end gap-3 px-6 py-4"
+              style={{ borderTop: theme === 'light' ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)' }}
+            >
               {user?.phone_number && (
                 <button
                   onClick={() => setShowProfileModal(false)}
@@ -2544,7 +2529,8 @@ const WhatsAppMessenger = () => {
               <button
                 onClick={handleProfileSave}
                 disabled={profileSaving || !profileForm.phone_number.trim()}
-                className="px-5 py-2 text-sm font-medium rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50"
+                className="px-5 py-2 text-sm font-medium rounded-xl text-white transition-all disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)', boxShadow: '0 0 14px rgba(168,85,247,0.4)' }}
               >
                 {profileSaving ? 'Saving…' : 'Save'}
               </button>

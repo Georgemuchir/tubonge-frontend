@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, ArrowLeft, PhoneCall } from 'lucide-react';
 import api, { resolveMediaUrl } from '../../services/api';
 import socketService from '../../services/socket';
+import Avatar from '../Avatar';
 
-const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
+const CallLogs = ({ onBack, onCallback }) => {
   const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
@@ -108,19 +109,18 @@ const CallLogs = ({ onBack, onCallback, getAvatarColor }) => {
           <div className="divide-y divide-gray-800">
             {filtered.map((call) => {
               const isMissed = call.status === 'missed';
-              const avatarColor = getAvatarColor?.(call.other_user_name) || 'from-blue-500 to-purple-600';
               return (
                 <div
                   key={call.id}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-pointer"
                   onClick={() => onCallback?.(call)}
                 >
-                  <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-lg flex-shrink-0`}>
-                    {call.other_user_avatar
-                      ? <img src={resolveMediaUrl(call.other_user_avatar)} alt="" className="w-full h-full object-cover rounded-full" />
-                      : call.other_user_name?.charAt(0)?.toUpperCase() || '?'
-                    }
-                  </div>
+                  <Avatar
+                    name={call.other_user_name}
+                    avatarUrl={call.other_user_avatar ? resolveMediaUrl(call.other_user_avatar) : null}
+                    size={48}
+                    fontSize={18}
+                  />
 
                   <div className="flex-1 min-w-0">
                     <p className={`font-medium truncate ${isMissed ? 'text-red-400' : 'text-white'}`}>

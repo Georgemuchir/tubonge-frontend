@@ -18,11 +18,13 @@ const ContactProfilePanel = ({ participant, onClose, onBlockStatusChange, onDele
   const [blockLoading, setBlockLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!participant?.id) return;
+    setAvatarBroken(false);
     setLoading(true);
     Promise.all([
       messagesAPI.getSharedMedia(participant.id),
@@ -65,7 +67,7 @@ const ContactProfilePanel = ({ participant, onClose, onBlockStatusChange, onDele
     }
   };
 
-  const avatarSrc = participant.avatar ? resolveUrl(participant.avatar) : null;
+  const avatarSrc = participant.avatar && !avatarBroken ? resolveUrl(participant.avatar) : null;
 
   const items =
     activeTab === 'Photos' ? media.images
@@ -150,7 +152,12 @@ const ContactProfilePanel = ({ participant, onClose, onBlockStatusChange, onDele
             }}
           >
             {avatarSrc ? (
-              <img src={avatarSrc} alt={participant.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img
+                src={avatarSrc}
+                alt={participant.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={() => setAvatarBroken(true)}
+              />
             ) : (
               <span style={{ color: '#fff', fontWeight: 700, fontSize: 30 }}>
                 {participant.name?.charAt(0)?.toUpperCase() || '?'}
