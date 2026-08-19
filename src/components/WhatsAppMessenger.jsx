@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Film, Smile, Sparkles, Mail, Lock, User, Users, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight, Rss, Camera } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, Phone, PhoneOff, Video, Info, Paperclip, Film, Smile, Sparkles, Mail, Lock, User, Users, Check, X, MoreVertical, Menu, ArrowLeft, LogOut, Settings, Sun, Moon, Mic, Square, CornerUpLeft, Trash2, Clock, UserCheck, UserX, BellOff, Bell, Archive, ArchiveRestore, ChevronRight, Rss } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,6 +15,7 @@ import CallLogs from './call/CallLogs';
 import ContactProfilePanel from './chat/ContactProfilePanel';
 import NewsFeed from './NewsFeed';
 import Avatar, { getAvatarColor } from './Avatar';
+import AvatarUpload from './AvatarUpload';
 
 const getAuthToken = async () => {
   const firebaseUser = auth.currentUser;
@@ -667,7 +668,6 @@ const WhatsAppMessenger = () => {
   const typingTimeoutRef = useRef(null);
   const messageImageInputRef = useRef(null);
   const messageVideoInputRef = useRef(null);
-  const avatarInputRef = useRef(null);
   const settingsButtonRef = useRef(null);
   const messagesEndRef = useRef(null);
   const callManagerRef = useRef(null);
@@ -1528,32 +1528,6 @@ const WhatsAppMessenger = () => {
     }
   };
 
-  const handleAvatarUpload = async (file) => {
-    if (!file) return;
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      const response = await fetch(`${getBase()}/users/avatar`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${await getAuthToken()}`,
-        },
-        body: formData,
-      });
-      if (!response.ok) {
-        return;
-      }
-      const data = await response.json();
-      if (data.avatar) {
-        updateUser({ avatar: data.avatar });
-      }
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-    } finally {
-      if (avatarInputRef.current) avatarInputRef.current.value = '';
-    }
-  };
-
   // Auto-prompt when phone number is missing
   useEffect(() => {
     if (user && !user.phone_number) {
@@ -2305,14 +2279,6 @@ const WhatsAppMessenger = () => {
         className="hidden"
         onChange={(e) => { handleSendVideo(e.target.files?.[0]); }}
       />
-      <input
-        ref={avatarInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
-      />
-
       {/* Profile Edit Modal */}
       {showProfileModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -2338,35 +2304,16 @@ const WhatsAppMessenger = () => {
                   <X className="w-4 h-4 text-white" />
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => avatarInputRef.current?.click()}
-                title="Change profile photo"
-                style={{
-                  position: 'absolute', left: '50%', bottom: -44, transform: 'translateX(-50%)',
-                  padding: 0, border: 'none', background: 'none', cursor: 'pointer',
-                }}
-              >
-                <Avatar
+              <div style={{ position: 'absolute', left: '50%', bottom: -44, transform: 'translateX(-50%)' }}>
+                <AvatarUpload
                   name={user?.name}
-                  avatarUrl={user?.avatar ? resolveMediaUrl(user.avatar) : null}
+                  avatarUrl={user?.avatar}
                   size={96}
                   fontSize={32}
-                  style={{
-                    border: `4px solid ${theme === 'light' ? '#ffffff' : '#161228'}`,
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
-                  }}
+                  ringColor={theme === 'light' ? '#ffffff' : '#161228'}
+                  onUploaded={(url) => updateUser({ avatar: url })}
                 />
-                <div style={{
-                  position: 'absolute', bottom: 0, right: 0, width: 30, height: 30, borderRadius: '50%',
-                  background: 'linear-gradient(135deg,#7c3aed,#ec4899)',
-                  border: '2px solid ' + (theme === 'light' ? '#ffffff' : '#161228'),
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 10px rgba(168,85,247,0.6)',
-                }}>
-                  <Camera style={{ width: 14, height: 14, color: '#fff' }} />
-                </div>
-              </button>
+              </div>
             </div>
 
             {/* Name header */}

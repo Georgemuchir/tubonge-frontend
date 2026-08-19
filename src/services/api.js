@@ -80,6 +80,13 @@ export const usersAPI = {
   blockUser: (userId) => api.post(`/users/block/${userId}`),
   unblockUser: (userId) => api.post(`/users/unblock/${userId}`),
   getPublicProfile: (userId) => api.get(`/users/${userId}/public-profile`),
+  uploadAvatar: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/users/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // Friend Requests API (NEW - STRICT PERMISSION MODEL)
