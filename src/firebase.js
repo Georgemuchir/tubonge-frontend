@@ -1,5 +1,4 @@
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -13,8 +12,17 @@ const firebaseConfig = {
   measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
+let app, auth;
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+} catch (err) {
+  document.body.innerHTML =
+    '<div style="font-family: sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1rem;">' +
+    '<h1 style="font-size: 1.25rem;">Firebase is not configured</h1>' +
+    '<p>Copy <code>.env.example</code> to <code>.env</code> and fill in the <code>VITE_FIREBASE_*</code> values from your Firebase project settings, then restart the dev server.</p>' +
+    '</div>';
+  throw err;
+}
 
-export { app, analytics, auth };
+export { app, auth };
