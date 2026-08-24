@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'src/components/legacy/**', 'src/services/ChatAPI.js']),
+  globalIgnores(['dist', 'android', 'src/components/legacy/**', 'src/services/ChatAPI.js']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
