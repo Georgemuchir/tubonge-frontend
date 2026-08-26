@@ -42,7 +42,21 @@ export const AuthProvider = ({ children }) => {
 
   // Listen to Firebase auth state — handles session restore on page load
   useEffect(() => {
+    // Safety net: onAuthStateChanged is expected to fire quickly (it's a
+    // local persistence check, not a network round-trip), but some
+    // WebView environments have made it hang indefinitely instead of
+    // erroring. Rather than strand the user on a loading screen forever,
+    // fall through to the login screen so they can still sign in
+    // manually — signInWithEmailAndPassword doesn't depend on this.
+    const stuckTimer = setTimeout(() => {
+      if (!authFlowInProgress.current) {
+        console.warn('[auth] onAuthStateChanged did not fire within 10s — falling through to login');
+        dispatch({ type: 'LOGOUT' });
+      }
+    }, 10_000);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(stuckTimer);
       // If login/register is actively running, let it manage state itself
       if (authFlowInProgress.current) return;
 
@@ -65,7 +79,10 @@ export const AuthProvider = ({ children }) => {
         dispatch({ type: 'LOGOUT' });
       }
     });
-    return unsubscribe;
+    return () => {
+      clearTimeout(stuckTimer);
+      unsubscribe();
+    };
   }, []);
 
   // Subscribe to force logout socket events

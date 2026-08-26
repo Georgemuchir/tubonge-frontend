@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, browserLocalPersistence, getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,7 +15,16 @@ const firebaseConfig = {
 let app, auth;
 try {
   app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
+  // Default persistence auto-detects IndexedDB, and detection can hang
+  // indefinitely (not fail — hang) in some Android WebViews, including
+  // Capacitor's, leaving onAuthStateChanged never firing. Forcing
+  // localStorage-based persistence skips that detection entirely.
+  try {
+    auth = initializeAuth(app, { persistence: browserLocalPersistence });
+  } catch {
+    // initializeAuth throws if already called for this app (e.g. HMR) — fall back
+    auth = getAuth(app);
+  }
 } catch (err) {
   document.body.innerHTML =
     '<div style="font-family: sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1rem;">' +
