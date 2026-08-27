@@ -117,7 +117,7 @@ const Login = () => {
                 type="password" name="password" value={formData.password}
                 onChange={handleChange}
                 className="auth-input w-full pl-12 pr-4 py-3.5 rounded-xl transition-all"
-                placeholder="Password" required
+                placeholder="Password" autoComplete="current-password" required
               />
             </div>
 

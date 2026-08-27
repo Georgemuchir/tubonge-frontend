@@ -2433,6 +2433,7 @@ const WhatsAppMessenger = () => {
                   <div className="mt-2 flex gap-2">
                     <input
                       type="password"
+                      autoComplete="current-password"
                       value={reauthPassword}
                       onChange={(e) => setReauthPassword(e.target.value)}
                       placeholder="Enter your password to confirm"

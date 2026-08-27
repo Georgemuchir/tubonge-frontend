@@ -130,7 +130,7 @@ const Register = () => {
                 </div>
                 <input type="password" name="password" value={formData.password} onChange={handleChange}
                   className="auth-input w-full pl-12 pr-4 py-3.5 rounded-xl transition-all"
-                  placeholder="Password" required />
+                  placeholder="Password" autoComplete="new-password" required />
               </div>
               {formData.password && (
                 <div className="space-y-1">
@@ -154,7 +154,7 @@ const Register = () => {
               </div>
               <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange}
                 className="auth-input w-full pl-12 pr-4 py-3.5 rounded-xl transition-all"
-                placeholder="Confirm password" required />
+                placeholder="Confirm password" autoComplete="new-password" required />
             </div>
 
             <button type="submit" disabled={submitting}
