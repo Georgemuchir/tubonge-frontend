@@ -18,7 +18,7 @@ This document explains the frontend staging configuration for Tubonge.
 
 ### Step 2: Connect Repository
 
-- **Repository:** `Georgemuchir/pinglo-frontend`
+- **Repository:** `Georgemuchir/tubonge-frontend`
 - **Branch:** `staging` ⚠️ (Very important!)
 - **Name:** `pinglo-frontend-staging`
 
