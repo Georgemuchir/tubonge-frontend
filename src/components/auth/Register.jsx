@@ -70,7 +70,7 @@ const Register = () => {
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl shadow-lg mb-4 transform transition-transform hover:scale-110 hover:rotate-3">
               <MessageCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
             </div>
-            <h1 className="auth-title text-4xl font-bold mb-2 tracking-tight">Join Pinglo</h1>
+            <h1 className="auth-title text-4xl font-bold mb-2 tracking-tight">Join Tubonge</h1>
             <p className="auth-subtitle text-sm flex items-center justify-center gap-1">
               <Sparkles className="w-4 h-4" />
               Create your account to get started
@@ -199,7 +199,7 @@ const Register = () => {
         </div>
 
         <p className="auth-footer text-center text-xs mt-6">
-          © 2026 Pinglo. Secure messaging made simple.
+          © 2026 Tubonge. Secure messaging made simple.
         </p>
       </div>
 

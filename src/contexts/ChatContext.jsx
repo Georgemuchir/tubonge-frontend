@@ -156,7 +156,7 @@ export const ChatProvider = ({ children }) => {
 
   // Setup socket event listeners
   const setupSocketListeners = () => {
-    // Pinglo-style: conversation:update event
+    // Legacy-style: conversation:update event
     // Updates conversation list when new messages arrive
     socketService.onConversationUpdate((update) => {
       console.log('🔄 Conversation update:', update);

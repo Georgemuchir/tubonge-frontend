@@ -58,15 +58,15 @@ function InterestSelection({ onDone }) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-thin" style={{ background: 'var(--pinglo-bg)' }}>
+    <div className="flex-1 overflow-y-auto scrollbar-thin" style={{ background: 'var(--tubonge-bg)' }}>
       <div className="max-w-lg mx-auto px-5 py-8">
         <div className="flex items-center gap-3 mb-2">
           <Rss className="w-7 h-7 text-purple-400" />
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--pinglo-text)' }}>
-            Your Pinglo Feed
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--tubonge-text)' }}>
+            Your Tubonge Feed
           </h1>
         </div>
-        <p className="text-sm mb-8" style={{ color: 'var(--pinglo-text-muted)' }}>
+        <p className="text-sm mb-8" style={{ color: 'var(--tubonge-text-muted)' }}>
           Pick at least 3 topics to personalise your news feed.
         </p>
 
@@ -79,9 +79,9 @@ function InterestSelection({ onDone }) {
                 onClick={() => toggle(interest.id)}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200 text-left"
                 style={{
-                  background: active ? interest.color + '22' : 'var(--pinglo-hover)',
+                  background: active ? interest.color + '22' : 'var(--tubonge-hover)',
                   borderColor: active ? interest.color : 'transparent',
-                  color: active ? interest.color : 'var(--pinglo-text)',
+                  color: active ? interest.color : 'var(--tubonge-text)',
                 }}
               >
                 <span className="text-xl">{interest.icon}</span>
@@ -131,7 +131,7 @@ function ArticleCard({ article, onLike, onShare, onSave }) {
     <div
       className="rounded-2xl overflow-hidden mb-4 transition-all duration-200 cursor-pointer"
       style={{
-        background: 'var(--pinglo-sidebar)',
+        background: 'var(--tubonge-sidebar)',
         border: '1px solid rgba(255,255,255,0.06)',
         boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
       }}
@@ -155,19 +155,19 @@ function ArticleCard({ article, onLike, onShare, onSave }) {
           >
             {meta.icon} {meta.label}
           </span>
-          <span className="text-xs ml-auto" style={{ color: 'var(--pinglo-text-muted)' }}>
+          <span className="text-xs ml-auto" style={{ color: 'var(--tubonge-text-muted)' }}>
             {article.source} · {formatAge(article.published_at)}
           </span>
         </div>
 
         {/* Title */}
-        <h3 className="font-bold text-base leading-snug mb-2" style={{ color: 'var(--pinglo-text)' }}>
+        <h3 className="font-bold text-base leading-snug mb-2" style={{ color: 'var(--tubonge-text)' }}>
           {article.title}
         </h3>
 
         {/* Summary */}
         {article.summary && (
-          <p className="text-sm leading-relaxed line-clamp-3" style={{ color: 'var(--pinglo-text-muted)' }}>
+          <p className="text-sm leading-relaxed line-clamp-3" style={{ color: 'var(--tubonge-text-muted)' }}>
             {article.summary}
           </p>
         )}
@@ -180,7 +180,7 @@ function ArticleCard({ article, onLike, onShare, onSave }) {
       >
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150"
-          style={{ color: liked ? '#ef4444' : 'var(--pinglo-text-muted)' }}
+          style={{ color: liked ? '#ef4444' : 'var(--tubonge-text-muted)' }}
           onClick={e => { e.stopPropagation(); onLike(article.id); }}
         >
           <Heart className="w-3.5 h-3.5" fill={liked ? '#ef4444' : 'none'} />
@@ -189,7 +189,7 @@ function ArticleCard({ article, onLike, onShare, onSave }) {
 
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150"
-          style={{ color: 'var(--pinglo-text-muted)' }}
+          style={{ color: 'var(--tubonge-text-muted)' }}
           onClick={e => { e.stopPropagation(); onShare(article); }}
         >
           <Share2 className="w-3.5 h-3.5" />
@@ -198,7 +198,7 @@ function ArticleCard({ article, onLike, onShare, onSave }) {
 
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150"
-          style={{ color: saved ? '#a855f7' : 'var(--pinglo-text-muted)' }}
+          style={{ color: saved ? '#a855f7' : 'var(--tubonge-text-muted)' }}
           onClick={e => { e.stopPropagation(); onSave(article.id); }}
         >
           <Bookmark className="w-3.5 h-3.5" fill={saved ? '#a855f7' : 'none'} />
@@ -210,7 +210,7 @@ function ArticleCard({ article, onLike, onShare, onSave }) {
           target="_blank"
           rel="noopener noreferrer"
           className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs"
-          style={{ color: 'var(--pinglo-text-muted)' }}
+          style={{ color: 'var(--tubonge-text-muted)' }}
           onClick={e => e.stopPropagation()}
         >
           <ExternalLink className="w-3.5 h-3.5" />
@@ -231,8 +231,8 @@ function CategoryBar({ categories, active, onChange }) {
         onClick={() => onChange(null)}
         className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
         style={{
-          background: active === null ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : 'var(--pinglo-hover)',
-          color: active === null ? 'white' : 'var(--pinglo-text-muted)',
+          background: active === null ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : 'var(--tubonge-hover)',
+          color: active === null ? 'white' : 'var(--tubonge-text-muted)',
         }}
       >
         All
@@ -245,8 +245,8 @@ function CategoryBar({ categories, active, onChange }) {
             onClick={() => onChange(id)}
             className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
             style={{
-              background: active === id ? (m.color + '33') : 'var(--pinglo-hover)',
-              color: active === id ? m.color : 'var(--pinglo-text-muted)',
+              background: active === id ? (m.color + '33') : 'var(--tubonge-hover)',
+              color: active === id ? m.color : 'var(--tubonge-text-muted)',
               border: active === id ? `1px solid ${m.color}55` : '1px solid transparent',
             }}
           >
@@ -334,10 +334,10 @@ export default function NewsFeed({ onBack }) {
 
   if (phase === 'loading') {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--pinglo-bg)' }}>
+      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--tubonge-bg)' }}>
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="text-sm" style={{ color: 'var(--pinglo-text-muted)' }}>Loading your feed…</p>
+          <p className="text-sm" style={{ color: 'var(--tubonge-text-muted)' }}>Loading your feed…</p>
         </div>
       </div>
     );
@@ -348,25 +348,25 @@ export default function NewsFeed({ onBack }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--pinglo-bg)' }}>
+    <div className="flex-1 flex flex-col min-h-0" style={{ background: 'var(--tubonge-bg)' }}>
       {/* Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 border-b flex-shrink-0"
-        style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'var(--pinglo-header)' }}
+        style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'var(--tubonge-header)' }}
       >
         {onBack && (
           <button
             onClick={onBack}
             className="p-1.5 rounded-lg transition-colors mr-1"
-            style={{ color: 'var(--pinglo-text-muted)' }}
+            style={{ color: 'var(--tubonge-text-muted)' }}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
         <Rss className="w-5 h-5 text-purple-400" />
         <div className="flex-1">
-          <h2 className="font-bold text-sm" style={{ color: 'var(--pinglo-text)' }}>Your Feed</h2>
-          <p className="text-xs" style={{ color: 'var(--pinglo-text-muted)' }}>
+          <h2 className="font-bold text-sm" style={{ color: 'var(--tubonge-text)' }}>Your Feed</h2>
+          <p className="text-xs" style={{ color: 'var(--tubonge-text-muted)' }}>
             {articles.length} articles · personalised
           </p>
         </div>
@@ -374,7 +374,7 @@ export default function NewsFeed({ onBack }) {
           onClick={loadFeed}
           disabled={refreshing}
           className="p-2 rounded-xl transition-all"
-          style={{ color: 'var(--pinglo-text-muted)' }}
+          style={{ color: 'var(--tubonge-text-muted)' }}
           title="Refresh"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -416,8 +416,8 @@ export default function NewsFeed({ onBack }) {
         {!error && visible.length === 0 && !refreshing && (
           <div className="text-center py-16">
             <span className="text-4xl mb-4 block">📰</span>
-            <p className="font-semibold mb-1" style={{ color: 'var(--pinglo-text)' }}>No articles here yet</p>
-            <p className="text-sm" style={{ color: 'var(--pinglo-text-muted)' }}>
+            <p className="font-semibold mb-1" style={{ color: 'var(--tubonge-text)' }}>No articles here yet</p>
+            <p className="text-sm" style={{ color: 'var(--tubonge-text-muted)' }}>
               {activeFilter ? 'Try a different topic or ' : ''}refresh to load the latest news.
             </p>
           </div>

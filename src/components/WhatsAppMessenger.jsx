@@ -69,7 +69,7 @@ const styles = `
   }
 
   .message-sent     { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: #fff; box-shadow: 0 4px 15px rgba(124,58,237,0.35); border-radius: 18px 18px 4px 18px !important; }
-  .message-received { background: var(--pinglo-msg-received-bg); color: var(--pinglo-msg-received-txt); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 18px 18px 18px 4px !important; }
+  .message-received { background: var(--tubonge-msg-received-bg); color: var(--tubonge-msg-received-txt); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 18px 18px 18px 4px !important; }
 
   .hover-lift { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
   .hover-lift:hover {
@@ -78,38 +78,38 @@ const styles = `
   }
 
   .scrollbar-thin::-webkit-scrollbar       { width: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: var(--pinglo-scrollbar-track); }
+  .scrollbar-thin::-webkit-scrollbar-track { background: var(--tubonge-scrollbar-track); }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.45); border-radius: 99px; }
 
   /* ── Theme-aware messenger classes ── */
-  .whatsapp-bg      { background-color: var(--pinglo-bg); color: var(--pinglo-text); }
-  .whatsapp-header  { background: var(--pinglo-header); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
-  .whatsapp-sidebar { background: var(--pinglo-sidebar); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  .whatsapp-bg      { background-color: var(--tubonge-bg); color: var(--tubonge-text); }
+  .whatsapp-header  { background: var(--tubonge-header); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  .whatsapp-sidebar { background: var(--tubonge-sidebar); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
   .whatsapp-chat-bg {
-    background-color: var(--pinglo-chat-bg);
+    background-color: var(--tubonge-chat-bg);
     background-image:
       radial-gradient(circle at 85% 8%, rgba(124,58,237,0.1) 0%, transparent 70%),
       radial-gradient(circle at 10% 85%, rgba(236,72,153,0.07) 0%, transparent 70%);
   }
-  .whatsapp-input         { background-color: var(--pinglo-input-bg); color: var(--pinglo-text); }
-  .conversation-hover:hover { background-color: var(--pinglo-hover); border-radius: 14px; }
-  .conversation-active    { background-color: var(--pinglo-active); border: 1px solid rgba(168,85,247,0.3); border-radius: 14px; }
+  .whatsapp-input         { background-color: var(--tubonge-input-bg); color: var(--tubonge-text); }
+  .conversation-hover:hover { background-color: var(--tubonge-hover); border-radius: 14px; }
+  .conversation-active    { background-color: var(--tubonge-active); border: 1px solid rgba(168,85,247,0.3); border-radius: 14px; }
 
   /* Tailwind utility overrides for light mode */
-  [data-theme="light"] .text-white   { color: var(--pinglo-text) !important; }
-  [data-theme="light"] .text-gray-400 { color: var(--pinglo-text-muted) !important; }
-  [data-theme="light"] .text-gray-300 { color: var(--pinglo-text-muted) !important; }
-  [data-theme="light"] .text-gray-500 { color: var(--pinglo-text-muted) !important; }
-  [data-theme="light"] .border-gray-800 { border-color: var(--pinglo-border) !important; }
-  [data-theme="light"] .border-gray-700 { border-color: var(--pinglo-border) !important; }
-  [data-theme="light"] .bg-gray-800  { background-color: var(--pinglo-header) !important; }
-  [data-theme="light"] .bg-gray-900  { background-color: var(--pinglo-bg) !important; }
-  [data-theme="light"] .hover\:bg-gray-700:hover    { background-color: var(--pinglo-hover) !important; }
-  [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: var(--pinglo-hover) !important; }
-  [data-theme="light"] .bg-gray-700\/50 { background-color: var(--pinglo-active) !important; }
-  [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: var(--pinglo-hover) !important; }
-  [data-theme="light"] .border-gray-700\/50 { border-color: var(--pinglo-border) !important; }
-  [data-theme="light"] .ring-gray-700\/50 { --tw-ring-color: var(--pinglo-border) !important; }
+  [data-theme="light"] .text-white   { color: var(--tubonge-text) !important; }
+  [data-theme="light"] .text-gray-400 { color: var(--tubonge-text-muted) !important; }
+  [data-theme="light"] .text-gray-300 { color: var(--tubonge-text-muted) !important; }
+  [data-theme="light"] .text-gray-500 { color: var(--tubonge-text-muted) !important; }
+  [data-theme="light"] .border-gray-800 { border-color: var(--tubonge-border) !important; }
+  [data-theme="light"] .border-gray-700 { border-color: var(--tubonge-border) !important; }
+  [data-theme="light"] .bg-gray-800  { background-color: var(--tubonge-header) !important; }
+  [data-theme="light"] .bg-gray-900  { background-color: var(--tubonge-bg) !important; }
+  [data-theme="light"] .hover\:bg-gray-700:hover    { background-color: var(--tubonge-hover) !important; }
+  [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: var(--tubonge-hover) !important; }
+  [data-theme="light"] .bg-gray-700\/50 { background-color: var(--tubonge-active) !important; }
+  [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: var(--tubonge-hover) !important; }
+  [data-theme="light"] .border-gray-700\/50 { border-color: var(--tubonge-border) !important; }
+  [data-theme="light"] .ring-gray-700\/50 { --tw-ring-color: var(--tubonge-border) !important; }
 
   .blue-accent  { color: #3b82f6; }
   .blue-bg      { background-color: #3b82f6; }
@@ -463,7 +463,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
   return (
     <div className="flex-1 flex flex-col min-h-0 whatsapp-bg">
       {/* Header */}
-      <div style={{ padding: '20px 20px 0', background: 'var(--pinglo-header)', borderBottom: '1px solid var(--pinglo-border)' }}>
+      <div style={{ padding: '20px 20px 0', background: 'var(--tubonge-header)', borderBottom: '1px solid var(--tubonge-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {showArchived && (
@@ -480,7 +480,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
               <MessageCircle style={{ width: 15, height: 15, color: '#fff' }} />
             </div>
             <span style={{ fontSize: 17, fontWeight: 700, color: '#f0eaff' }}>
-              {showArchived ? 'Archived' : 'Pinglo'}
+              {showArchived ? 'Archived' : 'Tubonge'}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -644,10 +644,10 @@ const WhatsAppMessenger = () => {
   const [inbox, setInbox] = useState([]);
   const [inboxLoading, setInboxLoading] = useState(true);
   const [mutedIds, setMutedIds] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('pinglo_muted') || '[]')); } catch { return new Set(); }
+    try { return new Set(JSON.parse(localStorage.getItem('tubonge_muted') || '[]')); } catch { return new Set(); }
   });
   const [archivedIds, setArchivedIds] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('pinglo_archived') || '[]')); } catch { return new Set(); }
+    try { return new Set(JSON.parse(localStorage.getItem('tubonge_archived') || '[]')); } catch { return new Set(); }
   });
   const [, setTotalUnread] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState({});
@@ -760,7 +760,7 @@ const WhatsAppMessenger = () => {
   const fetchInbox = async () => {
     // Show cached inbox immediately — zero wait on every load after the first
     try {
-      const cached = localStorage.getItem('pinglo_inbox_cache');
+      const cached = localStorage.getItem('tubonge_inbox_cache');
       if (cached) {
         const { merged, totalUnread, onlineMap } = JSON.parse(cached);
         setInbox(merged);
@@ -808,7 +808,7 @@ const WhatsAppMessenger = () => {
 
       // Persist for next load
       try {
-        localStorage.setItem('pinglo_inbox_cache', JSON.stringify({ merged, totalUnread, onlineMap }));
+        localStorage.setItem('tubonge_inbox_cache', JSON.stringify({ merged, totalUnread, onlineMap }));
       } catch {}
     } catch (error) {
       console.error('Fetch inbox error:', error);
@@ -832,7 +832,7 @@ const WhatsAppMessenger = () => {
         setMessages(prevMessages => [...prevMessages, newMessage]);
       }
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('New message from Pinglo', {
+        new Notification('New message from Tubonge', {
           body: newMessage.content.substring(0, 50),
           icon: '/favicon.ico'
         });
@@ -1012,7 +1012,7 @@ const WhatsAppMessenger = () => {
     setMutedIds(prev => {
       const next = new Set(prev);
       if (next.has(userId)) { next.delete(userId); } else { next.add(userId); }
-      localStorage.setItem('pinglo_muted', JSON.stringify([...next]));
+      localStorage.setItem('tubonge_muted', JSON.stringify([...next]));
       return next;
     });
   };
@@ -1022,7 +1022,7 @@ const WhatsAppMessenger = () => {
     setArchivedIds(prev => {
       const next = new Set(prev);
       if (next.has(userId)) { next.delete(userId); } else { next.add(userId); }
-      localStorage.setItem('pinglo_archived', JSON.stringify([...next]));
+      localStorage.setItem('tubonge_archived', JSON.stringify([...next]));
       return next;
     });
   };
@@ -1117,11 +1117,11 @@ const WhatsAppMessenger = () => {
             : item
         );
         try {
-          const raw = localStorage.getItem('pinglo_inbox_cache');
+          const raw = localStorage.getItem('tubonge_inbox_cache');
           if (raw) {
             const c = JSON.parse(raw);
             c.merged = updated;
-            localStorage.setItem('pinglo_inbox_cache', JSON.stringify(c));
+            localStorage.setItem('tubonge_inbox_cache', JSON.stringify(c));
           }
         } catch {}
         return updated;
@@ -1270,8 +1270,8 @@ const WhatsAppMessenger = () => {
               : item
           );
           try {
-            const raw = localStorage.getItem('pinglo_inbox_cache');
-            if (raw) { const c = JSON.parse(raw); c.merged = updated; localStorage.setItem('pinglo_inbox_cache', JSON.stringify(c)); }
+            const raw = localStorage.getItem('tubonge_inbox_cache');
+            if (raw) { const c = JSON.parse(raw); c.merged = updated; localStorage.setItem('tubonge_inbox_cache', JSON.stringify(c)); }
           } catch {}
           return updated;
         });
@@ -2331,7 +2331,7 @@ const WhatsAppMessenger = () => {
                   className="text-xs mt-2 px-3 py-1 inline-block rounded-full font-medium"
                   style={{ background: 'rgba(236,72,153,0.14)', color: '#ec4899' }}
                 >
-                  A phone number is required to use Pinglo
+                  A phone number is required to use Tubonge
                 </p>
               )}
             </div>

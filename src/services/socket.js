@@ -284,12 +284,12 @@ class SocketService {
   onNewMessage(callback) {
     if (this.socket) {
       this.socket.on('new_message', callback);
-      // Pinglo-style event (alias)
+      // Legacy-style event (alias)
       this.socket.on('message:new', callback);
     }
   }
 
-  // Pinglo-style: conversation list updates
+  // Legacy-style: conversation list updates
   onConversationUpdate(callback) {
     if (this.socket) {
       this.socket.on('conversation:update', callback);

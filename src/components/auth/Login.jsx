@@ -61,7 +61,7 @@ const Login = () => {
             <h1 className="auth-title text-4xl font-bold mb-2 tracking-tight">Welcome back</h1>
             <p className="auth-subtitle text-sm flex items-center justify-center gap-1">
               <Sparkles className="w-4 h-4" />
-              Sign in to continue to Pinglo
+              Sign in to continue to Tubonge
             </p>
           </div>
 
@@ -166,7 +166,7 @@ const Login = () => {
         </div>
 
         <p className="auth-footer text-center text-xs mt-6">
-          © 2026 Pinglo. Secure messaging made simple.
+          © 2026 Tubonge. Secure messaging made simple.
         </p>
       </div>
 

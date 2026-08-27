@@ -1,4 +1,4 @@
-# Pinglo Frontend
+# Tubonge Frontend
 
 A modern, real-time messaging web application built with React, Tailwind CSS, and Socket.IO for seamless communication.
 
@@ -63,7 +63,7 @@ VITE_API_URL=http://localhost:5000/api
 VITE_SOCKET_URL=http://localhost:5000
 
 # App Configuration  
-VITE_APP_NAME=Pinglo
+VITE_APP_NAME=Tubonge
 VITE_APP_VERSION=1.0.0
 ```
 
@@ -228,7 +228,7 @@ VITE_SOCKET_URL=https://your-api-domain.com
 
 ## 📄 License
 
-This project is part of the Pinglo messaging application.
+This project is part of the Tubonge messaging application.
 
 ## 🤝 Contributing
 

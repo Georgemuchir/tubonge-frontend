@@ -1,6 +1,6 @@
 # Staging Environment Setup - Frontend
 
-This document explains the frontend staging configuration for Pinglo.
+This document explains the frontend staging configuration for Tubonge.
 
 ## Staging vs Production
 
@@ -137,7 +137,7 @@ After deploying, check these:
 1. **Frontend loads:**
    ```
    Visit: https://pinglo-frontend-staging.onrender.com
-   Should show: Pinglo login page
+   Should show: Tubonge login page
    ```
 
 2. **API connection works:**

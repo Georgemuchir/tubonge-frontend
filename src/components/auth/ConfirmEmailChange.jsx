@@ -65,7 +65,7 @@ const ConfirmEmailChange = () => {
         <p className="text-gray-400 mb-6">
           This link is missing required parameters. Please request a new email change from your profile settings.
         </p>
-        <Link to="/" className="btn-secondary">Back to Pinglo</Link>
+        <Link to="/" className="btn-secondary">Back to Tubonge</Link>
       </Screen>
     );
   }
@@ -90,7 +90,7 @@ const ConfirmEmailChange = () => {
             : 'Your email has been updated. Please log in with your new email address.'}
         </p>
         <Link to={isLoggedIn ? '/' : '/login'} className="btn-teal">
-          {isLoggedIn ? 'Go to Pinglo' : 'Go to Login'}
+          {isLoggedIn ? 'Go to Tubonge' : 'Go to Login'}
         </Link>
       </Screen>
     );
