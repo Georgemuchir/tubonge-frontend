@@ -11,6 +11,23 @@ const CALL_STATE = {
   CONNECTED: 'connected',
 };
 
+// STUN alone only discovers public IPs — it can't relay media through the
+// symmetric NATs most mobile carriers use, so two phones on cellular data
+// can complete signaling (looks "connected") with no audio/video actually
+// flowing. TURN relays the media itself when a direct path isn't possible.
+// Open Relay Project's free TURN service is fine for personal-scale use;
+// swap for a dedicated TURN server (e.g. self-hosted coturn) if call volume
+// grows enough to hit its limits.
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.relay.metered.ca:80' },
+  { urls: 'turn:global.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:global.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+];
+
 const CALL_CSS = `
   @keyframes cm-ring {
     0%   { transform:scale(1);   opacity:0.5; }
@@ -201,7 +218,17 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = remoteStream;
       remoteAudioRef.current.volume = 1.0;
-      remoteAudioRef.current.play().catch(() => {});
+      remoteAudioRef.current.play().catch(() => {
+        // Autoplay was blocked (the stream arrived async, outside the
+        // click that started the call, so some browsers won't allow sound
+        // to start on its own). Retry on the next tap anywhere — silently
+        // swallowing this before left calls connected but permanently mute.
+        const retry = () => {
+          remoteAudioRef.current?.play().catch(() => {});
+          document.removeEventListener('pointerdown', retry);
+        };
+        document.addEventListener('pointerdown', retry, { once: true });
+      });
     }
     // Remote stream arriving = connection is live on both sides → start timer
     startTimer();
@@ -283,11 +310,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
       const peer = new Peer({
         initiator: true, trickle: true, stream,
-        config: { iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-        ]},
+        config: { iceServers: ICE_SERVERS },
       });
 
       let offerSent = false;
@@ -344,11 +367,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
       const peer = new Peer({
         initiator: false, trickle: true, stream,
-        config: { iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-        ]},
+        config: { iceServers: ICE_SERVERS },
       });
 
       let answerSent = false;
@@ -458,7 +477,13 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       if (remoteAudioRef.current && !remoteAudioRef.current.srcObject) {
         remoteAudioRef.current.srcObject = remoteStreamRef.current;
         remoteAudioRef.current.volume = 1.0;
-        remoteAudioRef.current.play().catch(() => {});
+        remoteAudioRef.current.play().catch(() => {
+          const retry = () => {
+            remoteAudioRef.current?.play().catch(() => {});
+            document.removeEventListener('pointerdown', retry);
+          };
+          document.addEventListener('pointerdown', retry, { once: true });
+        });
       }
     }
   }, [callState]);

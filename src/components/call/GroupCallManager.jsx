@@ -4,9 +4,18 @@ import Peer from 'simple-peer/simplepeer.min.js';
 import socketService from '../../services/socket';
 import { resolveMediaUrl } from '../../services/api';
 
+// STUN alone can't relay media through the symmetric NATs most mobile
+// carriers use — see CallManager.jsx's ICE_SERVERS comment for the full
+// explanation. Same TURN fallback here so group calls don't hit the same
+// "connects but silent" failure as 1:1 calls did.
 const ICE = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.relay.metered.ca:80' },
+  { urls: 'turn:global.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:global.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
 ];
 
 const makeRoomId = () => `gc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -27,7 +36,28 @@ const Tile = ({ participant, localVideoRef, isLocal, isScreenSharing }) => {
     if (!el || !participant.stream) return;
     el.srcObject = participant.stream;
     el.muted = isLocal;
-    el.play().catch(() => { if (el) { el.muted = true; el.play().catch(() => {}); } });
+    el.play().catch(() => {
+      if (!el) return;
+      if (isLocal) {
+        // Local preview has no sound anyway — muting just satisfies autoplay policy.
+        el.muted = true;
+        el.play().catch(() => {});
+        return;
+      }
+      // Remote participant: falling back to muted here would play video
+      // with permanently silent audio. Show it muted for now, but retry
+      // unmuted on the next tap so this participant is actually audible.
+      el.muted = true;
+      el.play().catch(() => {});
+      const retry = () => {
+        if (el) {
+          el.muted = false;
+          el.play().catch(() => {});
+        }
+        document.removeEventListener('pointerdown', retry);
+      };
+      document.addEventListener('pointerdown', retry, { once: true });
+    });
   }, [participant.stream, isLocal, localVideoRef]);
 
   const letter = (participant.name || '?').charAt(0).toUpperCase();
