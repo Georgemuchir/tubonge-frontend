@@ -228,7 +228,7 @@ const GroupCallManager = forwardRef(({ currentUser, contacts = [] }, ref) => {
   // ── create peer ────────────────────────────────────────────────────────────
   const createPeer = useCallback((targetId, initiator, stream) => {
     const rid = roomIdRef.current;
-    const peer = new Peer({ initiator, trickle: true, stream, config: { iceServers: ICE } });
+    const peer = new Peer({ initiator, trickle: true, stream, config: { iceServers: ICE, iceCandidatePoolSize: 4 } });
 
     peer.on('signal', sig => {
       socketService.sendGroupSignal(rid, targetId, currentUserId, sig);

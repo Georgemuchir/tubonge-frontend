@@ -104,6 +104,8 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
   const callTypeRef = useRef('video');
   const iceCandidateBuffer = useRef([]);
   const answerAppliedRef = useRef(false);
+  const iceGraceTimerRef = useRef(null);
+  const iceRestartAttemptsRef = useRef(0);
   const remoteStreamRef = useRef(null);
 
   const currentUserId = currentUser?.id || currentUser?._id;
@@ -166,6 +168,11 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
       clearTimeout(callTimeoutRef.current);
       callTimeoutRef.current = null;
     }
+    if (iceGraceTimerRef.current) {
+      clearTimeout(iceGraceTimerRef.current);
+      iceGraceTimerRef.current = null;
+    }
+    iceRestartAttemptsRef.current = 0;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
@@ -234,24 +241,6 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     startTimer();
   }, [startTimer]);
 
-  // ── ICE quality monitor ──
-  const monitorConnection = useCallback((peer) => {
-    try {
-      const pc = peer._pc;
-      if (!pc) return;
-      pc.oniceconnectionstatechange = () => {
-        const state = pc.iceConnectionState;
-        if (state === 'connected' || state === 'completed') setConnectionQuality('good');
-        else if (state === 'disconnected') setConnectionQuality('reconnecting');
-        else if (state === 'failed') {
-          setConnectionQuality('poor');
-          setError('Connection lost');
-          setTimeout(() => setError(''), 3000);
-        }
-      };
-    } catch {}
-  }, []);
-
   // ── Flip camera ──
   const flipCamera = useCallback(async () => {
     if (!peerRef.current || !localStreamRef.current) return;
@@ -289,6 +278,69 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
     cleanup();
   }, [currentUserId, cleanup]);
 
+  // ── ICE quality monitor + reconnection ──
+  // 'disconnected' is often a transient blip (brief signal loss, wifi<->cellular
+  // handoff) that clears on its own within a few seconds — jumping straight to
+  // an ICE restart on every blip would cause more hiccups than it fixes. Give
+  // it a grace window first. 'failed' is definitive, so restart immediately.
+  // Cap restart attempts so a genuinely dead connection ends the call cleanly
+  // instead of sitting in a broken "connected" UI state forever.
+  const MAX_ICE_RESTARTS = 2;
+  const ICE_DISCONNECT_GRACE_MS = 4000;
+
+  const monitorConnection = useCallback((peer) => {
+    try {
+      const pc = peer._pc;
+      if (!pc) return;
+
+      const clearGraceTimer = () => {
+        if (iceGraceTimerRef.current) {
+          clearTimeout(iceGraceTimerRef.current);
+          iceGraceTimerRef.current = null;
+        }
+      };
+
+      const attemptRestart = () => {
+        if (peer.destroyed) return;
+        if (iceRestartAttemptsRef.current >= MAX_ICE_RESTARTS) {
+          setError('Connection lost');
+          setCallState(CALL_STATE.IDLE);
+          cleanup();
+          setTimeout(() => setError(''), 3000);
+          return;
+        }
+        iceRestartAttemptsRef.current += 1;
+        try {
+          // Triggers simple-peer's negotiationneeded handler, which creates
+          // a fresh offer (iceRestart included) and emits it through the
+          // same 'signal' handler already wired up for the initial offer —
+          // no signaling-layer changes needed, it rides the existing relay.
+          pc.restartIce();
+        } catch {}
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        if (state === 'connected' || state === 'completed') {
+          clearGraceTimer();
+          iceRestartAttemptsRef.current = 0;
+          setConnectionQuality('good');
+          setError('');
+        } else if (state === 'disconnected') {
+          setConnectionQuality('reconnecting');
+          clearGraceTimer();
+          iceGraceTimerRef.current = setTimeout(() => {
+            if (pc.iceConnectionState === 'disconnected') attemptRestart();
+          }, ICE_DISCONNECT_GRACE_MS);
+        } else if (state === 'failed') {
+          setConnectionQuality('poor');
+          clearGraceTimer();
+          attemptRestart();
+        }
+      };
+    } catch {}
+  }, [cleanup]);
+
   // ── Start a call ──
   const startCall = useCallback(async (type) => {
     const su = selectedUserRef.current;
@@ -310,7 +362,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
       const peer = new Peer({
         initiator: true, trickle: true, stream,
-        config: { iceServers: ICE_SERVERS },
+        config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 },
       });
 
       let offerSent = false;
@@ -367,7 +419,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
 
       const peer = new Peer({
         initiator: false, trickle: true, stream,
-        config: { iceServers: ICE_SERVERS },
+        config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 },
       });
 
       let answerSent = false;
