@@ -7,7 +7,7 @@ import Register from './components/auth/Register';
 import ForgotPassword from './components/auth/ForgotPassword';
 import ResetPassword from './components/auth/ResetPassword';
 import ConfirmEmailChange from './components/auth/ConfirmEmailChange';
-import WhatsAppMessenger from './components/WhatsAppMessenger';
+import TubongeMessenger from './components/TubongeMessenger';
 import UpdateGate from './components/UpdateGate';
 import { auth } from './firebase';
 import { serverReady, hasLocalServer, isUsingFallback } from './services/serverConfig';
@@ -138,7 +138,7 @@ const router = createBrowserRouter(
           path: "/",
           element: (
             <ProtectedRoute>
-              <WhatsAppMessenger />
+              <TubongeMessenger />
             </ProtectedRoute>
           ),
         },

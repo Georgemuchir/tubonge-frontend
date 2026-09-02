@@ -86,16 +86,16 @@ const styles = `
   .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.45); border-radius: 99px; }
 
   /* ── Theme-aware messenger classes ── */
-  .whatsapp-bg      { background-color: var(--tubonge-bg); color: var(--tubonge-text); }
-  .whatsapp-header  { background: var(--tubonge-header); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
-  .whatsapp-sidebar { background: var(--tubonge-sidebar); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
-  .whatsapp-chat-bg {
+  .tubonge-bg      { background-color: var(--tubonge-bg); color: var(--tubonge-text); }
+  .tubonge-header  { background: var(--tubonge-header); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  .tubonge-sidebar { background: var(--tubonge-sidebar); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  .tubonge-chat-bg {
     background-color: var(--tubonge-chat-bg);
     background-image:
       radial-gradient(circle at 85% 8%, rgba(124,58,237,0.1) 0%, transparent 70%),
       radial-gradient(circle at 10% 85%, rgba(236,72,153,0.07) 0%, transparent 70%);
   }
-  .whatsapp-input         { background-color: var(--tubonge-input-bg); color: var(--tubonge-text); }
+  .tubonge-input         { background-color: var(--tubonge-input-bg); color: var(--tubonge-text); }
   .conversation-hover:hover { background-color: var(--tubonge-hover); border-radius: 14px; }
   .conversation-active    { background-color: var(--tubonge-active); border: 1px solid rgba(168,85,247,0.3); border-radius: 14px; }
 
@@ -191,7 +191,7 @@ const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
     : msg.content;
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="whatsapp-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={e => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
+      <div className="tubonge-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={e => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xl font-semibold text-white">Forward to...</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
@@ -203,7 +203,7 @@ const ForwardModal = ({ msg, inbox, onClose, onForward, resolveMediaUrl }) => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input type="text" value={query} onChange={e => setQuery(e.target.value)}
             placeholder="Search contacts..." autoFocus
-            className="w-full pl-12 pr-4 py-3 rounded-lg whatsapp-input text-white placeholder-gray-400 focus:outline-none border-none" />
+            className="w-full pl-12 pr-4 py-3 rounded-lg tubonge-input text-white placeholder-gray-400 focus:outline-none border-none" />
         </div>
         <div className="space-y-1 max-h-80 overflow-y-auto scrollbar-thin">
           {filtered.length === 0 ? (
@@ -259,7 +259,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="whatsapp-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={(e) => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
+      <div className="tubonge-header rounded-2xl p-6 w-full max-w-md border border-gray-700" onClick={(e) => e.stopPropagation()} style={{animation: 'scaleUp 0.3s ease-out'}}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-white">New Chat</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -274,7 +274,7 @@ const UserSearch = ({ onClose, onSelectUser, resolveMediaUrl }) => {
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search by name or email..."
-            className="w-full pl-12 pr-4 py-3 rounded-lg whatsapp-input text-white placeholder-gray-400 focus:outline-none border-none"
+            className="w-full pl-12 pr-4 py-3 rounded-lg tubonge-input text-white placeholder-gray-400 focus:outline-none border-none"
           />
         </div>
         
@@ -465,7 +465,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
   const displayConvs = showArchived ? archivedConvs : tabFiltered;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 whatsapp-bg">
+    <div className="flex-1 flex flex-col min-h-0 tubonge-bg">
       {/* Header */}
       <div style={{ padding: '20px 20px 0', background: 'var(--tubonge-header)', borderBottom: '1px solid var(--tubonge-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -531,7 +531,7 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin whatsapp-sidebar messages-area" style={{ paddingTop: 6 }}>
+      <div className="flex-1 overflow-y-auto scrollbar-thin tubonge-sidebar messages-area" style={{ paddingTop: 6 }}>
         {inboxLoading ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -634,7 +634,7 @@ const ProfileField = ({ label, icon, theme, children }) => (
   </div>
 );
 
-const WhatsAppMessenger = () => {
+const TubongeMessenger = () => {
   const { logout, user, updateUser } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -1772,7 +1772,7 @@ const WhatsAppMessenger = () => {
   }, [inbox, searchQuery, onlineUsers]);
 
   return (
-    <div className="app-root whatsapp-bg flex flex-col overflow-hidden min-h-0">
+    <div className="app-root tubonge-bg flex flex-col overflow-hidden min-h-0">
       <style>{styles}</style>
 
       {/* Hidden sentinel: keeps click-outside handler for settings working */}
@@ -1894,7 +1894,7 @@ const WhatsAppMessenger = () => {
           </div>
           
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 whatsapp-chat-bg scrollbar-thin messages-area">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 tubonge-chat-bg scrollbar-thin messages-area">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -2035,7 +2035,7 @@ const WhatsAppMessenger = () => {
 
           {/* Accept/Decline for incoming requests */}
           {chatStatus === 'INCOMING_PENDING' && (
-            <div className="whatsapp-header px-4 py-3 border-l border-gray-800">
+            <div className="tubonge-header px-4 py-3 border-l border-gray-800">
               {!incomingRequest?.requestId && (
                 <p className="text-gray-400 text-xs text-center mb-2">Loading request…</p>
               )}
@@ -2088,7 +2088,7 @@ const WhatsAppMessenger = () => {
             </div>
           )}
 
-          <div className="whatsapp-header p-3 border-l border-gray-800 safe-area-bottom">
+          <div className="tubonge-header p-3 border-l border-gray-800 safe-area-bottom">
             {sendError && (
               <div className="mb-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs px-3 py-2">
                 {sendError}
@@ -2129,7 +2129,7 @@ const WhatsAppMessenger = () => {
                 <button onClick={cancelRecording} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors touch-target" title="Cancel">
                   <X className="w-5 h-5" />
                 </button>
-                <div className="flex-1 flex items-center gap-2 whatsapp-input rounded-lg px-4 py-2">
+                <div className="flex-1 flex items-center gap-2 tubonge-input rounded-lg px-4 py-2">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                   <span className="text-red-400 text-sm font-medium">
                     {String(Math.floor(recordingSeconds / 60)).padStart(2,'0')}:{String(recordingSeconds % 60).padStart(2,'0')}
@@ -2728,4 +2728,4 @@ const WhatsAppMessenger = () => {
   );
 };
 
-export default WhatsAppMessenger;
+export default TubongeMessenger;

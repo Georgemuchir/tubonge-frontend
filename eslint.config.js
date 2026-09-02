@@ -29,7 +29,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/components/WhatsAppMessenger.jsx'],
+    files: ['src/components/TubongeMessenger.jsx'],
     rules: { 'no-useless-escape': 'off' },
   },
   {
