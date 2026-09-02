@@ -80,6 +80,7 @@ export const usersAPI = {
   blockUser: (userId) => api.post(`/users/block/${userId}`),
   unblockUser: (userId) => api.post(`/users/unblock/${userId}`),
   getPublicProfile: (userId) => api.get(`/users/${userId}/public-profile`),
+  registerFcmToken: (token) => api.post('/users/fcm-token', { token }),
   uploadAvatar: (file) => {
     const formData = new FormData();
     formData.append('image', file);

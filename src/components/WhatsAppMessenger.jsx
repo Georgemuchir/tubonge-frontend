@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
 import { verifyBeforeUpdateEmail, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import '../services/api';
+import { usersAPI } from '../services/api';
 import socketService from '../services/socket';
 import { getActiveApiUrl, serverReady } from '../services/serverConfig';
 import CallManager from './call/CallManager';
@@ -14,6 +15,9 @@ import GroupCallManager from './call/GroupCallManager';
 import CallLogs from './call/CallLogs';
 import ContactProfilePanel from './chat/ContactProfilePanel';
 import NewsFeed from './NewsFeed';
+import { getPendingCall, onIncomingCall } from '../services/incomingCallBridge';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 import Avatar, { getAvatarColor } from './Avatar';
 import AvatarUpload from './AvatarUpload';
 
@@ -750,6 +754,58 @@ const WhatsAppMessenger = () => {
     }, 10 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
+
+  // App launched (cold start) or resumed (backgrounded) from tapping a
+  // native incoming-call notification. There's no live socket signal to
+  // resume here — that connection didn't exist when the call actually came
+  // in, which is the whole reason the push fired — so this places a fresh
+  // callback instead, same as CallLogs' "call back a missed call" flow.
+  // "decline" and a bare notification tap (no action) just land on the app
+  // normally with no callback.
+  useEffect(() => {
+    if (!user) return;
+    const handle = (call) => {
+      if (!call || call.action !== 'answer' || !call.callerId) return;
+      setSelectedUser({ id: call.callerId, _id: call.callerId, name: call.callerName || 'Unknown' });
+      setTimeout(() => {
+        callManagerRef.current?.startCall(call.callType || 'video');
+      }, 500);
+    };
+    getPendingCall().then(handle);
+    return onIncomingCall(handle);
+  }, [user]);
+
+  // Register this device for push notifications — the fallback for calls
+  // and messages when this socket connection isn't live (background/
+  // closed). Native only; the web app has nothing to register a device
+  // token for.
+  useEffect(() => {
+    if (!user || !Capacitor.isNativePlatform()) return;
+    let listenerHandle = null;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        let perm = await PushNotifications.checkPermissions();
+        if (perm.receive === 'prompt') {
+          perm = await PushNotifications.requestPermissions();
+        }
+        if (perm.receive !== 'granted' || cancelled) return;
+
+        listenerHandle = PushNotifications.addListener('registration', (token) => {
+          usersAPI.registerFcmToken(token.value).catch(() => {});
+        });
+        await PushNotifications.register();
+      } catch (e) {
+        console.warn('[push] registration failed:', e.message);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      listenerHandle?.remove();
+    };
+  }, [user]);
 
   // Scroll to bottom when conversation opens or message count changes
   useEffect(() => {

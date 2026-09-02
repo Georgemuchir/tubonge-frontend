@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "410654652593",
+    "project_id": "pinglo-staging",
+    "storage_bucket": "pinglo-staging.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:410654652593:android:5087c7124353aad2324a90",
+        "android_client_info": {
+          "package_name": "com.pinglo.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_eytvA_WTWK7LOPxcOK_T7_FJzPbwD8Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
