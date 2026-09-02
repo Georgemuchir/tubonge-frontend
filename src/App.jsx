@@ -1,17 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense, lazy } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import ForgotPassword from './components/auth/ForgotPassword';
-import ResetPassword from './components/auth/ResetPassword';
-import ConfirmEmailChange from './components/auth/ConfirmEmailChange';
-import TubongeMessenger from './components/TubongeMessenger';
 import UpdateGate from './components/UpdateGate';
 import { auth } from './firebase';
 import { serverReady, hasLocalServer, isUsingFallback } from './services/serverConfig';
 import './App.css';
+
+// Login is kept eager (smallest, most common first paint for anyone not yet
+// authenticated). Everything else — especially TubongeMessenger, which pulls
+// in calling, group calls, and the news feed — is lazy so an unauthenticated
+// visitor never has to download it, and an authenticated one gets it as a
+// separate chunk instead of blocking the initial script parse on it.
+const Register = lazy(() => import('./components/auth/Register'));
+const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
+const ConfirmEmailChange = lazy(() => import('./components/auth/ConfirmEmailChange'));
+const TubongeMessenger = lazy(() => import('./components/TubongeMessenger'));
 
 // Captures the first uncaught error/rejection so the diagnostic loading
 // screen below can show *something* even if React itself never re-renders
@@ -160,7 +166,9 @@ const router = createBrowserRouter(
 function App() {
   return (
     <UpdateGate>
-      <RouterProvider router={router} />
+      <Suspense fallback={<LoadingScreen />}>
+        <RouterProvider router={router} />
+      </Suspense>
     </UpdateGate>
   );
 }
