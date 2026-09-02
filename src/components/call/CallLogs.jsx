@@ -129,7 +129,7 @@ const CallLogs = ({ onBack, onCallback }) => {
                     <div className="flex items-center gap-1.5 text-sm text-gray-400">
                       <StatusIcon call={call} />
                       <span>{call.is_outgoing ? 'Outgoing' : 'Incoming'}</span>
-                      {call.status === 'answered' && call.duration > 0 && (
+                      {(call.status === 'answered' || call.status === 'ended') && call.duration > 0 && (
                         <span className="text-gray-500">· {fmtDuration(call.duration)}</span>
                       )}
                       {call.status === 'declined' && <span className="text-gray-500">· Declined</span>}
