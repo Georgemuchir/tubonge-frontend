@@ -8,6 +8,7 @@ import ForgotPassword from './components/auth/ForgotPassword';
 import ResetPassword from './components/auth/ResetPassword';
 import ConfirmEmailChange from './components/auth/ConfirmEmailChange';
 import WhatsAppMessenger from './components/WhatsAppMessenger';
+import UpdateGate from './components/UpdateGate';
 import { auth } from './firebase';
 import { serverReady, hasLocalServer, isUsingFallback } from './services/serverConfig';
 import './App.css';
@@ -157,7 +158,11 @@ const router = createBrowserRouter(
 );
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <UpdateGate>
+      <RouterProvider router={router} />
+    </UpdateGate>
+  );
 }
 
 export default App;
