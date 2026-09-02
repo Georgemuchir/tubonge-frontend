@@ -36,4 +36,9 @@ export default defineConfig([
     files: ['src/contexts/*.jsx', 'src/contexts/*.js'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
+  {
+    // Config files run under Node, not the browser — they need `process` etc.
+    files: ['vite.config.js'],
+    languageOptions: { globals: globals.node },
+  },
 ])
