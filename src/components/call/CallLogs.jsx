@@ -26,11 +26,18 @@ const CallLogs = ({ onBack, onCallback }) => {
     fetchLogs();
   }, [fetchLogs]);
 
-  // Refresh when call events complete
+  // Refresh when call events complete. call_log_updated is the reliable
+  // signal — the backend fires it to *both* parties whenever a call_logs
+  // record actually changes (answered/declined/ended/missed). The others
+  // are kept for redundancy, but note they only ever reach whichever party
+  // didn't perform the action (e.g. call_ended is emitted only to the
+  // other side, never echoed back to whoever hung up) — 'missed_call' in
+  // particular is not something the backend ever actually emits under
+  // that name, so it never fired here at all before call_log_updated.
   useEffect(() => {
     const sock = socketService.socket;
     if (!sock) return;
-    const events = ['call_ended', 'missed_call', 'call_accepted', 'call_rejected', 'call_unavailable'];
+    const events = ['call_log_updated', 'call_ended', 'call_accepted', 'call_rejected', 'call_unavailable'];
     const handler = () => fetchLogs();
     events.forEach(ev => sock.on(ev, handler));
     return () => events.forEach(ev => sock.off(ev, handler));
