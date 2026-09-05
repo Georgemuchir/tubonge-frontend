@@ -17,6 +17,7 @@ import ContactProfilePanel from './chat/ContactProfilePanel';
 import NewsFeed from './NewsFeed';
 import { getPendingCall, onIncomingCall } from '../services/incomingCallBridge';
 import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { PushNotifications } from '@capacitor/push-notifications';
 import Avatar, { getAvatarColor } from './Avatar';
 import AvatarUpload from './AvatarUpload';
@@ -774,6 +775,27 @@ const TubongeMessenger = () => {
     getPendingCall().then(handle);
     return onIncomingCall(handle);
   }, [user]);
+
+  // Android hardware/gesture back button: by default Capacitor lets it fall
+  // through to exiting the app, since this whole authenticated app is a
+  // single route with view switching done via state rather than
+  // react-router — there's no browser history for the back button to walk.
+  // Close whatever's topmost first (message menus/modals, then an open
+  // chat, then a non-chat nav tab) and only actually exit at the true root.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const sub = CapacitorApp.addListener('backButton', () => {
+      if (forwardMsg) { setForwardMsg(null); return; }
+      if (activeMsg) { setActiveMsg(null); return; }
+      if (showContactProfile) { setShowContactProfile(false); return; }
+      if (showProfileModal) { setShowProfileModal(false); return; }
+      if (showSettings) { setShowSettings(false); return; }
+      if (selectedUser) { setSelectedUser(null); return; }
+      if (navTab !== 'chat') { switchTab('chat'); return; }
+      CapacitorApp.exitApp();
+    });
+    return () => { sub.then(h => h.remove()); };
+  }, [forwardMsg, activeMsg, showContactProfile, showProfileModal, showSettings, selectedUser, navTab]);
 
   // Register this device for push notifications — the fallback for calls
   // and messages when this socket connection isn't live (background/
