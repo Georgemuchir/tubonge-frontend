@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, User, Mail, Lock, ArrowRight, Sparkles, CheckCircle2, Phone } from 'lucide-react';
+import { MessageCircle, User, Mail, Lock, ArrowRight, CheckCircle2, Phone } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Register = () => {
@@ -52,27 +52,16 @@ const Register = () => {
   return (
     <div className="auth-screen min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden">
 
-      {/* Animated blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="auth-blob absolute top-0 -left-4 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl animate-blob" />
-        <div className="auth-blob absolute top-0 -right-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000" />
-        <div className="auth-blob absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000" />
-      </div>
-
       <div className="w-full max-w-md relative z-10">
-        <div className="auth-card backdrop-blur-xl rounded-3xl p-8 relative overflow-hidden">
-
-          {/* Top accent bar */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+        <div className="auth-card rounded-2xl p-8 relative overflow-hidden">
 
           {/* Logo + title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl shadow-lg mb-4 transform transition-transform hover:scale-110 hover:rotate-3">
-              <MessageCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full shadow-sm mb-4" style={{ background: '#00a884' }}>
+              <MessageCircle className="w-8 h-8 text-white" strokeWidth={2.5} />
             </div>
-            <h1 className="auth-title text-4xl font-bold mb-2 tracking-tight">Join Tubonge</h1>
-            <p className="auth-subtitle text-sm flex items-center justify-center gap-1">
-              <Sparkles className="w-4 h-4" />
+            <h1 className="auth-title text-2xl font-bold mb-1 tracking-tight">Join Tubonge</h1>
+            <p className="auth-subtitle text-sm">
               Create your account to get started
             </p>
           </div>
@@ -158,7 +147,8 @@ const Register = () => {
             </div>
 
             <button type="submit" disabled={submitting}
-              className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 px-6 rounded-xl font-semibold shadow-lg hover:shadow-2xl hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group"
+              className="w-full text-white py-3.5 px-6 rounded-xl font-semibold shadow-sm hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2 group"
+              style={{ background: '#00a884' }}
             >
               {submitting ? (
                 <>
@@ -202,18 +192,6 @@ const Register = () => {
           © 2026 Tubonge. Secure messaging made simple.
         </p>
       </div>
-
-      <style>{`
-        @keyframes blob {
-          0%,100% { transform: translate(0,0) scale(1); }
-          25%      { transform: translate(20px,-50px) scale(1.1); }
-          50%      { transform: translate(-20px,20px) scale(0.9); }
-          75%      { transform: translate(50px,50px) scale(1.05); }
-        }
-        .animate-blob { animation: blob 7s infinite; }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-      `}</style>
     </div>
   );
 };

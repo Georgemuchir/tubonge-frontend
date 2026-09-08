@@ -32,11 +32,6 @@ const getBase = () => getActiveApiUrl();
 const getOrigin = () => getBase().replace(/\/api\/?$/, '');
 
 const styles = `
-  @keyframes blob {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 20px) scale(0.9); }
-  }
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-20px); }
@@ -48,7 +43,7 @@ const styles = `
     from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; }
   }
   @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; }
+    from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; }
   }
   @keyframes pulse {
     0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
@@ -57,60 +52,60 @@ const styles = `
     0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; }
   }
 
-  .blob            { animation: blob 7s infinite; }
   .float-animation { animation: float 3s ease-in-out infinite; }
-  .slide-up        { animation: slideUp 0.4s ease-out; }
+  .slide-up        { animation: slideUp 0.25s ease-out; }
 
   .glass-card {
-    background: rgba(16,16,32,0.72);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.07);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    background: var(--tubonge-header);
+    border: 1px solid var(--tubonge-border);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
   }
   .glass-card:hover {
-    border-color: rgba(124,58,237,0.35);
-    box-shadow: 0 12px 40px rgba(124,58,237,0.2);
+    border-color: var(--tubonge-accent);
   }
 
-  .message-sent     { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: #fff; box-shadow: 0 4px 15px rgba(124,58,237,0.35); border-radius: 18px 18px 4px 18px !important; }
-  .message-received { background: var(--tubonge-msg-received-bg); color: var(--tubonge-msg-received-txt); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 18px 18px 18px 4px !important; }
+  .message-sent     { background: var(--tubonge-msg-sent-bg); color: var(--tubonge-msg-sent-txt); box-shadow: 0 1px 2px rgba(0,0,0,0.15); border-radius: 12px 12px 2px 12px !important; }
+  .message-received { background: var(--tubonge-msg-received-bg); color: var(--tubonge-msg-received-txt); box-shadow: 0 1px 2px rgba(0,0,0,0.15); border-radius: 12px 12px 12px 2px !important; }
 
-  .hover-lift { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+  .hover-lift { transition: all 0.2s ease; }
   .hover-lift:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 16px 48px rgba(124,58,237,0.3);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
   }
 
   .scrollbar-thin::-webkit-scrollbar       { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: var(--tubonge-scrollbar-track); }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.45); border-radius: 99px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0,168,132,0.4); border-radius: 99px; }
 
   /* ── Theme-aware messenger classes ── */
   .tubonge-bg      { background-color: var(--tubonge-bg); color: var(--tubonge-text); }
-  .tubonge-header  { background: var(--tubonge-header); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
-  .tubonge-sidebar { background: var(--tubonge-sidebar); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  .tubonge-header  { background: var(--tubonge-header); }
+  .tubonge-sidebar { background: var(--tubonge-sidebar); }
   .tubonge-chat-bg {
     background-color: var(--tubonge-chat-bg);
-    background-image:
-      radial-gradient(circle at 85% 8%, rgba(124,58,237,0.1) 0%, transparent 70%),
-      radial-gradient(circle at 10% 85%, rgba(236,72,153,0.07) 0%, transparent 70%);
   }
   .tubonge-input         { background-color: var(--tubonge-input-bg); color: var(--tubonge-text); }
-  .conversation-hover:hover { background-color: var(--tubonge-hover); border-radius: 14px; }
-  .conversation-active    { background-color: var(--tubonge-active); border: 1px solid rgba(168,85,247,0.3); border-radius: 14px; }
+  .conversation-hover:hover { background-color: var(--tubonge-hover); border-radius: 10px; }
+  .conversation-active    { background-color: var(--tubonge-active); border-radius: 10px; }
 
   /* Tailwind utility overrides for light mode */
   [data-theme="light"] .text-white   { color: var(--tubonge-text) !important; }
+  [data-theme="light"] .hover\:text-white:hover { color: var(--tubonge-text) !important; }
   [data-theme="light"] .text-gray-400 { color: var(--tubonge-text-muted) !important; }
   [data-theme="light"] .text-gray-300 { color: var(--tubonge-text-muted) !important; }
   [data-theme="light"] .text-gray-500 { color: var(--tubonge-text-muted) !important; }
+  [data-theme="light"] .text-gray-600 { color: var(--tubonge-text-muted) !important; }
   [data-theme="light"] .border-gray-800 { border-color: var(--tubonge-border) !important; }
   [data-theme="light"] .border-gray-700 { border-color: var(--tubonge-border) !important; }
+  [data-theme="light"] .border-gray-600 { border-color: var(--tubonge-border) !important; }
+  [data-theme="light"] .border-gray-400 { border-color: var(--tubonge-border) !important; }
   [data-theme="light"] .bg-gray-800  { background-color: var(--tubonge-header) !important; }
   [data-theme="light"] .bg-gray-900  { background-color: var(--tubonge-bg) !important; }
+  [data-theme="light"] .bg-gray-700  { background-color: var(--tubonge-active) !important; }
   [data-theme="light"] .hover\:bg-gray-700:hover    { background-color: var(--tubonge-hover) !important; }
+  [data-theme="light"] .hover\:bg-gray-600:hover    { background-color: var(--tubonge-hover) !important; }
+  [data-theme="light"] .hover\:bg-gray-800:hover    { background-color: var(--tubonge-hover) !important; }
   [data-theme="light"] .hover\:bg-gray-800\/50:hover { background-color: var(--tubonge-hover) !important; }
+  [data-theme="light"] .bg-gray-800\/50 { background-color: var(--tubonge-hover) !important; }
   [data-theme="light"] .bg-gray-700\/50 { background-color: var(--tubonge-active) !important; }
   [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: var(--tubonge-hover) !important; }
   [data-theme="light"] .border-gray-700\/50 { border-color: var(--tubonge-border) !important; }
@@ -365,23 +360,23 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
               <div style={{
                 position: 'absolute', bottom: 1, right: 1,
                 width: 11, height: 11, borderRadius: '50%',
-                background: '#22d3a5', border: '2px solid #0d0b1a',
-                boxShadow: '0 0 6px #22d3a5aa',
+                background: '#06cf9c', border: '2px solid var(--tubonge-sidebar)',
+                boxShadow: '0 0 6px #06cf9caa',
               }} />
             )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-0.5">
-              <h3 style={{ color: '#f0eaff', fontWeight: 600, fontSize: 14 }} className="truncate flex items-center gap-1.5">
+              <h3 style={{ color: 'var(--tubonge-text)', fontWeight: 600, fontSize: 14 }} className="truncate flex items-center gap-1.5">
                 {conv.name}
-                {isMuted && <BellOff style={{ width: 11, height: 11, color: 'rgba(240,234,255,0.3)', flexShrink: 0 }} />}
+                {isMuted && <BellOff style={{ width: 11, height: 11, color: 'var(--tubonge-text-muted)', flexShrink: 0 }} />}
               </h3>
-              <span style={{ fontSize: 11, color: 'rgba(240,234,255,0.3)', fontWeight: 500 }} className="ml-2 flex-shrink-0">{conv.time}</span>
+              <span style={{ fontSize: 11, color: 'var(--tubonge-text-muted)', fontWeight: 500 }} className="ml-2 flex-shrink-0">{conv.time}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <p style={{ fontSize: 12, color: 'rgba(240,234,255,0.45)' }} className="truncate flex-1">
+              <p style={{ fontSize: 12, color: 'var(--tubonge-text-muted)' }} className="truncate flex-1">
                 {conv._isRequest
-                  ? <span style={{ color: '#a78bfa' }}>{conv.lastMessage}</span>
+                  ? <span style={{ color: '#06cf9c' }}>{conv.lastMessage}</span>
                   : conv.lastMessageType === 'missed_call'
                     ? <span style={{ color: '#f87171', display: 'flex', alignItems: 'center', gap: 4 }}><PhoneOff style={{ width: 12, height: 12 }} />{conv.lastMessage || 'Missed call'}</span>
                     : conv.lastMessageType === 'image' ? '📷 Photo'
@@ -396,9 +391,9 @@ const ConversationItem = ({ conv, index, onSelectUser, onDelete, onMute, onArchi
                 : conv.unread > 0 && (
                   <span style={{
                     flexShrink: 0, padding: '2px 7px', borderRadius: 10,
-                    background: 'linear-gradient(135deg, #ec4899, #a855f7)',
+                    background: 'linear-gradient(135deg, #06cf9c, #00a884)',
                     color: '#fff', fontSize: 10, fontWeight: 700,
-                    boxShadow: '0 0 8px rgba(236,72,153,0.5)',
+                    boxShadow: '0 0 8px rgba(0,168,132,0.4)',
                   }}>{conv.unread}</span>
                 )}
             </div>
@@ -472,19 +467,19 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {showArchived && (
-              <button onClick={() => setShowArchived(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'rgba(240,234,255,0.45)', display: 'flex' }}>
+              <button onClick={() => setShowArchived(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--tubonge-text-muted)', display: 'flex' }}>
                 <ArrowLeft style={{ width: 20, height: 20 }} />
               </button>
             )}
             <div style={{
               width: 32, height: 32, borderRadius: 9,
-              background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+              background: 'linear-gradient(135deg, #00a884, #008069)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 14px rgba(168,85,247,0.5)', flexShrink: 0,
+              boxShadow: '0 0 14px rgba(0,168,132,0.35)', flexShrink: 0,
             }}>
               <MessageCircle style={{ width: 15, height: 15, color: '#fff' }} />
             </div>
-            <span style={{ fontSize: 17, fontWeight: 700, color: '#f0eaff' }}>
+            <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--tubonge-text)' }}>
               {showArchived ? 'Archived' : 'Tubonge'}
             </span>
           </div>
@@ -494,23 +489,23 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
               ...(!showArchived ? [{ icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>, label: 'New', onClick: onNewMessage }] : []),
               { icon: <LogOut style={{ width: 16, height: 16 }} />, label: 'Logout', onClick: onLogout },
             ].map(({ icon, label, onClick }) => (
-              <button key={label} onClick={onClick} style={{ minWidth: 44, height: 44, borderRadius: 10, border: '1px solid rgba(168,85,247,0.2)', background: 'rgba(168,85,247,0.08)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, color: '#c084fc', padding: '0 6px' }}>
+              <button key={label} onClick={onClick} style={{ minWidth: 44, height: 44, borderRadius: 10, border: '1px solid rgba(0,168,132,0.18)', background: 'rgba(0,168,132,0.08)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, color: '#06cf9c', padding: '0 6px' }}>
                 {icon}
-                <span style={{ fontSize: 9, fontWeight: 600, color: '#c084fc', letterSpacing: '0.03em', lineHeight: 1 }}>{label}</span>
+                <span style={{ fontSize: 9, fontWeight: 600, color: '#06cf9c', letterSpacing: '0.03em', lineHeight: 1 }}>{label}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '9px 14px', marginBottom: 12 }}>
-          <Search style={{ width: 14, height: 14, color: 'rgba(240,234,255,0.3)', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--tubonge-input-bg)', border: '1px solid var(--tubonge-border)', borderRadius: 14, padding: '9px 14px', marginBottom: 12 }}>
+          <Search style={{ width: 14, height: 14, color: 'var(--tubonge-text-muted)', flexShrink: 0 }} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            style={{ background: 'none', border: 'none', outline: 'none', color: '#f0eaff', fontSize: 13, flex: 1, fontFamily: 'inherit' }}
+            style={{ background: 'none', border: 'none', outline: 'none', color: 'var(--tubonge-text)', fontSize: 13, flex: 1, fontFamily: 'inherit' }}
           />
         </div>
 
@@ -521,9 +516,9 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
                 fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-                background: activeTab === tab ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'rgba(255,255,255,0.06)',
-                color: activeTab === tab ? '#fff' : 'rgba(240,234,255,0.45)',
-                boxShadow: activeTab === tab ? '0 0 10px rgba(168,85,247,0.4)' : 'none',
+                background: activeTab === tab ? 'linear-gradient(135deg, #00a884, #008069)' : 'var(--tubonge-hover)',
+                color: activeTab === tab ? '#fff' : 'var(--tubonge-text-muted)',
+                boxShadow: activeTab === tab ? '0 0 10px rgba(0,168,132,0.3)' : 'none',
                 transition: 'all 0.15s',
               }}>{tab}</button>
             ))}
@@ -585,11 +580,11 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                   padding: '14px 20px', background: 'none', border: 'none',
-                  borderTop: '1px solid rgba(255,255,255,0.06)',
-                  color: '#9ca3af', cursor: 'pointer',
+                  borderTop: '1px solid var(--tubonge-border)',
+                  color: 'var(--tubonge-text-muted)', cursor: 'pointer',
                   transition: 'background 0.15s',
                 }}
-                className="hover:bg-gray-800/40"
+                className="conversation-hover"
               >
                 <div style={{
                   width: 48, height: 48, borderRadius: '50%',
@@ -600,10 +595,10 @@ const ConversationsView = ({ conversations, inboxLoading, onSelectUser, onNewMes
                   <Archive style={{ width: 22, height: 22, color: '#0ea5e9' }} />
                 </div>
                 <div style={{ flex: 1, textAlign: 'left' }}>
-                  <div style={{ color: '#e5e7eb', fontWeight: 600, fontSize: 15 }}>Archived</div>
-                  <div style={{ color: '#6b7280', fontSize: 13 }}>{archivedConvs.length} chat{archivedConvs.length !== 1 ? 's' : ''}</div>
+                  <div style={{ color: 'var(--tubonge-text)', fontWeight: 600, fontSize: 15 }}>Archived</div>
+                  <div style={{ color: 'var(--tubonge-text-muted)', fontSize: 13 }}>{archivedConvs.length} chat{archivedConvs.length !== 1 ? 's' : ''}</div>
                 </div>
-                <ChevronRight style={{ width: 18, height: 18, color: '#4b5563' }} />
+                <ChevronRight style={{ width: 18, height: 18, color: 'var(--tubonge-text-muted)' }} />
               </button>
             )}
           </div>
@@ -1848,10 +1843,10 @@ const TubongeMessenger = () => {
         ) : (
           <>
           {/* Chat Header */}
-          <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', background: 'rgba(13,11,26,0.88)', position: 'relative', zIndex: 10, borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="tubonge-header" style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', justifyContent: 'space-between', borderBottom: '1px solid var(--tubonge-border)', position: 'relative', zIndex: 10 }}>
             <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
               {isMobile && (
-                <button 
+                <button
                   onClick={() => setSelectedUser(null)}
                   className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors touch-target flex-shrink-0"
                 >
@@ -1861,19 +1856,19 @@ const TubongeMessenger = () => {
               <div className="relative flex-shrink-0">
                 <Avatar name={selectedUser.name} avatarUrl={selectedUser.avatar ? resolveMediaUrl(selectedUser.avatar) : null} size={40} />
                 {(onlineUsers[selectedUser.id] || onlineUsers[selectedUser._id] || selectedUser.online) && (
-                  <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#22d3a5', border: '2px solid #0d0b1a', boxShadow: '0 0 6px #22d3a5aa' }} />
+                  <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#06cf9c', border: '2px solid var(--tubonge-header)', boxShadow: '0 0 6px #06cf9caa' }} />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p style={{ color: '#f0eaff', fontWeight: 700, fontSize: 15 }} className="truncate">{selectedUser.name}</p>
+                <p style={{ color: 'var(--tubonge-text)', fontWeight: 700, fontSize: 15 }} className="truncate">{selectedUser.name}</p>
                 <p style={{ fontSize: 11, margin: 0 }}>
                   {(selectedUser?.isTyping || typingUsers[(selectedUser?.id || selectedUser?._id)]) ? (
-                    <span style={{ color: '#22d3a5', fontStyle: 'italic' }}>typing...</span>
+                    <span style={{ color: '#00a884', fontStyle: 'italic' }}>typing...</span>
                   ) : (
                     (onlineUsers[selectedUser?.id] || onlineUsers[selectedUser?._id] || selectedUser?.online) ? (
-                      <span style={{ color: '#22d3a5' }}>● Active now</span>
+                      <span style={{ color: '#00a884' }}>● Active now</span>
                     ) : (
-                      <span style={{ color: 'rgba(240,234,255,0.4)' }}>{showLastSeen ? formatLastSeen(selectedUser?.last_seen) : 'Offline'}</span>
+                      <span style={{ color: 'var(--tubonge-text-muted)' }}>{showLastSeen ? formatLastSeen(selectedUser?.last_seen) : 'Offline'}</span>
                     )
                   )}
                 </p>
@@ -1991,16 +1986,16 @@ const TubongeMessenger = () => {
                                 onClick={e => e.stopPropagation()}
                               />
                             ) : (
-                              <p className="text-white text-sm leading-relaxed break-words">{msg.content || '🎥 Video'}</p>
+                              <p className="text-sm leading-relaxed break-words">{msg.content || '🎥 Video'}</p>
                             )
                           ) : (
-                            <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>
+                            <p className="text-sm leading-relaxed break-words">{msg.content}</p>
                           )}
                         </>
                       )}
                       <div className="flex items-center justify-end gap-1 mt-1">
-                        <span className="text-xs text-gray-300">{formatTime(msg.timestamp || msg.created_at)}</span>
-                        {isSent && <Check className="w-4 h-4 text-blue-300" />}
+                        <span className="text-xs text-current opacity-60">{formatTime(msg.timestamp || msg.created_at)}</span>
+                        {isSent && <Check className="w-4 h-4 text-current opacity-70" />}
                       </div>
                     </div>
                     {/* Action bar — hidden for deleted messages */}
@@ -2047,7 +2042,7 @@ const TubongeMessenger = () => {
             {/* Incoming request bubble (the text they sent) */}
             {chatStatus === 'INCOMING_PENDING' && incomingRequest?.text && (
               <div className="flex justify-start mb-2 px-4">
-                <div className="max-w-xs lg:max-w-md rounded-2xl rounded-bl-sm px-4 py-2 bg-indigo-700/80">
+                <div className="max-w-xs lg:max-w-md rounded-2xl rounded-bl-sm px-4 py-2 bg-emerald-800/80">
                   <p className="text-white text-sm leading-relaxed break-words">{incomingRequest.text}</p>
                 </div>
               </div>
@@ -2232,7 +2227,7 @@ const TubongeMessenger = () => {
                 onClick={handleSend}
                 disabled={isSending}
                 className="text-white transition-colors touch-target disabled:opacity-50"
-                style={{ width: 38, height: 38, borderRadius: 12, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#7c3aed,#ec4899)', boxShadow: '0 0 14px rgba(168,85,247,0.5)', cursor: 'pointer' }}
+                style={{ width: 38, height: 38, borderRadius: 12, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#00a884,#008069)', boxShadow: '0 0 14px rgba(0,168,132,0.35)', cursor: 'pointer' }}
               >
                 {isSending ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
@@ -2241,7 +2236,7 @@ const TubongeMessenger = () => {
                 onClick={startRecording}
                 disabled={uploadingVoice}
                 className="text-white transition-colors touch-target disabled:opacity-50"
-                style={{ width: 38, height: 38, borderRadius: 12, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#7c3aed,#ec4899)', boxShadow: '0 0 14px rgba(168,85,247,0.5)', cursor: 'pointer' }}
+                style={{ width: 38, height: 38, borderRadius: 12, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#00a884,#008069)', boxShadow: '0 0 14px rgba(0,168,132,0.35)', cursor: 'pointer' }}
                 title="Record voice note"
               >
                 {uploadingVoice ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mic className="w-4 h-4" />}
@@ -2280,11 +2275,10 @@ const TubongeMessenger = () => {
 
       {/* Bottom Nav — hidden while in an active chat */}
       {!selectedUser && (
-        <div style={{
+        <div className="tubonge-header" style={{
           display: 'flex', justifyContent: 'space-around', alignItems: 'center',
           padding: '10px 8px 22px',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-          background: '#0d0b1a',
+          borderTop: '1px solid var(--tubonge-border)',
           flexShrink: 0,
         }}>
           {[
@@ -2307,13 +2301,13 @@ const TubongeMessenger = () => {
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                   background: 'none', border: 'none', cursor: 'pointer',
                   padding: '6px 14px', borderRadius: 10,
-                  color: isActive ? '#a855f7' : 'rgba(240,234,255,0.4)',
+                  color: isActive ? '#00a884' : 'var(--tubonge-text-muted)',
                   transition: 'all 0.15s', flex: 1,
                 }}
               >
                 <div style={{
                   width: 32, height: 32, borderRadius: 8,
-                  background: isActive ? 'rgba(168,85,247,0.18)' : 'transparent',
+                  background: isActive ? 'rgba(0,168,132,0.18)' : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {icon}
@@ -2364,15 +2358,15 @@ const TubongeMessenger = () => {
             className="w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
             style={{
               background: theme === 'light' ? '#ffffff' : '#161228',
-              border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid rgba(168,85,247,0.25)',
+              border: theme === 'light' ? '1px solid #e2e8f0' : '1px solid rgba(0,168,132,0.25)',
               boxShadow: theme === 'light'
                 ? '0 24px 60px rgba(15,23,42,0.18)'
-                : '0 24px 60px rgba(0,0,0,0.55), 0 0 50px rgba(124,58,237,0.18)',
+                : '0 24px 60px rgba(0,0,0,0.55), 0 0 50px rgba(0,168,132,0.18)',
               animation: 'scaleUp 0.2s ease-out',
             }}
           >
             {/* Cover banner + avatar */}
-            <div style={{ position: 'relative', height: 96, background: 'linear-gradient(135deg,#7c3aed,#ec4899)', flexShrink: 0 }}>
+            <div style={{ position: 'relative', height: 96, background: 'linear-gradient(135deg,#00a884,#008069)', flexShrink: 0 }}>
               {user?.phone_number && (
                 <button
                   onClick={() => setShowProfileModal(false)}
@@ -2407,7 +2401,7 @@ const TubongeMessenger = () => {
               {!user?.phone_number && (
                 <p
                   className="text-xs mt-2 px-3 py-1 inline-block rounded-full font-medium"
-                  style={{ background: 'rgba(236,72,153,0.14)', color: '#ec4899' }}
+                  style={{ background: 'rgba(0,168,132,0.14)', color: '#06cf9c' }}
                 >
                   A phone number is required to use Tubonge
                 </p>
@@ -2422,7 +2416,7 @@ const TubongeMessenger = () => {
                   value={profileForm.name}
                   onChange={(e) => setProfileForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="Your name"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                   style={profileInputStyle(theme)}
                 />
               </ProfileField>
@@ -2437,7 +2431,7 @@ const TubongeMessenger = () => {
                   value={profileForm.username}
                   onChange={(e) => handleUsernameChange(e.target.value)}
                   placeholder="yourhandle"
-                  className="w-full pl-7 pr-16 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                  className="w-full pl-7 pr-16 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                   style={{
                     ...profileInputStyle(theme),
                     border: usernameAvailable === true
@@ -2458,14 +2452,14 @@ const TubongeMessenger = () => {
                 )}
               </ProfileField>
 
-              <ProfileField label={<>Phone Number <span className="text-pink-400">*</span></>} theme={theme} icon={<Phone className="w-4 h-4" />}>
+              <ProfileField label={<>Phone Number <span className="text-emerald-500">*</span></>} theme={theme} icon={<Phone className="w-4 h-4" />}>
                 <input
                   type="tel"
                   value={profileForm.phone_number}
                   onChange={(e) => setProfileForm(f => ({ ...f, phone_number: e.target.value }))}
                   placeholder="+1 234 567 8900"
                   autoFocus={!user?.phone_number}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                   style={profileInputStyle(theme)}
                 />
               </ProfileField>
@@ -2493,7 +2487,7 @@ const TubongeMessenger = () => {
                     value={emailChangeInput}
                     onChange={(e) => { setEmailChangeInput(e.target.value); setEmailChangeError(''); setEmailChangeMsg(''); setEmailChangeNeedsReauth(false); }}
                     placeholder="new@email.com"
-                    className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                    className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                     style={profileInputStyle(theme)}
                   />
                   {!emailChangeNeedsReauth && (
@@ -2501,7 +2495,7 @@ const TubongeMessenger = () => {
                       onClick={() => handleSendEmailChangeLink()}
                       disabled={emailChangeSending || !emailChangeInput.trim()}
                       className="px-3 py-2 text-xs font-medium rounded-xl text-white transition-all disabled:opacity-50 whitespace-nowrap"
-                      style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)' }}
+                      style={{ background: 'linear-gradient(135deg,#00a884,#008069)' }}
                     >
                       {emailChangeSending ? 'Sending…' : 'Send link'}
                     </button>
@@ -2515,7 +2509,7 @@ const TubongeMessenger = () => {
                       value={reauthPassword}
                       onChange={(e) => setReauthPassword(e.target.value)}
                       placeholder="Enter your password to confirm"
-                      className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                      className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                       style={profileInputStyle(theme)}
                       onKeyDown={(e) => e.key === 'Enter' && reauthPassword && handleSendEmailChangeLink(reauthPassword)}
                     />
@@ -2523,7 +2517,7 @@ const TubongeMessenger = () => {
                       onClick={() => handleSendEmailChangeLink(reauthPassword)}
                       disabled={emailChangeSending || !reauthPassword}
                       className="px-3 py-2 text-xs font-medium rounded-xl text-white transition-all disabled:opacity-50 whitespace-nowrap"
-                      style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)' }}
+                      style={{ background: 'linear-gradient(135deg,#00a884,#008069)' }}
                     >
                       {emailChangeSending ? 'Sending…' : 'Confirm'}
                     </button>
@@ -2556,7 +2550,7 @@ const TubongeMessenger = () => {
                 onClick={handleProfileSave}
                 disabled={profileSaving || !profileForm.phone_number.trim()}
                 className="px-5 py-2 text-sm font-medium rounded-xl text-white transition-all disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)', boxShadow: '0 0 14px rgba(168,85,247,0.4)' }}
+                style={{ background: 'linear-gradient(135deg,#00a884,#008069)', boxShadow: '0 0 14px rgba(0,168,132,0.3)' }}
               >
                 {profileSaving ? 'Saving…' : 'Save'}
               </button>

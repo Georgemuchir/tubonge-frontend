@@ -9,91 +9,99 @@
    Default = dark. Light overrides below.
 ───────────────────────────────────────── */
 :root {
-  /* Messenger */
-  --tubonge-bg:              #0d0b1a;
-  --tubonge-header:          rgba(13,11,26,0.9);
-  --tubonge-sidebar:         #0d0b1a;
-  --tubonge-chat-bg:         #0d0b1a;
-  --tubonge-input-bg:        rgba(255,255,255,0.06);
-  --tubonge-border:          rgba(255,255,255,0.08);
-  --tubonge-text:            #f0eaff;
-  --tubonge-text-muted:      rgba(240,234,255,0.45);
-  --tubonge-hover:           rgba(255,255,255,0.07);
-  --tubonge-active:          rgba(168,85,247,0.18);
-  --tubonge-msg-received-bg: rgba(255,255,255,0.09);
-  --tubonge-msg-received-txt:#f0eaff;
+  /* Messenger — WhatsApp-style dark */
+  --tubonge-bg:              #111b21;
+  --tubonge-header:          #202c33;
+  --tubonge-sidebar:         #111b21;
+  --tubonge-chat-bg:         #0b141a;
+  --tubonge-input-bg:        #2a3942;
+  --tubonge-border:          rgba(255,255,255,0.06);
+  --tubonge-text:            #e9edef;
+  --tubonge-text-muted:      #8696a0;
+  --tubonge-hover:           #202c33;
+  --tubonge-active:          #2a3942;
+  --tubonge-msg-received-bg: #202c33;
+  --tubonge-msg-received-txt:#e9edef;
+  --tubonge-msg-sent-bg:     #005c4b;
+  --tubonge-msg-sent-txt:    #e9edef;
   --tubonge-scrollbar-track: transparent;
-  --tubonge-gradient:        linear-gradient(135deg,#7c3aed,#a855f7);
-  --tubonge-gradient-soft:   linear-gradient(135deg,#7c3aed,#ec4899);
+  --tubonge-accent:          #00a884;
+  --tubonge-accent-hover:    #06cf9c;
+  --tubonge-gradient:        linear-gradient(135deg,#00a884,#008069);
+  --tubonge-gradient-soft:   linear-gradient(135deg,#06cf9c,#00a884);
 
   /* Auth pages */
-  --auth-bg-from:        #07070f;
-  --auth-bg-via:         #0f0820;
-  --auth-bg-to:          #07070f;
-  --auth-blob-opacity:   0.28;
-  --auth-card-bg:        rgba(16,16,32,0.78);
-  --auth-card-border:    rgba(255,255,255,0.08);
-  --auth-card-shadow:    0 32px 64px rgba(0,0,0,0.7);
-  --auth-title:          #ffffff;
-  --auth-subtitle:       #9898b8;
-  --auth-label:          #9898b8;
-  --auth-footer:         rgba(152,152,184,0.45);
-  --auth-input-bg:       #161628;
-  --auth-input-border:   rgba(255,255,255,0.07);
-  --auth-input-text:     #e2e2f0;
-  --auth-input-ph:       #5a5a7a;
-  --auth-icon:           #5a5a7a;
+  --auth-bg-from:        #0b141a;
+  --auth-bg-via:         #111b21;
+  --auth-bg-to:          #0b141a;
+  --auth-blob-opacity:   0;
+  --auth-card-bg:        #202c33;
+  --auth-card-border:    rgba(255,255,255,0.06);
+  --auth-card-shadow:    0 16px 40px rgba(0,0,0,0.45);
+  --auth-title:          #e9edef;
+  --auth-subtitle:       #8696a0;
+  --auth-label:          #8696a0;
+  --auth-footer:         rgba(134,150,160,0.7);
+  --auth-input-bg:       #2a3942;
+  --auth-input-border:   rgba(255,255,255,0.06);
+  --auth-input-text:     #e9edef;
+  --auth-input-ph:       #8696a0;
+  --auth-icon:           #8696a0;
   --auth-divider:        rgba(255,255,255,0.08);
-  --auth-divider-text:   #5a5a7a;
-  --auth-link:           #a78bfa;
+  --auth-divider-text:   #8696a0;
+  --auth-link:           #06cf9c;
   --auth-link-hover:     #ffffff;
   --auth-error-bg:       rgba(239,68,68,0.12);
   --auth-error-border:   rgba(239,68,68,0.3);
   --auth-error-text:     #fca5a5;
-  --auth-error-link:     #a78bfa;
+  --auth-error-link:     #06cf9c;
 }
 
 [data-theme="light"] {
-  /* Messenger */
+  /* Messenger — WhatsApp-style light */
   --tubonge-bg:              #f0f2f5;
   --tubonge-header:          #ffffff;
   --tubonge-sidebar:         #ffffff;
-  --tubonge-chat-bg:         #e5ddd5;
+  --tubonge-chat-bg:         #efeae2;
   --tubonge-input-bg:        #ffffff;
   --tubonge-border:          rgba(0,0,0,0.08);
-  --tubonge-text:            #1e293b;
-  --tubonge-text-muted:      #64748b;
-  --tubonge-hover:           #f0f2f5;
-  --tubonge-active:          #e2e8f0;
+  --tubonge-text:            #111b21;
+  --tubonge-text-muted:      #667781;
+  --tubonge-hover:           #f5f6f6;
+  --tubonge-active:          #e9edef;
   --tubonge-msg-received-bg: #ffffff;
-  --tubonge-msg-received-txt:#1e293b;
+  --tubonge-msg-received-txt:#111b21;
+  --tubonge-msg-sent-bg:     #d9fdd3;
+  --tubonge-msg-sent-txt:    #111b21;
   --tubonge-scrollbar-track: rgba(0,0,0,0.05);
+  --tubonge-accent:          #00a884;
+  --tubonge-accent-hover:    #008069;
 
   /* Auth pages */
-  --auth-bg-from:        #f8fafc;
-  --auth-bg-via:         #ede9fe;
-  --auth-bg-to:          #e0e7ff;
-  --auth-blob-opacity:   0.35;
-  --auth-card-bg:        rgba(255,255,255,0.92);
-  --auth-card-border:    rgba(0,0,0,0.1);
-  --auth-card-shadow:    0 25px 50px rgba(0,0,0,0.12);
-  --auth-title:          #1e293b;
-  --auth-subtitle:       #6b7280;
-  --auth-label:          #6b7280;
-  --auth-footer:         rgba(107,114,128,0.6);
-  --auth-input-bg:       #f8fafc;
-  --auth-input-border:   rgba(0,0,0,0.15);
-  --auth-input-text:     #1e293b;
-  --auth-input-ph:       #94a3b8;
-  --auth-icon:           #94a3b8;
-  --auth-divider:        rgba(0,0,0,0.12);
-  --auth-divider-text:   #9ca3af;
-  --auth-link:           #4f46e5;
-  --auth-link-hover:     #7c3aed;
-  --auth-error-bg:       rgba(239,68,68,0.1);
-  --auth-error-border:   rgba(239,68,68,0.35);
+  --auth-bg-from:        #f7f8fa;
+  --auth-bg-via:         #eef4f2;
+  --auth-bg-to:          #f7f8fa;
+  --auth-blob-opacity:   0;
+  --auth-card-bg:        #ffffff;
+  --auth-card-border:    rgba(0,0,0,0.08);
+  --auth-card-shadow:    0 16px 40px rgba(0,0,0,0.08);
+  --auth-title:          #111b21;
+  --auth-subtitle:       #667781;
+  --auth-label:          #667781;
+  --auth-footer:         rgba(102,119,129,0.8);
+  --auth-input-bg:       #f7f8fa;
+  --auth-input-border:   rgba(0,0,0,0.12);
+  --auth-input-text:     #111b21;
+  --auth-input-ph:       #8696a0;
+  --auth-icon:           #8696a0;
+  --auth-divider:        rgba(0,0,0,0.1);
+  --auth-divider-text:   #8696a0;
+  --auth-link:           #008069;
+  --auth-link-hover:     #00a884;
+  --auth-error-bg:       rgba(239,68,68,0.08);
+  --auth-error-border:   rgba(239,68,68,0.3);
   --auth-error-text:     #b91c1c;
-  --auth-error-link:     #7c3aed;
+  --auth-error-link:     #008069;
 }
 
 /* ─────────────────────────────────────────
@@ -134,8 +142,8 @@
 .auth-input::placeholder { color: var(--auth-input-ph); }
 .auth-input:focus {
   outline: none;
-  border-color: #a855f7;
-  box-shadow: 0 0 0 2px rgba(168,85,247,0.3);
+  border-color: #00a884;
+  box-shadow: 0 0 0 2px rgba(0,168,132,0.25);
 }
 .auth-icon     { color: var(--auth-icon); }
 .auth-divider  { border-color: var(--auth-divider); }
@@ -157,7 +165,7 @@
 @layer components {
   .chat-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #3b82f6 var(--tubonge-scrollbar-track);
+    scrollbar-color: #00a884 var(--tubonge-scrollbar-track);
   }
   .chat-scrollbar::-webkit-scrollbar { width: 6px; }
   .chat-scrollbar::-webkit-scrollbar-track {
@@ -165,7 +173,7 @@
     border-radius: 3px;
   }
   .chat-scrollbar::-webkit-scrollbar-thumb {
-    background: #3b82f6;
+    background: #00a884;
     border-radius: 3px;
   }
 }

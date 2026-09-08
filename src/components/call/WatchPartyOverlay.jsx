@@ -3,16 +3,16 @@ import { X, CheckCircle, Clock, Users, ChevronLeft } from 'lucide-react';
 import socketService from '../../services/socket';
 
 const C = {
-  bg: '#0d0b1a',
+  bg: '#111b21',
   surface: 'rgba(255,255,255,0.05)',
-  border: 'rgba(168,85,247,0.25)',
-  accent: '#a855f7',
-  accentGlow: 'rgba(168,85,247,0.35)',
-  pink: '#ec4899',
-  text: '#f0eaff',
-  muted: 'rgba(240,234,255,0.5)',
-  dim: 'rgba(240,234,255,0.28)',
-  online: '#22d3a5',
+  border: 'rgba(0,168,132,0.25)',
+  accent: '#00a884',
+  accentGlow: 'rgba(0,168,132,0.35)',
+  pink: '#06cf9c',
+  text: '#e9edef',
+  muted: 'rgba(233,237,239,0.5)',
+  dim: 'rgba(233,237,239,0.28)',
+  online: '#06cf9c',
 };
 
 const SERVICES = [
@@ -24,7 +24,7 @@ const SERVICES = [
   { id: 'max',         name: 'Max',          color: '#5A2BE2', label: 'M',  screen: true,  url: 'https://www.max.com'                             },
   { id: 'appletv',     name: 'Apple TV+',    color: '#d0d0d0', label: '⌘',  screen: true,  url: 'https://tv.apple.com'                            },
   { id: 'crunchyroll', name: 'Crunchyroll',  color: '#FF6B00', label: 'C',  screen: true,  url: 'https://www.crunchyroll.com'                     },
-  { id: 'other',       name: 'Other',        color: '#a855f7', label: '⬡',  screen: true,  url: null                                              },
+  { id: 'other',       name: 'Other',        color: '#00a884', label: '⬡',  screen: true,  url: null                                              },
 ];
 
 function watchRoomId(a, b) {
@@ -374,7 +374,7 @@ const WP_CSS = `
     justify-content: space-between;
     padding: 10px 16px;
     background: rgba(13,11,26,0.92);
-    border-bottom: 1px solid rgba(168,85,247,0.25);
+    border-bottom: 1px solid rgba(0,168,132,0.25);
     flex-shrink: 0;
   }
 

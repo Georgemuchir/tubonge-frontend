@@ -8,9 +8,9 @@
    ================================================ */
 :root {
   /* Brand Colors */
-  --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%);
-  --primary-gradient-hover: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-  --accent-gradient: linear-gradient(135deg, #7c3aed, #a855f7);
+  --primary-gradient: linear-gradient(135deg, #00a884 0%, #008069 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #008069 0%, #006e5a 100%);
+  --accent-gradient: linear-gradient(135deg, #00a884, #06cf9c);
   --success-gradient: linear-gradient(135deg, #10b981 0%, #34d399 100%);
 
   /* Neutral Colors */
@@ -40,7 +40,7 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.65);
-  --shadow-glow: 0 0 24px rgba(124, 58, 237, 0.4);
+  --shadow-glow: 0 0 24px rgba(0, 168, 132, 0.35);
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -287,8 +287,8 @@ body {
 }
 
 .input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #00a884;
+  box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.15);
 }
 
 .input:disabled {

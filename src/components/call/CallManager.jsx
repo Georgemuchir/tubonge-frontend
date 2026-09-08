@@ -740,7 +740,7 @@ const CallManager = forwardRef(({ currentUser, selectedUser }, ref) => {
               {isScreenSharing ? <ScreenShareOff className="w-6 h-6" /> : <ScreenShare className="w-6 h-6" />}
             </Btn>
             <Btn onClick={() => setWatchPartyOpen(true)} title="Watch Together"
-              className={`w-14 h-14 ${watchPartyOpen ? 'bg-purple-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
+              className={`w-14 h-14 ${watchPartyOpen ? 'bg-emerald-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
               <Tv2 className="w-6 h-6" />
             </Btn>
             <Btn onClick={endCall} title="End call"

@@ -66,7 +66,7 @@ export default function UpdateGate({ children }) {
 
   if (status === 'blocked') {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#0d0b1a' }}>
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#111b21' }}>
         <div className="max-w-sm w-full text-center">
           <div className="text-5xl mb-4">⬆️</div>
           <h1 className="text-xl font-bold text-white mb-2">Update required</h1>
@@ -76,7 +76,7 @@ export default function UpdateGate({ children }) {
           <a
             href={downloadUrl}
             className="inline-block w-full py-3 rounded-xl text-white font-semibold"
-            style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)' }}
+            style={{ background: '#00a884' }}
           >
             Download update
           </a>
@@ -88,10 +88,10 @@ export default function UpdateGate({ children }) {
   return (
     <>
       {status === 'soft' && !dismissed && (
-        <div className="w-full bg-purple-600 text-white text-sm text-center px-4 py-2 flex items-center justify-center gap-3">
+        <div className="w-full text-white text-sm text-center px-4 py-2 flex items-center justify-center gap-3" style={{ background: '#00a884' }}>
           <span>A newer version of Tubonge is available.</span>
           <a href={downloadUrl} className="underline font-semibold">Update now</a>
-          <button onClick={() => setDismissed(true)} className="text-purple-200 hover:text-white ml-2" aria-label="Dismiss">
+          <button onClick={() => setDismissed(true)} className="text-white/80 hover:text-white ml-2" aria-label="Dismiss">
             ✕
           </button>
         </div>

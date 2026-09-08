@@ -61,7 +61,7 @@ function InterestSelection({ onDone }) {
     <div className="flex-1 overflow-y-auto scrollbar-thin" style={{ background: 'var(--tubonge-bg)' }}>
       <div className="max-w-lg mx-auto px-5 py-8">
         <div className="flex items-center gap-3 mb-2">
-          <Rss className="w-7 h-7 text-purple-400" />
+          <Rss className="w-7 h-7 text-emerald-400" />
           <h1 className="text-2xl font-bold" style={{ color: 'var(--tubonge-text)' }}>
             Your Tubonge Feed
           </h1>
@@ -103,7 +103,7 @@ function InterestSelection({ onDone }) {
           disabled={selected.length < 3 || saving}
           className="w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-40"
           style={{
-            background: selected.length >= 3 ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : undefined,
+            background: selected.length >= 3 ? 'linear-gradient(135deg, #00a884, #008069)' : undefined,
             color: 'white',
           }}
         >
@@ -198,10 +198,10 @@ function ArticleCard({ article, onLike, onShare, onSave }) {
 
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150"
-          style={{ color: saved ? '#a855f7' : 'var(--tubonge-text-muted)' }}
+          style={{ color: saved ? '#06cf9c' : 'var(--tubonge-text-muted)' }}
           onClick={e => { e.stopPropagation(); onSave(article.id); }}
         >
-          <Bookmark className="w-3.5 h-3.5" fill={saved ? '#a855f7' : 'none'} />
+          <Bookmark className="w-3.5 h-3.5" fill={saved ? '#06cf9c' : 'none'} />
           Save
         </button>
 
@@ -231,7 +231,7 @@ function CategoryBar({ categories, active, onChange }) {
         onClick={() => onChange(null)}
         className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
         style={{
-          background: active === null ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : 'var(--tubonge-hover)',
+          background: active === null ? 'linear-gradient(135deg,#00a884,#008069)' : 'var(--tubonge-hover)',
           color: active === null ? 'white' : 'var(--tubonge-text-muted)',
         }}
       >
@@ -336,7 +336,7 @@ export default function NewsFeed({ onBack }) {
     return (
       <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--tubonge-bg)' }}>
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-3" />
+          <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mx-auto mb-3" />
           <p className="text-sm" style={{ color: 'var(--tubonge-text-muted)' }}>Loading your feed…</p>
         </div>
       </div>
@@ -363,7 +363,7 @@ export default function NewsFeed({ onBack }) {
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
-        <Rss className="w-5 h-5 text-purple-400" />
+        <Rss className="w-5 h-5 text-emerald-400" />
         <div className="flex-1">
           <h2 className="font-bold text-sm" style={{ color: 'var(--tubonge-text)' }}>Your Feed</h2>
           <p className="text-xs" style={{ color: 'var(--tubonge-text-muted)' }}>
@@ -383,8 +383,8 @@ export default function NewsFeed({ onBack }) {
           onClick={() => setPhase('setup')}
           className="text-xs px-3 py-1.5 rounded-full"
           style={{
-            background: 'rgba(124,58,237,0.15)',
-            color: '#a78bfa',
+            background: 'rgba(0,168,132,0.15)',
+            color: '#06cf9c',
           }}
         >
           Edit topics
@@ -406,7 +406,7 @@ export default function NewsFeed({ onBack }) {
             <button
               onClick={loadFeed}
               className="text-sm px-4 py-2 rounded-xl"
-              style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}
+              style={{ background: 'rgba(0,168,132,0.2)', color: '#06cf9c' }}
             >
               Try again
             </button>
