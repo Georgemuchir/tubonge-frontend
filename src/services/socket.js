@@ -14,6 +14,17 @@ class SocketService {
     this._token = null;
     this._consecutiveErrors = 0;
     this._switchUnsub = null;
+    this._reconnectListeners = new Set();
+  }
+
+  // Fires on every (re)connection — including the very first one and any
+  // reconnect after a dropped connection (app backgrounded, network blip,
+  // etc). Registered against the service itself rather than the raw socket
+  // so callers don't need to worry about whether `this.socket` exists yet.
+  // Returns an unsubscribe function.
+  onReconnect(callback) {
+    this._reconnectListeners.add(callback);
+    return () => this._reconnectListeners.delete(callback);
   }
 
   async connect(token) {
@@ -55,6 +66,9 @@ class SocketService {
       console.warn('[socket] connected via:', this.socket.io.engine.transport.name);
       this.connected = true;
       this._consecutiveErrors = 0;
+      this._reconnectListeners.forEach((cb) => {
+        try { cb(); } catch (err) { console.error('[socket] onReconnect listener failed:', err); }
+      });
     });
 
     this.socket.io.on('upgrade', () => {

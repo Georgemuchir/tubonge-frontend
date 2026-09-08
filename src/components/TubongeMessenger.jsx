@@ -743,6 +743,26 @@ const TubongeMessenger = () => {
     fetchInbox();
   }, []);
 
+  // Re-sync the inbox whenever the socket (re)connects — covers coming back
+  // online after a dropped connection, not just the initial load. Without
+  // this, anything that happened while disconnected (messages, unread
+  // counts) only shows up once something else happens to trigger a refetch.
+  useEffect(() => {
+    const unsub = socketService.onReconnect(() => { fetchInbox(); });
+    return unsub;
+  }, []);
+
+  // Same idea for when the native app is brought back to the foreground —
+  // the socket may still be reconnecting at that point, so this covers the
+  // gap until 'connect' fires.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const sub = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) fetchInbox();
+    });
+    return () => { sub.then(h => h.remove()); };
+  }, []);
+
   // Keep-alive ping every 10 min to prevent Render free tier cold starts
   useEffect(() => {
     const id = setInterval(() => {
